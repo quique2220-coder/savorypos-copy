@@ -99,8 +99,11 @@ export default function Menu() {
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead>Margin</TableHead>
+                  <TableHead>Cost/Serving</TableHead>
+                  <TableHead>Food Cost %</TableHead>
+                  <TableHead>Target Price</TableHead>
+                  <TableHead>GP %</TableHead>
+                  <TableHead className="flex items-center gap-1"><FlameIcon className="w-3.5 h-3.5 text-orange-500" />Calories</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
