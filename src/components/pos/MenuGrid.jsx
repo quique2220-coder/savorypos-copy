@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, FlameIcon } from "lucide-react";
 
 export default function MenuGrid({ items, onAddItem }) {
   return (
