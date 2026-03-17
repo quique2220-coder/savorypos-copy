@@ -110,7 +110,11 @@ export default function Menu() {
               </TableHeader>
               <TableBody>
                 {menuItems.map((item) => {
-                  const margin = item.price && item.cost ? (((item.price - item.cost) / item.price) * 100).toFixed(0) : "—";
+                  const foodCostPct = item.price && item.cost ? item.cost / item.price : null;
+                  const targetFCP = item.target_food_cost_pct || 0.3;
+                  const targetPrice = item.cost ? item.cost / targetFCP : null;
+                  const gpPct = item.price && item.cost ? ((item.price - item.cost) / item.price) * 100 : null;
+                  const isOver = foodCostPct && foodCostPct > targetFCP;
                   return (
                     <TableRow key={item.id}>
                       <TableCell>
@@ -123,9 +127,26 @@ export default function Menu() {
                       <TableCell className="font-semibold">${item.price?.toFixed(2)}</TableCell>
                       <TableCell className="text-muted-foreground">{item.cost ? `$${item.cost.toFixed(2)}` : "—"}</TableCell>
                       <TableCell>
-                        {margin !== "—" && (
-                          <Badge variant="secondary" className="text-xs">{margin}%</Badge>
-                        )}
+                        {foodCostPct !== null ? (
+                          <Badge className={isOver ? "bg-red-100 text-red-700 border-red-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"}>
+                            {(foodCostPct * 100).toFixed(1)}%
+                          </Badge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {targetPrice ? <span className={item.price < targetPrice ? "text-amber-600 font-semibold" : "text-emerald-600"}>${targetPrice.toFixed(2)}</span> : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {gpPct !== null ? (
+                          <Badge variant="secondary" className="text-xs">{gpPct.toFixed(1)}%</Badge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {item.calories ? (
+                          <span className="flex items-center gap-1 text-sm text-orange-600">
+                            <FlameIcon className="w-3.5 h-3.5" />{item.calories}
+                          </span>
+                        ) : "—"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.is_available !== false ? "default" : "secondary"}>
