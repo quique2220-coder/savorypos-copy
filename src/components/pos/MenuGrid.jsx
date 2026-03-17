@@ -29,7 +29,14 @@ export default function MenuGrid({ items, onAddItem }) {
           {item.description && (
             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{item.description}</p>
           )}
-          <p className="text-base font-bold text-primary mt-2">${item.price?.toFixed(2)}</p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-base font-bold text-primary">${item.price?.toFixed(2)}</p>
+            {item.calories > 0 && (
+              <span className="flex items-center gap-0.5 text-[11px] text-orange-500 font-medium">
+                <FlameIcon className="w-3 h-3" />{item.calories}
+              </span>
+            )}
+          </div>
           {item.tags?.length > 0 && (
             <div className="flex gap-1 mt-2 flex-wrap">
               {item.tags.slice(0, 2).map((tag) => (
