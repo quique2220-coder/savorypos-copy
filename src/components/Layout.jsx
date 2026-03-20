@@ -15,6 +15,8 @@ const navItems = [
   { path: "/Reports", label: "Reports", icon: BarChart3, group: "finance" },
   { path: "/Proyecciones", label: "Proyecciones", icon: TrendingUp, group: "finance" },
   { path: "/Contabilidad", label: "Contabilidad", icon: BookOpen, group: "finance" },
+  { path: "/CRM", label: "CRM + Marketing", icon: Users, group: "crm" },
+  { path: "/Settings", label: "Settings", icon: Settings2, group: "crm" },
 ];
 
 export default function Layout() {
@@ -67,6 +69,9 @@ export default function Layout() {
           <div className="h-3" />
           {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">Finanzas</p>}
           {renderLinks("finance")}
+          <div className="h-3" />
+          {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">CRM</p>}
+          {renderLinks("crm")}
         </nav>
 
         {/* Collapse */}
