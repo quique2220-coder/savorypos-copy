@@ -2,21 +2,43 @@ import React, { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
   Monitor, UtensilsCrossed, Package, BarChart3, 
-  ClipboardList, ChevronLeft, ChevronRight, Flame
+  ClipboardList, ChevronLeft, ChevronRight, Flame,
+  BookOpen, TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { path: "/POS", label: "POS Terminal", icon: Monitor },
-  { path: "/Menu", label: "Menu", icon: UtensilsCrossed },
-  { path: "/Orders", label: "Orders", icon: ClipboardList },
-  { path: "/Inventory", label: "Inventory", icon: Package },
-  { path: "/Reports", label: "Reports", icon: BarChart3 },
+  { path: "/POS", label: "POS Terminal", icon: Monitor, group: "ops" },
+  { path: "/Menu", label: "Menu", icon: UtensilsCrossed, group: "ops" },
+  { path: "/Orders", label: "Orders", icon: ClipboardList, group: "ops" },
+  { path: "/Inventory", label: "Inventory", icon: Package, group: "ops" },
+  { path: "/Reports", label: "Reports", icon: BarChart3, group: "finance" },
+  { path: "/Proyecciones", label: "Proyecciones", icon: TrendingUp, group: "finance" },
+  { path: "/Contabilidad", label: "Contabilidad", icon: BookOpen, group: "finance" },
 ];
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+
+  const renderLinks = (group) => navItems.filter(i => i.group === group).map((item) => {
+    const isActive = location.pathname === item.path;
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+          isActive 
+            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20" 
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        )}
+      >
+        <item.icon className={cn("w-5 h-5 shrink-0", isActive && "drop-shadow-sm")} />
+        {!collapsed && <span className="text-sm font-medium truncate">{item.label}</span>}
+      </Link>
+    );
+  });
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -41,48 +63,10 @@ export default function Layout() {
         {/* Nav */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">Operaciones</p>}
-          {navItems.filter(i => i.group === "ops").map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
-                  isActive 
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20" 
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className={cn("w-5 h-5 shrink-0", isActive && "drop-shadow-sm")} />
-                {!collapsed && (
-                  <span className="text-sm font-medium truncate">{item.label}</span>
-                )}
-              </Link>
-            );
-          })}
-          {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mt-4 mb-1">Finanzas</p>}
-          {collapsed && <div className="h-2" />}
-          {navItems.filter(i => i.group === "finance").map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
-                  isActive 
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20" 
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className={cn("w-5 h-5 shrink-0", isActive && "drop-shadow-sm")} />
-                {!collapsed && (
-                  <span className="text-sm font-medium truncate">{item.label}</span>
-                )}
-              </Link>
-            );
-          })}
+          {renderLinks("ops")}
+          <div className="h-3" />
+          {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">Finanzas</p>}
+          {renderLinks("finance")}
         </nav>
 
         {/* Collapse */}
