@@ -105,10 +105,10 @@ export default function Proyecciones() {
           {/* RESUMEN */}
           <TabsContent value="overview">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KPI label="Ventas Año 1" value="$989K" sub="Year 1 Total" color="text-primary" icon={DollarSign} />
-              <KPI label="Ventas Año 2" value="$1.22M" sub="+23% vs Año 1" color="text-emerald-600" icon={DollarSign} />
-              <KPI label="Ventas Año 3" value="$1.36M" sub="+11% vs Año 2" color="text-emerald-600" icon={DollarSign} />
-              <KPI label="Ingreso Neto 3 Años" value={`$${(totalNI / 1000).toFixed(0)}K`} sub="Utilidad acumulada" color="text-blue-600" icon={TrendingUp} />
+              <KPI label="Ventas Año 1" value="$989K" sub="Year 1 Total" color="text-primary" />
+              <KPI label="Ventas Año 2" value="$1.22M" sub="+23% vs Año 1" color="text-emerald-600" />
+              <KPI label="Ventas Año 3" value="$1.36M" sub="+11% vs Año 2" color="text-emerald-600" />
+              <KPI label="Ingreso Neto 3 Años" value={`$${(totalNI / 1000).toFixed(0)}K`} sub="Utilidad acumulada" color="text-blue-600" />
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-6">
