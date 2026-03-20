@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, Users, ShoppingBag, Megaphone, DollarSign, Store } from "lucide-react";
+import { TrendingUp, Users, ShoppingBag, Megaphone, Store } from "lucide-react";
 
 // Data from the Restaurant Financial Model Excel
 const MONTHLY_DATA = [
