@@ -14,6 +14,8 @@ import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import Proyecciones from './pages/Proyecciones';
 import Contabilidad from './pages/Contabilidad';
+import CRM from './pages/CRM';
+import Settings from './pages/Settings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();

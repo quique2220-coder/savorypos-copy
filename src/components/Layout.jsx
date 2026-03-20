@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
   Monitor, UtensilsCrossed, Package, BarChart3, 
   ClipboardList, ChevronLeft, ChevronRight, Flame,
-  BookOpen, TrendingUp
+  BookOpen, TrendingUp, Users, Settings2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
