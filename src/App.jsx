@@ -12,6 +12,8 @@ import Menu from './pages/Menu';
 import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
+import Proyecciones from './pages/Proyecciones';
+import Contabilidad from './pages/Contabilidad';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
