@@ -240,10 +240,10 @@ export default function Proyecciones() {
           {/* MARKETING */}
           <TabsContent value="marketing">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KPI label="Email List (Fin Año 1)" value="5,320" sub="Suscriptores" icon={Megaphone} />
-              <KPI label="Seguidores Sociales" value="5,320" sub="Fin Año 1" icon={Users} />
-              <KPI label="Ads Budget/día" value="$5" sub="Online Search Ads" icon={DollarSign} />
-              <KPI label="CPC Estimado" value="$1.00" sub="Costo por Click" icon={TrendingUp} />
+              <KPI label="Email List (Fin Año 1)" value="5,320" sub="Suscriptores" />
+              <KPI label="Seguidores Sociales" value="5,320" sub="Fin Año 1" />
+              <KPI label="Ads Budget/día" value="$5" sub="Online Search Ads" />
+              <KPI label="CPC Estimado" value="$1.00" sub="Costo por Click" />
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
