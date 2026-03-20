@@ -60,18 +60,13 @@ const MARKETING_DATA = Array.from({ length: 12 }, (_, i) => ({
   adsCustomers: 5 * 30,
 }));
 
-function KPI({ label, value, sub, color = "text-foreground", icon: Icon }) {
+function KPI({ label, value, sub, color = "text-foreground" }) {
   return (
     <Card>
       <CardContent className="pt-4 pb-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-          </div>
-          {Icon && <Icon className="w-8 h-8 text-primary/20" />}
-        </div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`text-2xl font-bold ${color}`}>{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </CardContent>
     </Card>
   );
