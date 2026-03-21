@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
   Monitor, UtensilsCrossed, Package, BarChart3, 
   ClipboardList, ChevronLeft, ChevronRight, Flame,
-  BookOpen, TrendingUp, Users, Settings2
+  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,8 @@ const navItems = [
   { path: "/Reports", label: "Reports", icon: BarChart3, group: "finance" },
   { path: "/Proyecciones", label: "Proyecciones", icon: TrendingUp, group: "finance" },
   { path: "/Contabilidad", label: "Contabilidad", icon: BookOpen, group: "finance" },
+  { path: "/Ingredients", label: "Ingredientes", icon: FlaskConical, group: "costing" },
+  { path: "/Recipes", label: "Platillos", icon: ChefHat, group: "costing" },
   { path: "/CRM", label: "CRM + Marketing", icon: Users, group: "crm" },
   { path: "/Settings", label: "Settings", icon: Settings2, group: "crm" },
 ];
@@ -69,6 +71,9 @@ export default function Layout() {
           <div className="h-3" />
           {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">Finanzas</p>}
           {renderLinks("finance")}
+          <div className="h-3" />
+          {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">Costeo</p>}
+          {renderLinks("costing")}
           <div className="h-3" />
           {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">CRM</p>}
           {renderLinks("crm")}

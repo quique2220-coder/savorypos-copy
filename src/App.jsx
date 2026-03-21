@@ -16,6 +16,8 @@ import Proyecciones from './pages/Proyecciones';
 import Contabilidad from './pages/Contabilidad';
 import CRM from './pages/CRM';
 import Settings from './pages/Settings';
+import Ingredients from './pages/Ingredients';
+import Recipes from './pages/Recipes';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -50,6 +52,8 @@ const AuthenticatedApp = () => {
         <Route path="/Contabilidad" element={<Contabilidad />} />
         <Route path="/CRM" element={<CRM />} />
         <Route path="/Settings" element={<Settings />} />
+        <Route path="/Ingredients" element={<Ingredients />} />
+        <Route path="/Recipes" element={<Recipes />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
