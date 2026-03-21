@@ -227,11 +227,15 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">Ganancia Bruta</p>
-              <p className={`font-semibold ${totals.grossProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>${totals.grossProfit.toFixed(2)}</p>
+              {form.sale_price > 0
+                ? <p className={`font-semibold ${totals.grossProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>${totals.grossProfit.toFixed(2)}</p>
+                : <p className="font-semibold text-muted-foreground">—</p>}
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">Margen Bruto</p>
-              <p className="font-semibold">{totals.grossMargin.toFixed(1)}%</p>
+              {form.sale_price > 0
+                ? <p className={`font-semibold ${totals.grossMargin >= 0 ? "text-emerald-600" : "text-red-600"}`}>{totals.grossMargin.toFixed(1)}%</p>
+                : <p className="font-semibold text-muted-foreground">—</p>}
             </div>
           </div>
         )}
