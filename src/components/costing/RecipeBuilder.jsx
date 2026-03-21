@@ -238,8 +238,9 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button onClick={() => onSave(form)} disabled={!form.name}>Guardar Platillo</Button>
+          <Button onClick={() => onSave(form)} disabled={!form.name || form.sale_price <= 0}>Guardar Platillo</Button>
         </div>
+        {form.sale_price <= 0 && <p className="text-xs text-center text-red-500">Debes ingresar un precio de venta para guardar</p>}
       </CardContent>
     </Card>
   );
