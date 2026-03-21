@@ -108,14 +108,35 @@ export default function IngredientForm({ ingredient, onSave, onCancel }) {
         </div>
 
         {/* Nutrición toggle */}
-        <button
-          type="button"
-          onClick={() => setShowNutrition(!showNutrition)}
-          className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {showNutrition ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          Información Nutricional (por unidad base)
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setShowNutrition(!showNutrition)}
+            className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showNutrition ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            Información Nutricional <span className="text-primary">(por 1 {form.purchase_unit})</span>
+          </button>
+          {showNutrition && form.purchase_quantity > 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                const qty = form.purchase_quantity || 1;
+                setForm(f => ({
+                  ...f,
+                  calories_per_base_unit: +(f.calories_per_base_unit / qty).toFixed(4),
+                  protein_per_base_unit: +(f.protein_per_base_unit / qty).toFixed(4),
+                  carbs_per_base_unit: +(f.carbs_per_base_unit / qty).toFixed(4),
+                  fat_per_base_unit: +(f.fat_per_base_unit / qty).toFixed(4),
+                  sodium_mg_per_base_unit: +(f.sodium_mg_per_base_unit / qty).toFixed(4),
+                }));
+              }}
+              className="text-xs bg-primary/10 text-primary border border-primary/30 px-2 py-1 rounded-md hover:bg-primary/20 transition-colors font-semibold"
+            >
+              ÷ {form.purchase_quantity} (convertir de paquete completo)
+            </button>
+          )}
+        </div>
 
         {showNutrition && (
           <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
