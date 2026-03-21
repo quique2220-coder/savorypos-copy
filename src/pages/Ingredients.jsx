@@ -122,9 +122,13 @@ export default function Ingredients() {
                       </span>
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(ing); setShowForm(true); }}><Pencil className="w-3 h-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(ing.id)}><Trash2 className="w-3 h-3" /></Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => { setEditing(ing); setShowForm(true); }}>
+                          <Pencil className="w-3 h-3 mr-1" /> Editar
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => deleteMutation.mutate(ing.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
