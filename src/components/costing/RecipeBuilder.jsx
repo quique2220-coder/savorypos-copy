@@ -108,29 +108,37 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
         </div>
 
         {/* Agregar ingrediente */}
-        <div className="p-3 bg-muted/40 rounded-lg">
-          <Label className="mb-2 block">Agregar Ingrediente</Label>
-          <div className="relative">
-            <Input
-              placeholder="Buscar ingrediente..."
-              value={searchIng}
-              onChange={e => setSearchIng(e.target.value)}
-            />
-            {filteredIngs.length > 0 && (
-              <div className="absolute z-10 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-                {filteredIngs.map(ing => (
+        <div className="p-3 bg-muted/40 rounded-lg space-y-2">
+          <Label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredientes disponibles — clic para agregar</Label>
+          <Input
+            placeholder="Filtrar ingredientes..."
+            value={searchIng}
+            onChange={e => setSearchIng(e.target.value)}
+            className="mb-2"
+          />
+          <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto">
+            {(ingredients || [])
+              .filter(i => !searchIng || i.name?.toLowerCase().includes(searchIng.toLowerCase()))
+              .map(ing => {
+                const already = form.recipe_items.some(r => r.ingredient_id === ing.id);
+                return (
                   <button
                     key={ing.id}
                     type="button"
+                    disabled={already}
                     onClick={() => addIngredient(ing)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex justify-between items-center"
+                    className={`px-3 py-1.5 rounded-full text-xs border font-medium transition-colors flex items-center gap-1 ${
+                      already
+                        ? "bg-primary/10 border-primary/40 text-primary cursor-default"
+                        : "bg-card border-border hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                    }`}
                   >
-                    <span>{ing.name} <span className="text-muted-foreground text-xs">({ing.base_unit})</span></span>
-                    <span className="text-xs text-muted-foreground">${ing.category || ""}</span>
+                    <Plus className={`w-3 h-3 ${already ? "opacity-0" : ""}`} />
+                    {ing.name}
+                    <span className="opacity-60">({ing.base_unit})</span>
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
           </div>
         </div>
 
