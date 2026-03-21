@@ -21,7 +21,7 @@ const DEFAULT = {
 
 export default function IngredientForm({ ingredient, onSave, onCancel }) {
   const [form, setForm] = useState(DEFAULT);
-  const [showNutrition, setShowNutrition] = useState(false);
+  const [showNutrition, setShowNutrition] = useState(true);
 
   useEffect(() => { setForm(ingredient ? { ...DEFAULT, ...ingredient } : DEFAULT); }, [ingredient]);
 
