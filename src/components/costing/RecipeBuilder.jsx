@@ -94,8 +94,16 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
             <Input type="number" min={1} value={form.servings} onChange={e => set("servings", +e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label>Precio de venta ($)</Label>
-            <Input type="number" value={form.sale_price} onChange={e => set("sale_price", +e.target.value)} step="0.01" />
+            <Label>Precio de venta ($) *</Label>
+            <Input
+              type="number"
+              value={form.sale_price}
+              onChange={e => set("sale_price", +e.target.value)}
+              step="0.01"
+              className={form.sale_price <= 0 ? "border-red-400 focus-visible:ring-red-400" : ""}
+              placeholder="Ej: 8.99"
+            />
+            {form.sale_price <= 0 && <p className="text-xs text-red-500">⚠️ El precio de venta es obligatorio</p>}
           </div>
           <div className="space-y-1">
             <Label>Target Food Cost %</Label>
