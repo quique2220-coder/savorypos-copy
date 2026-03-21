@@ -28,8 +28,8 @@ export default function Recipes() {
   const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
 
   const saveMutation = useMutation({
-    mutationFn: (data) => editing
-      ? base44.entities.Recipe.update(editing.id, data)
+    mutationFn: ({ id, data }) => id
+      ? base44.entities.Recipe.update(id, data)
       : base44.entities.Recipe.create(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["recipes"] }); setShowForm(false); setEditing(null); },
   });
@@ -67,7 +67,7 @@ export default function Recipes() {
           <RecipeBuilder
             recipe={editing}
             ingredients={ingredients}
-            onSave={saveMutation.mutate}
+            onSave={(data) => saveMutation.mutate({ id: editing?.id, data })}
             onCancel={() => { setShowForm(false); setEditing(null); }}
           />
         )}

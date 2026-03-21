@@ -23,8 +23,8 @@ export default function Ingredients() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data) => editing
-      ? base44.entities.Ingredient.update(editing.id, data)
+    mutationFn: ({ id, data }) => id
+      ? base44.entities.Ingredient.update(id, data)
       : base44.entities.Ingredient.create(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["ingredients"] }); setShowForm(false); setEditing(null); },
   });
@@ -58,7 +58,7 @@ export default function Ingredients() {
         {showForm && (
           <IngredientForm
             ingredient={editing}
-            onSave={saveMutation.mutate}
+            onSave={(data) => saveMutation.mutate({ id: editing?.id, data })}
             onCancel={() => { setShowForm(false); setEditing(null); }}
           />
         )}
