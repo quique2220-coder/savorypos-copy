@@ -28,9 +28,15 @@ export default function Recipes() {
   const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
 
   const saveMutation = useMutation({
-    mutationFn: ({ id, data }) => id
-      ? base44.entities.Recipe.update(id, data)
-      : base44.entities.Recipe.create(data),
+    mutationFn: async ({ id, data }) => {
+      if (!id) return base44.entities.Recipe.create(data);
+      try {
+        return await base44.entities.Recipe.update(id, data);
+      } catch (e) {
+        // Si el registro ya no existe, crear uno nuevo
+        return base44.entities.Recipe.create(data);
+      }
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["recipes"] }); setShowForm(false); setEditing(null); },
   });
 
