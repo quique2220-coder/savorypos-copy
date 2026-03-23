@@ -124,6 +124,11 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
             <Label>Prep (min)</Label>
             <Input type="number" value={form.prep_time_minutes} onChange={e => set("prep_time_minutes", +e.target.value)} />
           </div>
+          <div className="space-y-1">
+            <Label>Calorías/porción (manual)</Label>
+            <Input type="number" min={0} value={form.manual_calories_per_serving} onChange={e => set("manual_calories_per_serving", +e.target.value)} placeholder="ej: 140" />
+            <p className="text-xs text-muted-foreground">Se usa si no hay ingredientes con calorías</p>
+          </div>
         </div>
 
         {/* Foto del platillo */}
