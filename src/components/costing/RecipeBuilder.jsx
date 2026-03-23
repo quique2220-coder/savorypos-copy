@@ -126,6 +126,36 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
           </div>
         </div>
 
+        {/* Foto del platillo */}
+        <div className="flex items-center gap-4">
+          <div className="relative w-24 h-24 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted/30 flex items-center justify-center shrink-0">
+            {form.image_url ? (
+              <>
+                <img src={form.image_url} alt="platillo" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => set("image_url", "")}
+                  className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-white"
+                ><X className="w-3 h-3" /></button>
+              </>
+            ) : uploadingImg ? (
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            ) : (
+              <ImagePlus className="w-6 h-6 text-muted-foreground" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium mb-1">Foto del platillo</p>
+            <p className="text-xs text-muted-foreground mb-2">Esta imagen aparecerá en el POS Terminal</p>
+            <label className="cursor-pointer">
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImg} />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors">
+                <ImagePlus className="w-3 h-3" /> Subir foto
+              </span>
+            </label>
+          </div>
+        </div>
+
         {/* Agregar ingrediente */}
         <div className="p-3 bg-muted/40 rounded-lg space-y-2">
           <Label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredientes disponibles — clic para agregar</Label>
