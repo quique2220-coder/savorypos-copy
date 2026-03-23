@@ -150,15 +150,51 @@ export default function BreakEvenAnalysis() {
 
   return (
     <div className="space-y-6">
-      {/* Year selector */}
-      <div className="flex gap-2">
-        {YEARLY.map((y, i) => (
-          <button key={i} onClick={() => { setSelectedYear(i); setAiAnalysis(""); setAudioUrl(null); }}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedYear === i ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"}`}>
-            {y.year}
-          </button>
-        ))}
+      {/* Year selector + edit toggle */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex gap-2">
+          {yearly.map((y, i) => (
+            <button key={i} onClick={() => { setSelectedYear(i); setAiAnalysis(""); setAudioUrl(null); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedYear === i ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"}`}>
+              {y.year}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setEditing(!editing)}
+          className="text-xs px-3 py-1.5 rounded-lg border border-input bg-background hover:bg-muted transition-colors">
+          {editing ? "✅ Listo" : "✏️ Editar números"}
+        </button>
       </div>
+
+      {/* Editable inputs */}
+      {editing && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-amber-700">✏️ Ingresa tus números reales — {yr.year}</CardTitle>
+            <p className="text-xs text-muted-foreground">El Break-Even y la Utilidad Neta se calculan automáticamente</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <InputField label="Ventas anuales ($)" value={yr.sales} onChange={v => updateField(selectedYear, 'sales', v)} />
+              <InputField label="Costo ingredientes / COGS ($)" value={yr.cogs} onChange={v => updateField(selectedYear, 'cogs', v)} />
+              <InputField label="Costos fijos anuales ($)" value={yr.fixedCosts} onChange={v => updateField(selectedYear, 'fixedCosts', v)} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="p-2 bg-background rounded-lg border text-center">
+                <p className="text-xs text-muted-foreground">Break-Even calculado</p>
+                <p className="font-bold text-primary">${(yr.breakEven || 0).toLocaleString()}</p>
+              </div>
+              <div className="p-2 bg-background rounded-lg border text-center">
+                <p className="text-xs text-muted-foreground">Utilidad Neta</p>
+                <p className={`font-bold ${(yr.netIncome || 0) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  ${(yr.netIncome || 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">💡 Tip: Costos fijos = renta + sueldos fijos + seguros + servicios (todo lo que pagas aunque no vendas nada)</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
