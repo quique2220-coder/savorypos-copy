@@ -259,8 +259,8 @@ export default function BreakEvenAnalysis() {
             <p className="text-xs text-muted-foreground">Rojo = zona de riesgo · Verde = ganancia real · ▲ = punto de equilibrio</p>
           </CardHeader>
           <CardContent className="space-y-5 pt-2">
-            {YEARLY.map((y, i) => (
-              <MarginBar key={i} sales={y.sales} breakEven={y.breakEven} year={y.year} />
+            {yearly.map((y, i) => (
+              <MarginBar key={i} sales={y.sales || 1} breakEven={y.breakEven || 0} year={y.year} />
             ))}
             <div className="p-3 bg-muted/40 rounded-lg text-xs space-y-1">
               <p className="font-semibold text-foreground">¿Cómo leer esto?</p>
