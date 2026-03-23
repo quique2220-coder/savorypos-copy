@@ -123,7 +123,7 @@ export default function POS() {
     });
 
     // CRM: crear o actualizar cliente
-    const { customer, pointsToEarn, orderSource, appliedCoupon } = checkoutData || {};
+    const { customer, pointsToEarn } = checkoutData || {};
     if (customer) {
       if (customer.id) {
         // Cliente existente: sumar puntos, visita, gasto
