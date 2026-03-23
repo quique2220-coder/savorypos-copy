@@ -35,23 +35,34 @@ export default function POS() {
     queryFn: () => base44.entities.Coupon.list(),
   });
 
+  const { data: ingredients = [] } = useQuery({
+    queryKey: ["ingredients"],
+    queryFn: () => base44.entities.Ingredient.list("-updated_date", 500),
+  });
+
   // Map active dish recipes to POS item format
-  const menuItems = useMemo(() => 
-    recipes
-      .filter(r => r.recipe_type !== "subrecipe" && r.is_active !== false && r.sale_price > 0)
-      .map(r => ({
-        id: r.id,
-        name: r.name,
-        description: r.description || "",
-        price: r.sale_price,
-        image_url: r.image_url || null,
-        is_available: true,
-        calories: r.recipe_items ? null : null,
-        category: r.category || "",
-        tags: r.category ? [r.category] : [],
-      })),
-    [recipes]
-  );
+  const menuItems = useMemo(() => {
+    const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
+    return recipes
+      .filter(r => r.recipe_type !== "subrecipe" && r.is_active !== false)
+      .map(r => {
+        const totals = calcRecipeTotals(r, ingMap);
+        // Use suggestedPrice if recipe has ingredients, otherwise fall back to sale_price
+        const price = totals.suggestedPrice > 0 ? totals.suggestedPrice : r.sale_price;
+        if (price <= 0) return null;
+        return {
+          id: r.id,
+          name: r.name,
+          description: r.description || "",
+          price,
+          image_url: r.image_url || null,
+          is_available: true,
+          category: r.category || "",
+          tags: r.category ? [r.category] : [],
+        };
+      })
+      .filter(Boolean);
+  }, [recipes, ingredients]);
 
   // Build category list from recipe categories
   const categories = useMemo(() => {
