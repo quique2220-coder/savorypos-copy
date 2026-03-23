@@ -36,12 +36,28 @@ export default function MenuItemForm({ open, onClose, onSave, item, categories, 
     }
   }, [item, open]);
 
-  // Calculate suggested price from recipe ingredients
-  const suggestedPrice = useMemo(() => {
-    if (!item?.recipe_items?.length || !ingredients.length) return null;
+  // Calculate suggested price and cost breakdown from recipe ingredients
+  const { suggestedPrice, costPerServing, breakdown } = useMemo(() => {
+    if (!item?.recipe_items?.length || !ingredients.length) return { suggestedPrice: null, costPerServing: null, breakdown: [] };
     const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
     const totals = calcRecipeTotals(item, ingMap);
-    return totals.suggestedPrice > 0 ? totals.suggestedPrice : null;
+
+    // Build line-by-line breakdown for debugging
+    const lines = (item.recipe_items || []).map(ri => {
+      const ing = ingMap[ri.ingredient_id];
+      if (!ing) return null;
+      const cpu = ing.purchase_price && ing.purchase_quantity
+        ? (ing.purchase_price / ing.purchase_quantity) / ((ing.yield_percent || 100) / 100)
+        : 0;
+      const lineCost = cpu * (Number(ri.quantity) || 0);
+      return { name: ri.ingredient_name || ing.name, qty: ri.quantity, unit: ri.unit, cpu, lineCost };
+    }).filter(Boolean);
+
+    return {
+      suggestedPrice: totals.suggestedPrice > 0 ? totals.suggestedPrice : null,
+      costPerServing: totals.costPerServing > 0 ? totals.costPerServing : null,
+      breakdown: lines,
+    };
   }, [item, ingredients, form.target_food_cost_percent]);
 
   const handleImageUpload = async (e) => {
