@@ -15,7 +15,9 @@ const RECIPE_CATEGORIES = ["Desayuno","Almuerzo","Cena","Postre","Bebida","Snack
 const DEFAULT_RECIPE = {
   name: "", code: "", category: "", recipe_type: "dish",
   description: "", servings: 1, sale_price: 0,
-  target_food_cost_percent: 30, prep_time_minutes: 0, cook_time_minutes: 0,
+  target_food_cost_percent: 30, target_margin_percent: 0,
+  prep_time_minutes: 0, cook_time_minutes: 0,
+  packaging_cost: 0, labor_rate_per_hour: 0, overhead_per_dish: 0,
   recipe_items: [], is_active: true, manual_calories_per_serving: 0,
 };
 
