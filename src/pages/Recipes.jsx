@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, Trash2, ChefHat, TrendingUp, DollarSign } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChefHat, Building2 } from "lucide-react";
 import RecipeBuilder from "@/components/costing/RecipeBuilder";
+import OverheadSettings from "@/components/costing/OverheadSettings";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 
 export default function Recipes() {
