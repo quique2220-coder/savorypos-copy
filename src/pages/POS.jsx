@@ -174,6 +174,22 @@ export default function POS() {
     }
 
     queryClient.invalidateQueries({ queryKey: ["inventory"] });
+
+    // Enviar email de confirmación si el cliente tiene correo
+    const emailTarget = checkoutData.customer?.email;
+    if (emailTarget) {
+      const itemsList = orderItems
+        .map(i => `• ${i.name} x${i.quantity} — $${(i.price * i.quantity).toFixed(2)}`)
+        .join("\n");
+      const pointsMsg = checkoutData.pointsToEarn
+        ? `\n🎯 Ganaste ${checkoutData.pointsToEarn} puntos de lealtad. Total acumulado: ${(checkoutData.customer.loyalty_points || 0) + checkoutData.pointsToEarn} pts.\n`
+        : "";
+      await base44.integrations.Core.SendEmail({
+        to: emailTarget,
+        subject: `✅ Tu orden ${orderNumber} está confirmada`,
+        body: `Hola ${checkoutData.customer.name || ""},\n\nGracias por tu compra. Aquí el resumen:\n\n${itemsList}\n\nSubtotal: $${subtotal?.toFixed(2)}\nImpuesto: $${tax?.toFixed(2)}\nTotal: $${total?.toFixed(2)}${appliedCoupon ? `\nDescuento (${appliedCoupon.code}): -$${discountAmount?.toFixed(2)}` : ""}${pointsMsg}\n\n¡Esperamos verte pronto!`,
+      });
+    }
   };
 
   return (
