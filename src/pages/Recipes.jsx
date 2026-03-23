@@ -78,6 +78,22 @@ export default function Recipes() {
           </div>
         </div>
 
+        {showOverhead && (
+          <div className="mb-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium">Platillos vendidos/mes (estimado):</label>
+              <Input
+                type="number"
+                className="w-32"
+                value={monthlyDishes}
+                onChange={e => setMonthlyDishes(Number(e.target.value) || 0)}
+              />
+              <span className="text-xs text-muted-foreground">→ Overhead por platillo: <strong>${overheadPerDish.toFixed(2)}</strong></span>
+            </div>
+            <OverheadSettings monthlyDishes={monthlyDishes} onOverheadPerDish={setOverheadPerDish} />
+          </div>
+        )}
+
         {showForm && (
           <RecipeBuilder
             recipe={editing}
