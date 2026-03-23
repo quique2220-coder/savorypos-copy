@@ -215,6 +215,7 @@ export default function Menu() {
         item={editingItem}
         categories={categories}
         isSaving={createItem.isPending || updateItem.isPending}
+        ingredients={ingredients}
       />
     </div>
   );
