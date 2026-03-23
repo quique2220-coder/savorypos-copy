@@ -161,6 +161,30 @@ export default function Proyecciones() {
               <KPI label="Utilidad Neta Real" value={realSummary.netIncome >= 0 ? `$${(realSummary.netIncome/1000).toFixed(1)}K` : `-$${(Math.abs(realSummary.netIncome)/1000).toFixed(1)}K`} sub="Últimos 12 meses" color={realSummary.netIncome >= 0 ? "text-emerald-600" : "text-red-500"} />
             </div>
 
+            {/* Real monthly chart */}
+            {realMonthlyData.some(m => m.sales > 0) && (
+              <Card className="mb-6 border-primary/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary inline-block" /> Ventas Reales — Últimos 12 Meses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={realMonthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={v => `$${v.toLocaleString()}`} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="sales" name="Ventas" fill="hsl(var(--chart-1))" radius={[4,4,0,0]} />
+                      <Bar dataKey="netIncome" name="Utilidad Neta (est.)" fill="hsl(var(--chart-2))" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               <Card>
                 <CardHeader><CardTitle className="text-sm">Ventas vs Punto de Equilibrio por Año</CardTitle></CardHeader>
