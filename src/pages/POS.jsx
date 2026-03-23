@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -14,29 +14,48 @@ export default function POS() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => base44.entities.Category.list(),
+  const { data: recipes = [] } = useQuery({
+    queryKey: ["recipes"],
+    queryFn: () => base44.entities.Recipe.list("-updated_date", 200),
   });
 
-  const { data: menuItems = [] } = useQuery({
-    queryKey: ["menuItems"],
-    queryFn: () => base44.entities.MenuItem.list(),
-  });
+  // Map active dish recipes to POS item format
+  const menuItems = useMemo(() => 
+    recipes
+      .filter(r => r.recipe_type !== "subrecipe" && r.is_active !== false && r.sale_price > 0)
+      .map(r => ({
+        id: r.id,
+        name: r.name,
+        description: r.description || "",
+        price: r.sale_price,
+        image_url: r.image_url || null,
+        is_available: true,
+        calories: r.recipe_items ? null : null,
+        category: r.category || "",
+        tags: r.category ? [r.category] : [],
+      })),
+    [recipes]
+  );
+
+  // Build category list from recipe categories
+  const categories = useMemo(() => {
+    const cats = [...new Set(recipes.filter(r => r.category).map(r => r.category))];
+    return cats.map((c, i) => ({ id: c, name: c }));
+  }, [recipes]);
 
   const createOrder = useMutation({
     mutationFn: (order) => base44.entities.Order.create(order),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setCartItems([]);
-      toast.success("Order placed successfully!");
+      toast.success("¡Orden completada!");
     },
   });
 
   const filteredItems = menuItems.filter((item) => {
-    const matchesCategory = !activeCategory || item.category_id === activeCategory;
+    const matchesCategory = !activeCategory || item.category === activeCategory;
     const matchesSearch = !search || item.name.toLowerCase().includes(search.toLowerCase());
-    return matchesCategory && matchesSearch && item.is_available !== false;
+    return matchesCategory && matchesSearch;
   });
 
   const handleAddItem = (item) => {
