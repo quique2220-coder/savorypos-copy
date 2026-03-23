@@ -368,6 +368,12 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">Precio sugerido</p>
                   <p className="text-lg font-bold text-emerald-600">${totals.suggestedPrice.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {form.target_margin_percent > 0 
+                      ? `${totals.fullCostPerServing.toFixed(2)} ÷ (1 - ${form.target_margin_percent}%)`
+                      : `${totals.foodCostPerServing.toFixed(2)} ÷ ${form.target_food_cost_percent}%`
+                    }
+                  </p>
                 </div>
                 {form.sale_price > 0 && (
                   <>
