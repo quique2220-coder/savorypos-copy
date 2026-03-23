@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Trash2, Calculator, ImagePlus, Loader2 } from "lucide-react";
 import { UNITS } from "@/utils/units";
-import { calcRecipeTotals } from "@/utils/recipeCalculator";
+import { calcRecipeTotals, costPerBaseUnit } from "@/utils/recipeCalculator";
 import { base44 } from "@/api/base44Client";
 
 const RECIPE_CATEGORIES = ["Desayuno","Almuerzo","Cena","Postre","Bebida","Snack","Guarnición","Sub-receta"];
@@ -238,11 +238,11 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
               </thead>
               <tbody className="divide-y divide-border">
                 {form.recipe_items.map((item, idx) => {
-                  const ing = ingMap[item.ingredient_id];
-                  const qty = Number(item.quantity) || 0;
-                  const cpu = ing ? (ing.purchase_quantity > 0 ? ing.purchase_price / ing.purchase_quantity : 0) / ((ing.yield_percent || 100) / 100) : 0;
-                  const lineCost = qty * cpu;
-                  const lineCal = qty * (ing?.calories_per_base_unit || 0);
+                   const ing = ingMap[item.ingredient_id];
+                   const qty = Number(item.quantity) || 0;
+                   const cpu = costPerBaseUnit(ing);
+                   const lineCost = qty * cpu;
+                   const lineCal = qty * (ing?.calories_per_base_unit || 0);
                   return (
                     <tr key={idx} className="hover:bg-muted/20">
                       <td className="px-3 py-2">{item.ingredient_name}</td>
