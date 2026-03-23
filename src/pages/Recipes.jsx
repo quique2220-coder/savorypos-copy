@@ -14,6 +14,9 @@ export default function Recipes() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [showOverhead, setShowOverhead] = useState(false);
+  const [monthlyDishes, setMonthlyDishes] = useState(1300);
+  const [overheadPerDish, setOverheadPerDish] = useState(0);
   const qc = useQueryClient();
 
   const { data: recipes = [] } = useQuery({
