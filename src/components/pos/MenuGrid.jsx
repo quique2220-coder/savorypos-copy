@@ -21,8 +21,8 @@ export default function MenuGrid({ items, onAddItem }) {
             <Plus className="w-4 h-4 text-primary" />
           </div>
           {item.image_url && (
-            <div className="w-full h-20 rounded-lg overflow-hidden mb-3 bg-muted">
-              <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+            <div className="w-full aspect-square rounded-lg overflow-hidden mb-3 bg-muted">
+              <img src={item.image_url} alt={item.name} className="w-full h-full object-contain" />
             </div>
           )}
           <h3 className="font-semibold text-sm text-foreground leading-tight">{item.name}</h3>
