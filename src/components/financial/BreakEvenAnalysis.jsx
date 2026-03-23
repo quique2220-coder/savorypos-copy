@@ -107,13 +107,13 @@ export default function BreakEvenAnalysis() {
 
   const yr = yearly[selectedYear];
   const monthlySales = (yr.sales || 0) / 12;
-  const monthlyBreakEven = yr.breakEven / 12;
-  const variableRatio = yr.cogs / yr.sales;
+  const monthlyBreakEven = (yr.breakEven || 0) / 12;
+  const variableRatio = yr.sales > 0 ? yr.cogs / yr.sales : 0;
   const contributionMargin = 1 - variableRatio;
-  const safetyMargin = ((yr.sales - yr.breakEven) / yr.sales * 100).toFixed(1);
+  const safetyMargin = yr.sales > 0 ? ((yr.sales - yr.breakEven) / yr.sales * 100).toFixed(1) : "0.0";
   const avgTicket = 18.5;
-  const dailyBreakEvenCustomers = Math.ceil((monthlyBreakEven / 30) / avgTicket);
-  const chartData = buildChartData(yr);
+  const dailyBreakEvenCustomers = monthlyBreakEven > 0 ? Math.ceil((monthlyBreakEven / 30) / avgTicket) : 0;
+  const chartData = yr.sales > 0 ? buildChartData(yr) : [];
 
   async function handleAIAnalysis() {
     setLoadingAI(true);
