@@ -98,7 +98,8 @@ export default function POS() {
     setCartItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleCheckout = async ({ paymentMethod, orderType, customerName, subtotal, tax, total }) => {
+  const handleCheckout = async (checkoutData) => {
+    const { paymentMethod, orderType, orderSource, customerName, subtotal, tax, total, discountAmount, appliedCoupon } = checkoutData;
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
     const orderItems = cartItems.map((item) => ({
       ...item,
@@ -114,6 +115,10 @@ export default function POS() {
       payment_method: paymentMethod,
       order_type: orderType,
       customer_name: customerName,
+      notes: [
+        orderSource !== "in_person" ? `Fuente: ${orderSource}` : "",
+        appliedCoupon ? `Cupón: ${appliedCoupon.code} -$${discountAmount?.toFixed(2)}` : "",
+      ].filter(Boolean).join(" | ") || undefined,
       status: "completed",
     });
 
