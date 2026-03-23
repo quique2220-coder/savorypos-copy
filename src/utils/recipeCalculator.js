@@ -80,15 +80,18 @@ export function calcRecipeTotals(recipe, ingredientsMap, overrides = {}) {
   const fullCostPerServing  = primeCostPerServing + packagingCost + overheadPerDish;
 
   // Precio sugerido basado en Full Cost y margen deseado
-  // target_margin_percent = 1 - target_food_cost_percent/100 cuando solo food cost
-  // Si hay full cost activado, suggestedPrice = fullCost / (1 - targetMargin)
+  // Si target_margin_percent > 0: suggestedPrice = fullCost / (1 - margin%)
+  // Si no: suggestedPrice = foodCost / (targetFC%)
   const targetMargin    = Number(recipe?.target_margin_percent ?? 0);
-  const suggestedByFoodCost = targetFC > 0 ? foodCostPerServing / (targetFC / 100) : 0;
-  const suggestedByFullCost = targetMargin > 0 && targetMargin < 100
-    ? fullCostPerServing / (1 - targetMargin / 100)
-    : suggestedByFoodCost;
-
-  const suggestedPrice      = fullCostPerServing > foodCostPerServing ? suggestedByFullCost : suggestedByFoodCost;
+  let suggestedPrice = 0;
+  
+  if (targetMargin > 0 && targetMargin < 100 && fullCostPerServing > 0) {
+    // Usa Full Cost: Precio = Costo Total / (1 - Margen%)
+    suggestedPrice = fullCostPerServing / (1 - targetMargin / 100);
+  } else if (targetFC > 0) {
+    // Usa Food Cost: Precio = Costo Ingredientes / Food Cost%
+    suggestedPrice = foodCostPerServing / (targetFC / 100);
+  }
 
   const caloriesPerServing  = totalCalories / servings;
   const foodCostPercent     = salePrice > 0 ? (foodCostPerServing / salePrice) * 100 : 0;
