@@ -62,8 +62,28 @@ function MarginBar({ sales, breakEven, year }) {
   );
 }
 
+function InputField({ label, value, onChange, prefix = "$" }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-muted-foreground">{label}</label>
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-muted-foreground">{prefix}</span>
+        <input
+          type="number"
+          className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          value={value || ""}
+          placeholder="0"
+          onChange={e => onChange(Number(e.target.value) || 0)}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function BreakEvenAnalysis() {
   const [selectedYear, setSelectedYear] = useState(0);
+  const [yearly, setYearly] = useState(DEFAULT_YEARLY);
+  const [editing, setEditing] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -71,7 +91,21 @@ export default function BreakEvenAnalysis() {
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [showKeyInput, setShowKeyInput] = useState(false);
 
-  const yr = YEARLY[selectedYear];
+  function updateField(yearIdx, field, value) {
+    setYearly(prev => {
+      const next = prev.map((y, i) => i === yearIdx ? { ...y, [field]: value } : y);
+      // Auto-calc breakEven when we have enough data
+      const yr = next[yearIdx];
+      if (yr.sales > 0 && yr.cogs > 0 && yr.fixedCosts > 0) {
+        const contributionMargin = 1 - yr.cogs / yr.sales;
+        const be = contributionMargin > 0 ? yr.fixedCosts / contributionMargin : 0;
+        next[yearIdx] = { ...next[yearIdx], breakEven: Math.round(be), netIncome: Math.round(yr.sales - yr.cogs - yr.fixedCosts) };
+      }
+      return next;
+    });
+  }
+
+  const yr = yearly[selectedYear];
   const monthlySales = yr.sales / 12;
   const monthlyBreakEven = yr.breakEven / 12;
   const variableRatio = yr.cogs / yr.sales;
