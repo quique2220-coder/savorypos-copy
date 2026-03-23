@@ -270,44 +270,84 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
           </div>
         )}
 
-        {/* Resumen de costo */}
+        {/* Resumen de costo — 3 capas */}
         {form.recipe_items.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-accent/20 rounded-lg">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Costo Total</p>
-              <p className="text-lg font-bold">${totals.totalCost.toFixed(2)}</p>
+          <div className="space-y-2">
+            {/* Nivel 1: Food Cost */}
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-2">Nivel 1 — Food Cost (ingredientes)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Costo ingredientes</p>
+                  <p className="font-bold">${totals.foodCostPerServing.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Food Cost %</p>
+                  <p className={`font-bold ${fcColor}`}>{totals.foodCostPercent.toFixed(1)}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Precio (FC solo)</p>
+                  <p className="font-bold text-blue-600">${(form.target_food_cost_percent > 0 ? totals.foodCostPerServing / (form.target_food_cost_percent / 100) : 0).toFixed(2)}</p>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Costo/Porción</p>
-              <p className="text-lg font-bold text-primary">${totals.costPerServing.toFixed(2)}</p>
+
+            {/* Nivel 2: Prime Cost */}
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-2">Nivel 2 — Prime Cost (+ mano de obra)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">M.O. directa</p>
+                  <p className="font-bold">${totals.laborCost.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Prime Cost/porción</p>
+                  <p className="font-bold">${totals.primeCostPerServing.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Cal/porción</p>
+                  <p className="font-semibold">{totals.caloriesPerServing.toFixed(0)} kcal</p>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Food Cost %</p>
-              <p className={`text-lg font-bold ${fcColor}`}>{totals.foodCostPercent.toFixed(1)}%</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Precio Sugerido</p>
-              <p className="text-lg font-bold text-emerald-600">${totals.suggestedPrice.toFixed(2)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Calorías Totales</p>
-              <p className="font-semibold">{totals.totalCalories.toFixed(0)} kcal</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Cal/Porción</p>
-              <p className="font-semibold">{totals.caloriesPerServing.toFixed(0)} kcal</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Ganancia Bruta</p>
-              {form.sale_price > 0
-                ? <p className={`font-semibold ${totals.grossProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>${totals.grossProfit.toFixed(2)}</p>
-                : <p className="font-semibold text-muted-foreground">—</p>}
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Margen Bruto</p>
-              {form.sale_price > 0
-                ? <p className={`font-semibold ${totals.grossMargin >= 0 ? "text-emerald-600" : "text-red-600"}`}>{totals.grossMargin.toFixed(1)}%</p>
-                : <p className="font-semibold text-muted-foreground">—</p>}
+
+            {/* Nivel 3: Full Cost */}
+            <div className="p-3 bg-accent/20 rounded-lg border border-primary/20">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Nivel 3 — Full Cost (+ empaque + overhead)</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Empaque</p>
+                  <p className="font-bold">${totals.packagingCost.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Overhead</p>
+                  <p className="font-bold">${totals.overheadPerDish.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Full Cost/porción</p>
+                  <p className="font-bold text-primary">${totals.fullCostPerServing.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Precio sugerido</p>
+                  <p className="text-lg font-bold text-emerald-600">${totals.suggestedPrice.toFixed(2)}</p>
+                </div>
+                {form.sale_price > 0 && (
+                  <>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Utilidad neta</p>
+                      <p className={`font-semibold ${totals.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>${totals.netProfit.toFixed(2)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Margen neto</p>
+                      <p className={`font-semibold ${totals.netMargin >= 0 ? "text-emerald-600" : "text-red-600"}`}>{totals.netMargin.toFixed(1)}%</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Full Cost %</p>
+                      <p className={`font-semibold ${totals.fullCostPercent <= 70 ? "text-emerald-600" : "text-red-600"}`}>{totals.fullCostPercent.toFixed(1)}%</p>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
