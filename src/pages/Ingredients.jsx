@@ -57,6 +57,7 @@ export default function Ingredients() {
 
         {showForm && (
           <IngredientForm
+            key={editing?.id ?? "new"}
             ingredient={editing}
             onSave={(data) => saveMutation.mutate({ id: editing?.id, data })}
             onCancel={() => { setShowForm(false); setEditing(null); }}
