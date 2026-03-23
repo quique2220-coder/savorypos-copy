@@ -62,18 +62,20 @@ function MarginBar({ sales, breakEven, year }) {
   );
 }
 
-function InputField({ label, value, onChange, prefix = "$" }) {
+function InputField({ label, value, onChange }) {
   return (
     <div className="space-y-1">
       <label className="text-xs text-muted-foreground">{label}</label>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-muted-foreground">{prefix}</span>
+      <div className="relative">
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
         <input
           type="number"
-          className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-          value={value || ""}
+          min="0"
+          step="1"
+          className="w-full h-9 pl-5 pr-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          value={value === 0 ? "" : value}
           placeholder="0"
-          onChange={e => onChange(Number(e.target.value) || 0)}
+          onChange={e => onChange(parseFloat(e.target.value) || 0)}
         />
       </div>
     </div>
