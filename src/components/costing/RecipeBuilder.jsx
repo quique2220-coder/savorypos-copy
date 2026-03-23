@@ -224,52 +224,80 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
         </div>
 
         {/* Lista de ingredientes */}
-        {form.recipe_items.length > 0 && (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left px-3 py-2 font-medium">Ingrediente</th>
-                  <th className="text-center px-2 py-2 font-medium w-24">Cantidad</th>
-                  <th className="text-center px-2 py-2 font-medium w-28">Unidad</th>
-                  <th className="text-right px-3 py-2 font-medium w-20">Costo</th>
-                  <th className="text-right px-3 py-2 font-medium w-20">Calorías</th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {form.recipe_items.map((item, idx) => {
+         {form.recipe_items.length > 0 && (
+           <div className="space-y-3">
+             <div className="border border-border rounded-lg overflow-hidden">
+               <table className="w-full text-sm">
+                 <thead className="bg-muted/50">
+                   <tr>
+                     <th className="text-left px-3 py-2 font-medium">Ingrediente</th>
+                     <th className="text-center px-2 py-2 font-medium w-24">Cantidad</th>
+                     <th className="text-center px-2 py-2 font-medium w-28">Unidad</th>
+                     <th className="text-right px-3 py-2 font-medium w-20">Costo/unid</th>
+                     <th className="text-right px-3 py-2 font-medium w-20">Costo línea</th>
+                     <th className="text-right px-3 py-2 font-medium w-20">Kcal</th>
+                     <th className="w-10"></th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border">
+                   {form.recipe_items.map((item, idx) => {
+                     const ing = ingMap[item.ingredient_id];
+                     const qty = Number(item.quantity) || 0;
+                     const cpu = costPerBaseUnit(ing);
+                     const lineCost = qty * cpu;
+                     const lineCal = qty * (ing?.calories_per_base_unit || 0);
+                     return (
+                       <tr key={idx} className="hover:bg-muted/20">
+                         <td className="px-3 py-2">
+                           <div>
+                             <p className="font-medium">{item.ingredient_name}</p>
+                             <p className="text-xs text-muted-foreground">Se usa: {qty} {item.unit}</p>
+                           </div>
+                         </td>
+                         <td className="px-2 py-2">
+                           <Input type="number" value={item.quantity} onChange={e => updateItem(idx, "quantity", +e.target.value)} className="h-7 text-xs text-center" min={0} step="0.1" />
+                         </td>
+                         <td className="px-2 py-2">
+                           <Select value={item.unit} onValueChange={v => updateItem(idx, "unit", v)}>
+                             <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                             <SelectContent>{UNITS.map(u => <SelectItem key={u.code} value={u.code}>{u.code}</SelectItem>)}</SelectContent>
+                           </Select>
+                         </td>
+                         <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">${cpu.toFixed(4)}</td>
+                         <td className="px-3 py-2 text-right font-mono text-xs font-semibold">${lineCost.toFixed(4)}</td>
+                         <td className="px-3 py-2 text-right font-mono text-xs">{lineCal.toFixed(0)}</td>
+                         <td className="px-2 py-2">
+                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(idx)}>
+                             <Trash2 className="w-3 h-3" />
+                           </Button>
+                         </td>
+                       </tr>
+                     );
+                   })}
+                 </tbody>
+               </table>
+             </div>
+
+             {/* Resumen de ingredientes para inventario */}
+             <div className="p-3 bg-secondary/30 rounded-lg border border-border">
+               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">📊 Desglose para Inventario</p>
+               <div className="space-y-1">
+                 {form.recipe_items.map((item, idx) => {
                    const ing = ingMap[item.ingredient_id];
                    const qty = Number(item.quantity) || 0;
                    const cpu = costPerBaseUnit(ing);
                    const lineCost = qty * cpu;
-                   const lineCal = qty * (ing?.calories_per_base_unit || 0);
-                  return (
-                    <tr key={idx} className="hover:bg-muted/20">
-                      <td className="px-3 py-2">{item.ingredient_name}</td>
-                      <td className="px-2 py-2">
-                        <Input type="number" value={item.quantity} onChange={e => updateItem(idx, "quantity", +e.target.value)} className="h-7 text-xs text-center" min={0} step="0.1" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <Select value={item.unit} onValueChange={v => updateItem(idx, "unit", v)}>
-                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>{UNITS.map(u => <SelectItem key={u.code} value={u.code}>{u.code}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-xs">${lineCost.toFixed(4)}</td>
-                      <td className="px-3 py-2 text-right font-mono text-xs">{lineCal.toFixed(1)}</td>
-                      <td className="px-2 py-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(idx)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                   return (
+                     <div key={idx} className="flex justify-between text-xs">
+                       <span>{item.ingredient_name}</span>
+                       <span className="font-mono font-medium">{qty} {item.unit} → ${lineCost.toFixed(2)}</span>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+           </div>
+         )}
 
         {/* Información Nutricional */}
         {form.recipe_items.length > 0 && (
