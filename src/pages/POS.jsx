@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import CategoryBar from "@/components/pos/CategoryBar";
 import MenuGrid from "@/components/pos/MenuGrid";
 import Cart from "@/components/pos/Cart";
+import { calcRecipeTotals } from "@/utils/recipeCalculator";
 
 export default function POS() {
   const [cartItems, setCartItems] = useState([]);
