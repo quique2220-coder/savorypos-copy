@@ -8,12 +8,10 @@ export function costPerBaseUnit(ingredient) {
   const { purchase_price = 0, purchase_quantity = 1, purchase_unit, base_unit, yield_percent = 100 } = ingredient;
   
   const conversionFactor = getConversionFactor(purchase_unit, base_unit);
-  if (conversionFactor === null) {
-    console.warn(`No conversion available from ${purchase_unit} to ${base_unit}`);
-    return 0;
-  }
-
-  const quantityInBase = purchase_quantity * conversionFactor;
+  
+  // Si no hay conversión, asumir que son unidades iguales (fallback seguro)
+  const factor = conversionFactor !== null ? conversionFactor : 1;
+  const quantityInBase = purchase_quantity * factor;
   const raw = quantityInBase > 0 ? purchase_price / quantityInBase : 0;
   const yf = (yield_percent || 100) / 100;
   return yf > 0 ? raw / yf : raw;
