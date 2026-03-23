@@ -21,7 +21,8 @@ export const UNIT_TYPES = Object.fromEntries(UNITS.map(u => [u.code, u.type]));
 export const CONVERSIONS = {
   lb:     { oz: 16 },
   kg:     { g: 1000 },
-  l:      { ml: 1000 },
+  l:      { ml: 1000, fl_oz: 33.814 },
+  ml:     { fl_oz: 0.033814 },
   tbsp:   { tsp: 3 },
   cup:    { tbsp: 16, fl_oz: 8 },
   gallon: { cup: 16, fl_oz: 128 },
