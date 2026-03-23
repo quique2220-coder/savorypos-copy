@@ -15,6 +15,8 @@ export const UNITS = [
 
 export const UNIT_LABEL = Object.fromEntries(UNITS.map(u => [u.code, `${u.name} (${u.code})`]));
 
+export const UNIT_TYPES = Object.fromEntries(UNITS.map(u => [u.code, u.type]));
+
 // Factores de conversión base: from_code → to_code → factor
 export const CONVERSIONS = {
   lb:     { oz: 16 },
@@ -24,6 +26,29 @@ export const CONVERSIONS = {
   cup:    { tbsp: 16, fl_oz: 8 },
   gallon: { cup: 16, fl_oz: 128 },
 };
+
+export function getConversionFactor(fromUnit, toUnit) {
+  if (fromUnit === toUnit) {
+    return 1;
+  }
+
+  const fromType = UNIT_TYPES[fromUnit];
+  const toType = UNIT_TYPES[toUnit];
+
+  if (!fromType || !toType || fromType !== toType) {
+    return null;
+  }
+
+  if (CONVERSIONS[fromUnit] && CONVERSIONS[fromUnit][toUnit]) {
+    return CONVERSIONS[fromUnit][toUnit];
+  }
+
+  if (CONVERSIONS[toUnit] && CONVERSIONS[toUnit][fromUnit]) {
+    return 1 / CONVERSIONS[toUnit][fromUnit];
+  }
+
+  return null;
+}
 
 export const ALLERGENS = [
   'Gluten', 'Lácteos', 'Huevo', 'Nueces', 'Cacahuate',
