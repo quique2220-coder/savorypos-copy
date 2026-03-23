@@ -155,10 +155,10 @@ export default function Proyecciones() {
           {/* RESUMEN */}
           <TabsContent value="overview">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KPI label="Ventas Año 1" value="$989K" sub="Year 1 Total" color="text-primary" />
-              <KPI label="Ventas Año 2" value="$1.22M" sub="+23% vs Año 1" color="text-emerald-600" />
-              <KPI label="Ventas Año 3" value="$1.36M" sub="+11% vs Año 2" color="text-emerald-600" />
-              <KPI label="Ingreso Neto 3 Años" value={`$${(totalNI / 1000).toFixed(0)}K`} sub="Utilidad acumulada" color="text-blue-600" />
+              <KPI label="Ventas Reales (12m)" value={realSummary.sales > 0 ? `$${(realSummary.sales/1000).toFixed(1)}K` : "$0"} sub="Órdenes completadas" color="text-primary" />
+              <KPI label="Meta Año 1" value="$989K" sub="Proyección" color="text-muted-foreground" />
+              <KPI label="Meta Año 2" value="$1.22M" sub="+23% vs Año 1" color="text-muted-foreground" />
+              <KPI label="Utilidad Neta Real" value={realSummary.netIncome >= 0 ? `$${(realSummary.netIncome/1000).toFixed(1)}K` : `-$${(Math.abs(realSummary.netIncome)/1000).toFixed(1)}K`} sub="Últimos 12 meses" color={realSummary.netIncome >= 0 ? "text-emerald-600" : "text-red-500"} />
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-6">
