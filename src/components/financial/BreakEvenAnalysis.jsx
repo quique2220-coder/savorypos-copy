@@ -9,11 +9,11 @@ import {
 } from "recharts";
 import { TrendingUp, Target, AlertTriangle, CheckCircle2, Sparkles, Volume2, Loader2 } from "lucide-react";
 
-// ── Financial assumptions ──────────────────────────────────────
-const YEARLY = [
-  { year: "Año 1", sales: 989532,  cogs: 272072, fixedCosts: 475435, netIncome: 164920, breakEven: 655772, months: 12 },
-  { year: "Año 2", sales: 1221926, cogs: 334786, fixedCosts: 515000, netIncome: 213962, breakEven: 710879, months: 12 },
-  { year: "Año 3", sales: 1355665, cogs: 370728, fixedCosts: 539000, netIncome: 253334, breakEven: 743145, months: 12 },
+// ── Financial assumptions (editable defaults) ─────────────────
+const DEFAULT_YEARLY = [
+  { year: "Actual", sales: 0, cogs: 0, fixedCosts: 0, netIncome: 0, breakEven: 0 },
+  { year: "Meta Año 1", sales: 0, cogs: 0, fixedCosts: 0, netIncome: 0, breakEven: 0 },
+  { year: "Meta Año 2", sales: 0, cogs: 0, fixedCosts: 0, netIncome: 0, breakEven: 0 },
 ];
 
 // Generates the break-even chart data (monthly ramp)
