@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, Store, ShoppingBag } from "lucide-react";
+import BreakEvenAnalysis from "@/components/financial/BreakEvenAnalysis";
 
 // Data from the Restaurant Financial Model Excel
 const MONTHLY_DATA = [
