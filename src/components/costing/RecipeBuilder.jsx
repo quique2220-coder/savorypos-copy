@@ -21,6 +21,16 @@ const DEFAULT_RECIPE = {
 export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel }) {
   const [form, setForm] = useState(DEFAULT_RECIPE);
   const [searchIng, setSearchIng] = useState("");
+  const [uploadingImg, setUploadingImg] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImg(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    set("image_url", file_url);
+    setUploadingImg(false);
+  };
 
   useEffect(() => { setForm(recipe ? { ...DEFAULT_RECIPE, ...recipe } : DEFAULT_RECIPE); }, [recipe]);
 
