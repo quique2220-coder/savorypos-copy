@@ -133,6 +133,30 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
           </div>
         </div>
 
+        {/* Costo Nivel 2 & 3 */}
+        <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prime Cost & Full Cost</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Empaque / porción ($)</Label>
+              <Input type="number" step="0.01" value={form.packaging_cost} onChange={e => set("packaging_cost", +e.target.value)} placeholder="0.00" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tarifa cocinero ($/hr)</Label>
+              <Input type="number" step="0.50" value={form.labor_rate_per_hour} onChange={e => set("labor_rate_per_hour", +e.target.value)} placeholder="0.00" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Overhead asignado ($)</Label>
+              <Input type="number" step="0.01" value={form.overhead_per_dish} onChange={e => set("overhead_per_dish", +e.target.value)} placeholder="Del panel de gastos" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Margen neto deseado (%)</Label>
+              <Input type="number" step="1" value={form.target_margin_percent} onChange={e => set("target_margin_percent", +e.target.value)} placeholder="ej: 35" />
+              <p className="text-xs text-muted-foreground">Para precio Full Cost</p>
+            </div>
+          </div>
+        </div>
+
         {/* Foto del platillo */}
         <div className="flex items-center gap-4">
           <div className="relative w-24 h-24 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted/30 flex items-center justify-center shrink-0">
