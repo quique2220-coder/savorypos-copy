@@ -68,9 +68,14 @@ export default function Recipes() {
             </h1>
             <p className="text-muted-foreground text-sm mt-1">{recipes.length} recetas · cálculo automático de costos</p>
           </div>
-          <Button onClick={() => { setEditing(null); setShowForm(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo Platillo
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowOverhead(!showOverhead)}>
+              <Building2 className="w-4 h-4 mr-1" /> Gastos Operativos
+            </Button>
+            <Button onClick={() => { setEditing(null); setShowForm(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Nuevo Platillo
+            </Button>
+          </div>
         </div>
 
         {showForm && (
