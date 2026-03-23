@@ -116,7 +116,7 @@ export default function Recipes() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(recipe => {
-              const totals = calcRecipeTotals(recipe, ingMap);
+              const totals = calcRecipeTotals(recipe, ingMap, { overhead_per_dish: recipe.overhead_per_dish || overheadPerDish });
               const items = recipe.recipe_items || [];
               return (
                 <Card key={recipe.id} className="hover:shadow-md transition-shadow">
