@@ -106,6 +106,24 @@ export default function POS() {
       customer_name: customerName,
       status: "completed",
     });
+
+    // Descontar inventario por cada platillo vendido
+    for (const cartItem of cartItems) {
+      const recipe = recipes.find(r => r.id === cartItem.menu_item_id);
+      if (!recipe?.recipe_items?.length) continue;
+
+      for (const ri of recipe.recipe_items) {
+        if (!ri.ingredient_id) continue;
+        const invItem = inventory.find(inv => inv.ingredient_id === ri.ingredient_id);
+        if (!invItem) continue;
+
+        const consumed = (ri.quantity || 0) * cartItem.quantity;
+        const newStock = Math.max(0, (invItem.current_stock || 0) - consumed);
+        await base44.entities.InventoryItem.update(invItem.id, { current_stock: newStock });
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["inventory"] });
   };
 
   return (
