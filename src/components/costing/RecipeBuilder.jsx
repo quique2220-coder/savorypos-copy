@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Plus, Trash2, Calculator, ImagePlus, Loader2 } from "lucide-react";
 import { UNITS } from "@/utils/units";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
+import { base44 } from "@/api/base44Client";
 
 const RECIPE_CATEGORIES = ["Desayuno","Almuerzo","Cena","Postre","Bebida","Snack","Guarnición","Sub-receta"];
 
