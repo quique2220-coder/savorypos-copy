@@ -20,6 +20,11 @@ export default function Inventory() {
     queryFn: () => base44.entities.InventoryItem.list(),
   });
 
+  const { data: ingredients = [] } = useQuery({
+    queryKey: ["ingredients"],
+    queryFn: () => base44.entities.Ingredient.list("-name", 500),
+  });
+
   const create = useMutation({
     mutationFn: (d) => base44.entities.InventoryItem.create(d),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["inventory"] }); setFormOpen(false); toast.success("Item added"); },
