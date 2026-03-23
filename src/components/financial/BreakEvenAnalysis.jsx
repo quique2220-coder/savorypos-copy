@@ -106,7 +106,7 @@ export default function BreakEvenAnalysis() {
   }
 
   const yr = yearly[selectedYear];
-  const monthlySales = yr.sales / 12;
+  const monthlySales = (yr.sales || 0) / 12;
   const monthlyBreakEven = yr.breakEven / 12;
   const variableRatio = yr.cogs / yr.sales;
   const contributionMargin = 1 - variableRatio;
