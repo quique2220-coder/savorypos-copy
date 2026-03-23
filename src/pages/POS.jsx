@@ -117,6 +117,41 @@ export default function POS() {
       status: "completed",
     });
 
+    // CRM: crear o actualizar cliente
+    const { customer, pointsToEarn, orderSource, appliedCoupon } = checkoutData || {};
+    if (customer) {
+      if (customer.id) {
+        // Cliente existente: sumar puntos, visita, gasto
+        await base44.entities.Customer.update(customer.id, {
+          loyalty_points: (customer.loyalty_points || 0) + (pointsToEarn || 0),
+          visit_count: (customer.visit_count || 0) + 1,
+          total_spent: (customer.total_spent || 0) + checkoutData.total,
+          last_visit: new Date().toISOString().split("T")[0],
+        });
+      } else if (customer.name && customer.name !== "Guest") {
+        // Nuevo cliente: crear en CRM
+        await base44.entities.Customer.create({
+          name: customer.name,
+          phone: customer.phone || "",
+          email: customer.email || "",
+          loyalty_points: pointsToEarn || 0,
+          visit_count: 1,
+          total_spent: checkoutData.total,
+          last_visit: new Date().toISOString().split("T")[0],
+          status: "active",
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    }
+
+    // Marcar cupón como usado
+    if (appliedCoupon?.id) {
+      await base44.entities.Coupon.update(appliedCoupon.id, {
+        times_used: (appliedCoupon.times_used || 0) + 1,
+      });
+      queryClient.invalidateQueries({ queryKey: ["coupons"] });
+    }
+
     // Descontar inventario por cada platillo vendido
     for (const cartItem of cartItems) {
       const recipe = recipes.find(r => r.id === cartItem.menu_item_id);
