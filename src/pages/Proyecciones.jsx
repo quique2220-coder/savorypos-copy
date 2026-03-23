@@ -98,6 +98,7 @@ export default function Proyecciones() {
         <Tabs defaultValue="overview">
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
             <TabsTrigger value="overview">Resumen Ejecutivo</TabsTrigger>
+            <TabsTrigger value="breakeven">📊 Break-Even</TabsTrigger>
             <TabsTrigger value="monthly">36 Meses</TabsTrigger>
             <TabsTrigger value="channels">Canales de Venta</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
