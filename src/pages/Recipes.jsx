@@ -138,21 +138,19 @@ export default function Recipes() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground">Food Cost</p>
+                        <p className="font-bold text-blue-700">${totals.foodCostPerServing.toFixed(2)}</p>
+                      </div>
                       <div className="p-2 bg-muted/40 rounded-lg text-center">
-                        <p className="text-xs text-muted-foreground">Costo/porción</p>
-                        <p className="font-bold text-primary">${totals.costPerServing.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Full Cost</p>
+                        <p className="font-bold text-primary">${totals.fullCostPerServing.toFixed(2)}</p>
                       </div>
                       <div className="p-2 bg-muted/40 rounded-lg text-center">
                         <p className="text-xs text-muted-foreground">Precio venta</p>
                         <p className="font-bold">${(recipe.sale_price || 0).toFixed(2)}</p>
                       </div>
-                      <div className="p-2 bg-muted/40 rounded-lg text-center">
-                        <p className="text-xs text-muted-foreground">Food Cost %</p>
-                        <p className={`font-bold ${fcColor(totals.foodCostPercent, recipe.target_food_cost_percent)}`}>
-                          {totals.foodCostPercent.toFixed(1)}%
-                        </p>
-                      </div>
-                      <div className="p-2 bg-muted/40 rounded-lg text-center">
+                      <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-center">
                         <p className="text-xs text-muted-foreground">Precio sugerido</p>
                         <p className="font-bold text-emerald-600">${totals.suggestedPrice.toFixed(2)}</p>
                       </div>
