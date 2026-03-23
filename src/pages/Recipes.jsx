@@ -135,7 +135,7 @@ export default function Recipes() {
 
                     <div className="flex justify-between text-xs text-muted-foreground border-t border-border pt-2">
                       <span>{items.length} ingredientes · {recipe.servings || 1} porciones</span>
-                      <span>{totals.caloriesPerServing.toFixed(0)} kcal/porción</span>
+                      <span>{(totals.caloriesPerServing > 0 ? totals.caloriesPerServing : (recipe.manual_calories_per_serving || 0)).toFixed(0)} kcal/porción</span>
                     </div>
                   </CardContent>
                 </Card>
