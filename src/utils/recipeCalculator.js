@@ -1,6 +1,5 @@
 /**
  * Costo por unidad base, ajustado por rendimiento (yield).
- * effective_cost = (price / qty) / (yield_percent / 100)
  */
 export function costPerBaseUnit(ingredient) {
   if (!ingredient) return 0;
@@ -12,7 +11,6 @@ export function costPerBaseUnit(ingredient) {
 
 /**
  * Calcula costo y macros de una línea de ingrediente.
- * quantity se asume en la misma unidad base del ingrediente.
  */
 export function calcIngredientLine(ingredient, quantity) {
   if (!ingredient || !quantity) return { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -27,10 +25,16 @@ export function calcIngredientLine(ingredient, quantity) {
 }
 
 /**
- * Calcula los totales completos de una receta.
- * ingredientsMap: { [id]: ingredient }
+ * Calcula los totales completos de una receta incluyendo las 3 capas de costo:
+ *   Nivel 1 — Food Cost (ingredientes)
+ *   Nivel 2 — Prime Cost (+ mano de obra directa)
+ *   Nivel 3 — Full Cost (+ empaque + overhead asignado)
+ *
+ * @param {object} recipe
+ * @param {object} ingredientsMap  { [id]: ingredient }
+ * @param {object} [overrides]     { overhead_per_dish, packaging_cost, labor_minutes, labor_rate_per_hour }
  */
-export function calcRecipeTotals(recipe, ingredientsMap) {
+export function calcRecipeTotals(recipe, ingredientsMap, overrides = {}) {
   const items = recipe?.recipe_items || [];
   let totalCost = 0, totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
 
@@ -49,16 +53,55 @@ export function calcRecipeTotals(recipe, ingredientsMap) {
   const salePrice   = Number(recipe?.sale_price) || 0;
   const targetFC    = Number(recipe?.target_food_cost_percent) || 30;
 
-  const costPerServing      = totalCost / servings;
+  // Costo de ingredientes por porción (Nivel 1)
+  const foodCostPerServing = totalCost / servings;
+
+  // Mano de obra directa (Nivel 2)
+  const laborMinutes   = Number(overrides.labor_minutes ?? recipe?.prep_time_minutes ?? 0);
+  const laborRateHr    = Number(overrides.labor_rate_per_hour ?? recipe?.labor_rate_per_hour ?? 0);
+  const laborCost      = laborRateHr > 0 ? (laborMinutes / 60) * laborRateHr : 0;
+
+  // Empaque (Nivel 3)
+  const packagingCost  = Number(overrides.packaging_cost ?? recipe?.packaging_cost ?? 0);
+
+  // Overhead asignado (Nivel 3)
+  const overheadPerDish = Number(overrides.overhead_per_dish ?? recipe?.overhead_per_dish ?? 0);
+
+  // Full cost por porción
+  const primeCostPerServing = foodCostPerServing + laborCost;
+  const fullCostPerServing  = primeCostPerServing + packagingCost + overheadPerDish;
+
+  // Precio sugerido basado en Full Cost y margen deseado
+  // target_margin_percent = 1 - target_food_cost_percent/100 cuando solo food cost
+  // Si hay full cost activado, suggestedPrice = fullCost / (1 - targetMargin)
+  const targetMargin    = Number(recipe?.target_margin_percent ?? 0);
+  const suggestedByFoodCost = targetFC > 0 ? foodCostPerServing / (targetFC / 100) : 0;
+  const suggestedByFullCost = targetMargin > 0 && targetMargin < 100
+    ? fullCostPerServing / (1 - targetMargin / 100)
+    : suggestedByFoodCost;
+
+  const suggestedPrice      = fullCostPerServing > foodCostPerServing ? suggestedByFullCost : suggestedByFoodCost;
+
   const caloriesPerServing  = totalCalories / servings;
-  const foodCostPercent     = salePrice > 0 ? (costPerServing / salePrice) * 100 : 0;
-  const suggestedPrice      = targetFC > 0 ? costPerServing / (targetFC / 100) : 0;
-  const grossProfit         = salePrice - costPerServing;
+  const foodCostPercent     = salePrice > 0 ? (foodCostPerServing / salePrice) * 100 : 0;
+  const fullCostPercent     = salePrice > 0 ? (fullCostPerServing / salePrice) * 100 : 0;
+  const grossProfit         = salePrice - foodCostPerServing;
+  const netProfit           = salePrice - fullCostPerServing;
   const grossMargin         = salePrice > 0 ? (grossProfit / salePrice) * 100 : 0;
+  const netMargin           = salePrice > 0 ? (netProfit / salePrice) * 100 : 0;
 
   return {
-    totalCost, totalCalories, totalProtein, totalCarbs, totalFat,
-    costPerServing, caloriesPerServing,
-    foodCostPercent, suggestedPrice, grossProfit, grossMargin,
+    // Nivel 1
+    totalCost, foodCostPerServing, foodCostPercent,
+    // Nivel 2
+    laborCost, primeCostPerServing,
+    // Nivel 3
+    packagingCost, overheadPerDish, fullCostPerServing, fullCostPercent,
+    // Legacy alias para compatibilidad
+    costPerServing: foodCostPerServing,
+    // Nutrition
+    totalCalories, totalProtein, totalCarbs, totalFat, caloriesPerServing,
+    // Pricing
+    suggestedPrice, grossProfit, netProfit, grossMargin, netMargin,
   };
 }
