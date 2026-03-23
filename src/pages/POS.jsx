@@ -186,8 +186,34 @@ export default function POS() {
         : "";
       await base44.integrations.Core.SendEmail({
         to: emailTarget,
-        subject: `✅ Tu orden ${orderNumber} está confirmada`,
-        body: `Hola ${checkoutData.customer.name || ""},\n\nGracias por tu compra. Aquí el resumen:\n\n${itemsList}\n\nSubtotal: $${subtotal?.toFixed(2)}\nImpuesto: $${tax?.toFixed(2)}\nTotal: $${total?.toFixed(2)}${appliedCoupon ? `\nDescuento (${appliedCoupon.code}): -$${discountAmount?.toFixed(2)}` : ""}${pointsMsg}\n\n¡Esperamos verte pronto!`,
+        subject: `✅ Order Confirmed / Orden Confirmada — ${orderNumber}`,
+        body: `Hello / Hola ${checkoutData.customer.name || ""},
+
+──────────────────────────────
+🇺🇸 ENGLISH
+──────────────────────────────
+Thank you for your purchase! Here is your order summary:
+
+${itemsList}
+
+Subtotal: $${subtotal?.toFixed(2)}
+Tax: $${tax?.toFixed(2)}${appliedCoupon ? `\nDiscount (${appliedCoupon.code}): -$${discountAmount?.toFixed(2)}` : ""}
+Total: $${total?.toFixed(2)}${checkoutData.pointsToEarn ? `\n\n🎯 You earned ${checkoutData.pointsToEarn} loyalty points! Total balance: ${(checkoutData.customer.loyalty_points || 0) + checkoutData.pointsToEarn} pts.` : ""}
+
+We hope to see you again soon!
+
+──────────────────────────────
+🇲🇽 ESPAÑOL
+──────────────────────────────
+¡Gracias por tu compra! Aquí el resumen de tu orden:
+
+${itemsList}
+
+Subtotal: $${subtotal?.toFixed(2)}
+Impuesto: $${tax?.toFixed(2)}${appliedCoupon ? `\nDescuento (${appliedCoupon.code}): -$${discountAmount?.toFixed(2)}` : ""}
+Total: $${total?.toFixed(2)}${checkoutData.pointsToEarn ? `\n\n🎯 ¡Ganaste ${checkoutData.pointsToEarn} puntos de lealtad! Saldo total: ${(checkoutData.customer.loyalty_points || 0) + checkoutData.pointsToEarn} pts.` : ""}
+
+¡Esperamos verte muy pronto!`,
       });
     }
   };
