@@ -156,6 +156,11 @@ export default function Proyecciones() {
             </div>
           </TabsContent>
 
+          {/* BREAK-EVEN */}
+          <TabsContent value="breakeven">
+            <BreakEvenAnalysis />
+          </TabsContent>
+
           {/* 36 MESES */}
           <TabsContent value="monthly">
             <div className="flex gap-2 mb-4">
