@@ -19,6 +19,11 @@ export default function POS() {
     queryFn: () => base44.entities.Recipe.list("-updated_date", 200),
   });
 
+  const { data: inventory = [] } = useQuery({
+    queryKey: ["inventory"],
+    queryFn: () => base44.entities.InventoryItem.list(),
+  });
+
   // Map active dish recipes to POS item format
   const menuItems = useMemo(() => 
     recipes
