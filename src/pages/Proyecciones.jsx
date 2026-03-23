@@ -1,12 +1,9 @@
-import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, Store, ShoppingBag } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns";
 import BreakEvenAnalysis from "@/components/financial/BreakEvenAnalysis";
 
 // Data from the Restaurant Financial Model Excel
