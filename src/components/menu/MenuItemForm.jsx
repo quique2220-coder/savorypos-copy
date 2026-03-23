@@ -174,6 +174,21 @@ export default function MenuItemForm({ open, onClose, onSave, item, categories, 
             <Label>Available on menu</Label>
             <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
           </div>
+          {breakdown.length > 0 && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Desglose de costo</p>
+              {breakdown.map((line, i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span className="text-foreground">{line.name} <span className="text-muted-foreground">({line.qty} {line.unit})</span></span>
+                  <span className="font-mono">${line.lineCost.toFixed(4)} <span className="text-muted-foreground">@ ${line.cpu.toFixed(4)}/{line.unit}</span></span>
+                </div>
+              ))}
+              <div className="border-t pt-1 flex justify-between text-xs font-semibold">
+                <span>Costo/Porción</span>
+                <span>${costPerServing?.toFixed(4)}</span>
+              </div>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
             💡 To add ingredients & recipe details, use the <strong>Recipes</strong> section after creating this item.
           </p>
