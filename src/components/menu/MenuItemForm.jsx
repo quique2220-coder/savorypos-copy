@@ -40,7 +40,10 @@ export default function MenuItemForm({ open, onClose, onSave, item, categories, 
   const { suggestedPrice, costPerServing, breakdown } = useMemo(() => {
     if (!item?.recipe_items?.length || !ingredients.length) return { suggestedPrice: null, costPerServing: null, breakdown: [] };
     const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
-    const totals = calcRecipeTotals(item, ingMap);
+    const totals = calcRecipeTotals(
+      { ...item, target_food_cost_percent: parseFloat(form.target_food_cost_percent) || 30 },
+      ingMap
+    );
 
     // Build line-by-line breakdown for debugging
     const lines = (item.recipe_items || []).map(ri => {
