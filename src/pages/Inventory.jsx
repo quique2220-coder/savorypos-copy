@@ -146,6 +146,7 @@ export default function Inventory() {
         onSave={handleSave}
         item={editing}
         isSaving={create.isPending || update.isPending}
+        ingredients={ingredients}
       />
     </div>
   );
