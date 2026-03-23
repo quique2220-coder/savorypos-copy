@@ -120,7 +120,7 @@ export default function POS() {
 
         {/* Categories */}
         <div className="mb-4">
-          <CategoryBar categories={categories} activeCategory={activeCategory} onSelect={setActiveCategory} />
+          <CategoryBar categories={categories} activeCategory={activeCategory} onSelect={(id) => setActiveCategory(activeCategory === id ? null : id)} />
         </div>
 
         {/* Grid */}
