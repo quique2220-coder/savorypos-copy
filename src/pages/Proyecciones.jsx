@@ -79,15 +79,60 @@ function KPI({ label, value, sub, color = "text-foreground" }) {
 export default function Proyecciones() {
   const [yearFilter, setYearFilter] = useState("all");
 
+  const { data: orders = [] } = useQuery({
+    queryKey: ["orders"],
+    queryFn: () => base44.entities.Order.list("-created_date", 1000),
+  });
+  const { data: menuItems = [] } = useQuery({
+    queryKey: ["menuItems"],
+    queryFn: () => base44.entities.MenuItem.list(),
+  });
+
+  // Real monthly data from orders (last 12 months)
+  const realMonthlyData = useMemo(() => {
+    const completed = orders.filter(o => o.status === "completed");
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = subMonths(new Date(), i);
+      const range = { start: startOfMonth(d), end: endOfMonth(d) };
+      const monthOrders = completed.filter(o => o.created_date && isWithinInterval(new Date(o.created_date), range));
+      const sales = monthOrders.reduce((s, o) => s + (o.total || 0), 0);
+      let cogs = 0;
+      monthOrders.forEach(o => {
+        o.items?.forEach(item => {
+          const mi = menuItems.find(m => m.id === item.menu_item_id);
+          cogs += (mi?.cost || item.price * 0.35) * (item.quantity || 1);
+        });
+      });
+      if (!cogs && sales > 0) cogs = sales * 0.35;
+      const fixedEst = sales * 0.45;
+      months.push({
+        month: format(d, "MMM yy"),
+        sales: Math.round(sales),
+        cogs: Math.round(cogs),
+        netIncome: Math.round(sales - cogs - fixedEst),
+        customers: monthOrders.length,
+      });
+    }
+    return months;
+  }, [orders, menuItems]);
+
+  const realSummary = useMemo(() => {
+    const totalSales = realMonthlyData.reduce((s, m) => s + m.sales, 0);
+    const totalCogs = realMonthlyData.reduce((s, m) => s + m.cogs, 0);
+    const totalNI = realMonthlyData.reduce((s, m) => s + m.netIncome, 0);
+    return { sales: totalSales, cogs: totalCogs, netIncome: totalNI };
+  }, [realMonthlyData]);
+
   const chartData = yearFilter === "all" ? MONTHLY_DATA : MONTHLY_DATA.filter(d => d.year === parseInt(yearFilter));
 
   const yearSummary = [
-    { year: "Año 1", ...SUMMARY.year1 },
-    { year: "Año 2", ...SUMMARY.year2 },
-    { year: "Año 3", ...SUMMARY.year3 },
+    { year: "Real (12m)", sales: realSummary.sales, cogs: realSummary.cogs, netIncome: realSummary.netIncome, breakEven: realSummary.sales * 0.66 },
+    { year: "Meta Año 1", ...SUMMARY.year1 },
+    { year: "Meta Año 2", ...SUMMARY.year2 },
+    { year: "Meta Año 3", ...SUMMARY.year3 },
   ];
 
-  const totalSales = yearSummary.reduce((s, y) => s + y.sales, 0);
   const totalNI = yearSummary.reduce((s, y) => s + y.netIncome, 0);
 
   return (
