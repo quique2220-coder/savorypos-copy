@@ -9,6 +9,7 @@ import { X, Plus, Trash2, Calculator, ImagePlus, Loader2 } from "lucide-react";
 import { UNITS } from "@/utils/units";
 import { calcRecipeTotals, costPerBaseUnit } from "@/utils/recipeCalculator";
 import { base44 } from "@/api/base44Client";
+import NutritionSummary from "@/components/costing/NutritionSummary";
 
 const RECIPE_CATEGORIES = ["Desayuno","Almuerzo","Cena","Postre","Bebida","Snack","Guarnición","Sub-receta"];
 
@@ -270,9 +271,18 @@ export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel })
           </div>
         )}
 
-        {/* Resumen de costo — 3 capas */}
+        {/* Información Nutricional */}
         {form.recipe_items.length > 0 && (
-          <div className="space-y-2">
+          <NutritionSummary 
+            totals={totals} 
+            servings={form.servings}
+            allergens={[]} 
+          />
+        )}
+
+        {/* Resumen de costo — 3 capas */}
+         {form.recipe_items.length > 0 && (
+           <div className="space-y-2">
             {/* Nivel 1: Food Cost */}
             <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-2">Nivel 1 — Food Cost (ingredientes)</p>
