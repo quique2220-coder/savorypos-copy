@@ -50,7 +50,6 @@ const SUMMARY = {
   year1: { sales: 989532, cogs: 272072, netIncome: 164920, breakEven: 655772 },
   year2: { sales: 1221926, cogs: 334786, netIncome: 213962, breakEven: 710879 },
   year3: { sales: 1355665, cogs: 370728, netIncome: 253334, breakEven: 743145 },
-  get year4() { return this.year3; }, // safety alias
 };
 
 const MARKETING_DATA = Array.from({ length: 12 }, (_, i) => ({
