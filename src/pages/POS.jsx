@@ -210,6 +210,8 @@ export default function POS() {
           onRemove={handleRemove}
           onCheckout={handleCheckout}
           isProcessing={createOrder.isPending}
+          customers={customers}
+          coupons={coupons}
         />
       </div>
     </div>
