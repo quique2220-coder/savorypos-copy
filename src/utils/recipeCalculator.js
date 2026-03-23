@@ -1,10 +1,20 @@
 /**
  * Costo por unidad base, ajustado por rendimiento (yield).
  */
+import { getConversionFactor } from './units';
+
 export function costPerBaseUnit(ingredient) {
   if (!ingredient) return 0;
-  const { purchase_price = 0, purchase_quantity = 1, yield_percent = 100 } = ingredient;
-  const raw = purchase_quantity > 0 ? purchase_price / purchase_quantity : 0;
+  const { purchase_price = 0, purchase_quantity = 1, purchase_unit, base_unit, yield_percent = 100 } = ingredient;
+  
+  const conversionFactor = getConversionFactor(purchase_unit, base_unit);
+  if (conversionFactor === null) {
+    console.warn(`No conversion available from ${purchase_unit} to ${base_unit}`);
+    return 0;
+  }
+
+  const quantityInBase = purchase_quantity * conversionFactor;
+  const raw = quantityInBase > 0 ? purchase_price / quantityInBase : 0;
   const yf = (yield_percent || 100) / 100;
   return yf > 0 ? raw / yf : raw;
 }
