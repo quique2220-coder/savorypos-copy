@@ -16,7 +16,7 @@ const DEFAULT_RECIPE = {
   name: "", code: "", category: "", recipe_type: "dish",
   description: "", servings: 1, sale_price: 0,
   target_food_cost_percent: 30, prep_time_minutes: 0, cook_time_minutes: 0,
-  recipe_items: [], is_active: true,
+  recipe_items: [], is_active: true, manual_calories_per_serving: 0,
 };
 
 export default function RecipeBuilder({ recipe, ingredients, onSave, onCancel }) {
