@@ -67,7 +67,8 @@ export default function Menu() {
 
   const handleSave = (data) => {
     if (editingItem) {
-      updateItem.mutate({ id: editingItem.id, data });
+      // Preserve all existing recipe fields (recipe_items, servings, etc.) and only overwrite what MenuItemForm changes
+      updateItem.mutate({ id: editingItem.id, data: { ...editingItem, ...data } });
     } else {
       createItem.mutate({ ...data, recipe_type: "dish" });
     }
