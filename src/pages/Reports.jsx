@@ -115,7 +115,7 @@ export default function Reports() {
       const dayStr = format(day, "yyyy-MM-dd");
       const dayOrders = completed.filter((o) => o.created_date && format(new Date(o.created_date), "yyyy-MM-dd") === dayStr);
       dailyRevenue.push({
-        day: format(day, "EEE"),
+        day: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][day.getDay()],
         revenue: dayOrders.reduce((s, o) => s + (o.total || 0), 0),
         orders: dayOrders.length,
       });
