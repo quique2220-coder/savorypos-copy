@@ -1,5 +1,6 @@
 export const UNITS = [
   { code: 'pcs',    name: 'Piezas',       type: 'count' },
+  { code: 'bunch',  name: 'Manojo',       type: 'count' },
   { code: 'g',      name: 'Gramo',        type: 'weight' },
   { code: 'kg',     name: 'Kilogramo',    type: 'weight' },
   { code: 'oz',     name: 'Onza',         type: 'weight' },
