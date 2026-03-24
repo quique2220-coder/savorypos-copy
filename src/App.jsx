@@ -18,6 +18,8 @@ import CRM from './pages/CRM';
 import Settings from './pages/Settings';
 import Ingredients from './pages/Ingredients';
 import Recipes from './pages/Recipes';
+import OrderOnline from './pages/OrderOnline';
+import OrderConfirmation from './pages/OrderConfirmation';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -55,6 +57,9 @@ const AuthenticatedApp = () => {
         <Route path="/Ingredients" element={<Ingredients />} />
         <Route path="/Recipes" element={<Recipes />} />
       </Route>
+      {/* Public pages - outside Layout */}
+      <Route path="/OrderOnline" element={<OrderOnline />} />
+      <Route path="/OrderConfirmation" element={<OrderConfirmation />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

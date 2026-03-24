@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
   Monitor, UtensilsCrossed, Package, BarChart3, 
   ClipboardList, ChevronLeft, ChevronRight, Flame,
-  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat
+  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat, Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ const navItems = [
   { path: "/Recipes", label: "Platillos", icon: ChefHat, group: "costing" },
   { path: "/CRM", label: "CRM + Marketing", icon: Users, group: "crm" },
   { path: "/Settings", label: "Settings", icon: Settings2, group: "crm" },
+  { path: "/OrderOnline", label: "Menú Online", icon: Globe, group: "online", external: true },
 ];
 
 export default function Layout() {
@@ -77,6 +78,17 @@ export default function Layout() {
           <div className="h-3" />
           {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">CRM</p>}
           {renderLinks("crm")}
+          <div className="h-3" />
+          {!collapsed && <p className="px-3 text-[10px] uppercase tracking-widest text-sidebar-foreground/40 mb-1">Online</p>}
+          <a
+            href="/OrderOnline"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <Globe className="w-5 h-5 shrink-0" />
+            {!collapsed && <span className="text-sm font-medium truncate">Menú Online ↗</span>}
+          </a>
         </nav>
 
         {/* Collapse */}
