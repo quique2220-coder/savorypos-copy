@@ -11,7 +11,11 @@ export async function postSaleEntry({ orderNumber, total, tax, subtotal, payment
   const drAccount = paymentMethod === "card" ? "1110 Banco" : "1100 Caja / Efectivo";
   const drType = "Asset";
 
-  // Asiento 1: Ingresos
+  const pmLabel = paymentMethod === "card" ? "Card" : paymentMethod === "mobile" ? "App" : "Cash";
+  const taxAmt = parseFloat((tax || 0).toFixed(2));
+  const subAmt = parseFloat((subtotal || total).toFixed(2));
+
+  // Asiento 1a: Ventas netas  Dr: Caja  |  Cr: 4100 Ventas
   await base44.entities.JournalEntry.create({
     date: today,
     description: `Venta POS — ${orderNumber}`,
@@ -19,13 +23,31 @@ export async function postSaleEntry({ orderNumber, total, tax, subtotal, payment
     account_dr_type: drType,
     account_cr: "4100 Ventas de Alimentos",
     account_cr_type: "Income",
-    amount_dr: total,
-    amount_cr: total,
+    amount_dr: subAmt,
+    amount_cr: subAmt,
     category: "Revenue",
     reference: orderNumber,
-    payment_method: paymentMethod === "card" ? "Card" : paymentMethod === "mobile" ? "App" : "Cash",
-    notes: `Subtotal $${subtotal?.toFixed(2)} | Tax $${tax?.toFixed(2)}`,
+    payment_method: pmLabel,
+    notes: `Subtotal $${subAmt.toFixed(2)}`,
   });
+
+  // Asiento 1b: Sales Tax  Dr: Caja  |  Cr: 2200 Sales Tax por Pagar
+  if (taxAmt > 0) {
+    await base44.entities.JournalEntry.create({
+      date: today,
+      description: `Sales Tax POS — ${orderNumber}`,
+      account_dr: drAccount,
+      account_dr_type: drType,
+      account_cr: "2200 Sales Tax por Pagar",
+      account_cr_type: "Liability",
+      amount_dr: taxAmt,
+      amount_cr: taxAmt,
+      category: "Liability",
+      reference: orderNumber,
+      payment_method: pmLabel,
+      notes: `Sales Tax sobre venta $${subAmt.toFixed(2)}`,
+    });
+  }
 
   // Asiento 2: Costo de ventas (solo si hay costo calculado)
   if (costOfGoods > 0) {
