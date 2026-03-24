@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, CreditCard, Utensils } from "lucide-react";
 import { format, subDays, isAfter, startOfDay, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
@@ -72,7 +72,7 @@ export default function Reports() {
     queryFn: () => base44.entities.InventoryItem.list(),
   });
 
-  const { completed, financials, dailyRevenue, topItems, paymentData, typeData, periodLabel } = useMemo(() => {
+  const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
     const range = getPeriodRange(period);
     const allCompleted = orders.filter((o) => o.status === "completed");
     const completed = range
@@ -129,6 +129,8 @@ export default function Reports() {
     });
     const topItems = Object.entries(itemCounts).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, count]) => ({ name, count }));
 
+    const totalTips = completed.reduce((s, o) => s + (o.tip || 0), 0);
+
     const paymentBreakdown = {};
     completed.forEach((o) => {
       const m = o.payment_method || "cash";
@@ -143,8 +145,23 @@ export default function Reports() {
     });
     const typeData = Object.entries(typeBreakdown).map(([name, value]) => ({ name: name.replace("_", " "), value }));
 
+    const SOURCE_LABELS = {
+      in_person: "In Person",
+      uber_eats: "Uber Eats",
+      doordash: "DoorDash",
+      rappi: "Rappi",
+      online: "Online",
+      phone: "Phone",
+    };
+    const sourceBreakdown = {};
+    completed.forEach((o) => {
+      const s = o.order_source || "in_person";
+      sourceBreakdown[s] = (sourceBreakdown[s] || 0) + (o.total || 0);
+    });
+    const sourceData = Object.entries(sourceBreakdown).map(([key, value]) => ({ name: SOURCE_LABELS[key] || key, value }));
+
     const periodLabel = PERIOD_OPTIONS.find((p) => p.value === period)?.label || "All Time";
-    return { completed, financials, dailyRevenue, topItems, paymentData, typeData, periodLabel };
+    return { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel };
   }, [orders, menuItems, period]);
 
   if (isLoading) {
@@ -184,11 +201,12 @@ export default function Reports() {
 
         {/* ── OVERVIEW ── */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard title="Total Revenue" value={`$${financials.revenue.toFixed(2)}`} subValue={`${completed.length} orders`} icon={DollarSign} />
             <StatCard title="Gross Profit" value={`$${financials.grossProfit.toFixed(2)}`} subValue={`${financials.grossMargin.toFixed(1)}% margin`} icon={TrendingUp} />
             <StatCard title="Net Income" value={`$${financials.netIncome.toFixed(2)}`} subValue={`${financials.netMargin.toFixed(1)}% net margin`} icon={ShoppingBag} />
             <StatCard title="Avg Order Value" value={`$${completed.length ? (financials.revenue / completed.length).toFixed(2) : "0.00"}`} subValue={`${menuItems.length} menu items`} icon={BarChart3} />
+            <StatCard title="Total Tips" value={`$${totalTips.toFixed(2)}`} subValue={`${completed.filter(o => (o.tip || 0) > 0).length} orders with tip`} icon={HandCoins} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -222,6 +240,40 @@ export default function Reports() {
             </Card>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Ventas por Método de Pago</CardTitle></CardHeader>
+              <CardContent className="h-52">
+                {paymentData.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No data</p> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                        {paymentData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => `$${v.toFixed(2)}`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Ventas por Canal / Fuente</CardTitle></CardHeader>
+              <CardContent className="h-52">
+                {sourceData.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No data</p> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={sourceData} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(30, 10%, 90%)" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v.toFixed(0)}`} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                      <Tooltip formatter={(v) => [`$${v.toFixed(2)}`, "Ventas"]} />
+                      <Bar dataKey="value" fill="hsl(25, 95%, 53%)" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-base">Top Selling Items</CardTitle></CardHeader>
@@ -238,21 +290,6 @@ export default function Reports() {
                       </div>
                     ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base">Payment Methods</CardTitle></CardHeader>
-              <CardContent className="h-52">
-                {paymentData.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No data</p> : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                        {paymentData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(v) => `$${v.toFixed(2)}`} />
-                    </PieChart>
-                  </ResponsiveContainer>
                 )}
               </CardContent>
             </Card>
