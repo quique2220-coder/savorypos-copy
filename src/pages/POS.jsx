@@ -137,6 +137,7 @@ export default function POS() {
       total,
       payment_method: paymentMethod,
       order_type: orderType,
+      order_source: orderSource || "in_person",
       customer_name: customerName,
       notes: [
         orderSource !== "in_person" ? `Fuente: ${orderSource}` : "",

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Eye, Clock, CreditCard, Banknote, Smartphone } from "lucide-react";
+import { Eye, CreditCard, Banknote, Smartphone, Store, Bike } from "lucide-react";
 import { toast } from "sonner";
 
 const statusColors = {
@@ -19,6 +19,15 @@ const statusColors = {
 };
 
 const paymentIcons = { cash: Banknote, card: CreditCard, mobile: Smartphone };
+
+const SOURCE_LABELS = {
+  in_person: { label: "En local", color: "bg-slate-100 text-slate-700" },
+  uber_eats: { label: "Uber Eats", color: "bg-black text-white" },
+  doordash:  { label: "DoorDash", color: "bg-red-100 text-red-700" },
+  rappi:     { label: "Rappi",    color: "bg-orange-100 text-orange-700" },
+  online:    { label: "Online",   color: "bg-blue-100 text-blue-700" },
+  phone:     { label: "Teléfono", color: "bg-purple-100 text-purple-700" },
+};
 
 export default function Orders() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -70,6 +79,7 @@ export default function Orders() {
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Payment</TableHead>
@@ -93,7 +103,13 @@ export default function Orders() {
                     </TableCell>
                     <TableCell className="text-sm">{order.customer_name || "Walk-in"}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">{order.order_type?.replace("_", " ") || "—"}</Badge>
+                     <Badge variant="outline" className="text-xs capitalize">{order.order_type?.replace("_", " ") || "—"}</Badge>
+                    </TableCell>
+                    <TableCell>
+                     {(() => {
+                       const src = SOURCE_LABELS[order.order_source] || SOURCE_LABELS.in_person;
+                       return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${src.color}`}>{src.label}</span>;
+                     })()}
                     </TableCell>
                     <TableCell className="text-sm">{order.items?.length || 0}</TableCell>
                     <TableCell className="font-semibold">${order.total?.toFixed(2)}</TableCell>
@@ -132,6 +148,7 @@ export default function Orders() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Customer:</span> <span className="font-medium ml-1">{selectedOrder.customer_name || "Walk-in"}</span></div>
                 <div><span className="text-muted-foreground">Type:</span> <span className="font-medium ml-1 capitalize">{selectedOrder.order_type?.replace("_", " ")}</span></div>
+                <div><span className="text-muted-foreground">Source:</span> <span className="font-medium ml-1">{SOURCE_LABELS[selectedOrder.order_source]?.label || "En local"}</span></div>
                 <div><span className="text-muted-foreground">Payment:</span> <span className="font-medium ml-1 capitalize">{selectedOrder.payment_method}</span></div>
                 <div><span className="text-muted-foreground">Date:</span> <span className="font-medium ml-1">{selectedOrder.created_date ? format(new Date(selectedOrder.created_date), "MMM d, yyyy HH:mm") : "—"}</span></div>
               </div>
