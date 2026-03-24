@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import MenuItemForm from "@/components/menu/MenuItemForm";
+import { costPerBaseUnit } from "@/utils/recipeCalculator";
 
 export default function Menu() {
   const [itemFormOpen, setItemFormOpen] = useState(false);
