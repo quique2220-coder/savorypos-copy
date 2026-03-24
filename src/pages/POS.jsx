@@ -8,6 +8,7 @@ import CategoryBar from "@/components/pos/CategoryBar";
 import MenuGrid from "@/components/pos/MenuGrid";
 import Cart from "@/components/pos/Cart";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
+import { getConversionFactor } from "@/utils/units";
 import { postSaleEntry } from "@/utils/accountingSync";
 
 export default function POS() {
@@ -193,7 +194,11 @@ export default function POS() {
         const invItem = inventory.find(inv => inv.ingredient_id === ri.ingredient_id);
         if (!invItem) continue;
 
-        const consumed = (ri.quantity || 0) * cartItem.quantity;
+        // Convert recipe unit → inventory unit if needed
+        const recipeUnit = ri.unit || invItem.unit;
+        const invUnit = invItem.unit;
+        const factor = getConversionFactor(recipeUnit, invUnit) ?? 1;
+        const consumed = (ri.quantity || 0) * cartItem.quantity * factor;
         const newStock = Math.max(0, (invItem.current_stock || 0) - consumed);
         await base44.entities.InventoryItem.update(invItem.id, { current_stock: newStock });
       }
