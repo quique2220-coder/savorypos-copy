@@ -6,9 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { costPerBaseUnit } from "@/utils/recipeCalculator";
+import { Switch } from "@/components/ui/switch";
 
 export default function InventoryForm({ open, onClose, onSave, item, isSaving, ingredients = [] }) {
   const [form, setForm] = useState({ ingredient_id: "", current_stock: "", min_stock: "" });
+  const [recordPurchase, setRecordPurchase] = useState(true);
+  const [payWithCash, setPayWithCash] = useState(false);
 
   useEffect(() => {
     if (item) {
@@ -27,15 +30,20 @@ export default function InventoryForm({ open, onClose, onSave, item, isSaving, i
 
   const handleSave = () => {
     if (!selectedIng) return;
+    const qty = parseFloat(form.current_stock) || 0;
     onSave({
       ingredient_id: selectedIng.id,
       name: selectedIng.name,
       unit: selectedIng.base_unit || "pcs",
-      current_stock: parseFloat(form.current_stock) || 0,
+      current_stock: qty,
       min_stock: parseFloat(form.min_stock) || 0,
       cost_per_unit: cpu,
       supplier: selectedIng.supplier || "",
       category: selectedIng.category || "other",
+      // pass-through for accounting sync
+      _recordPurchase: !item && recordPurchase,
+      _purchaseAmount: qty * cpu,
+      _payWithCash: payWithCash,
     });
   };
 
@@ -96,6 +104,24 @@ export default function InventoryForm({ open, onClose, onSave, item, isSaving, i
           {selectedIng && form.current_stock && (
             <div className="p-2 bg-accent/20 rounded-lg text-xs text-center">
               Valor en inventario: <span className="font-bold text-primary">${(parseFloat(form.current_stock) * cpu).toFixed(2)}</span>
+            </div>
+          )}
+
+          {!item && (
+            <div className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Registrar en Contabilidad</p>
+                  <p className="text-xs text-muted-foreground">Crea asiento Dr: Inventario / Cr: Cuentas por Pagar</p>
+                </div>
+                <Switch checked={recordPurchase} onCheckedChange={setRecordPurchase} />
+              </div>
+              {recordPurchase && (
+                <div className="flex items-center justify-between pt-1 border-t">
+                  <p className="text-xs text-muted-foreground">Pago al contado (Cr: Caja)</p>
+                  <Switch checked={payWithCash} onCheckedChange={setPayWithCash} />
+                </div>
+              )}
             </div>
           )}
         </div>

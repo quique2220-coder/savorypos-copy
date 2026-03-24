@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, Trash2, Search, AlertTriangle, PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 import InventoryForm from "@/components/inventory/InventoryForm";
+import { postPurchaseEntry } from "@/utils/accountingSync";
 
 export default function Inventory() {
   const [formOpen, setFormOpen] = useState(false);
@@ -38,11 +39,21 @@ export default function Inventory() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["inventory"] }); toast.success("Item deleted"); },
   });
 
-  const handleSave = (data) => {
+  const handleSave = async (data) => {
+    const { _recordPurchase, _purchaseAmount, _payWithCash, ...cleanData } = data;
     if (editing) {
-      update.mutate({ id: editing.id, data });
+      update.mutate({ id: editing.id, data: cleanData });
     } else {
-      create.mutate(data);
+      create.mutate(cleanData);
+      if (_recordPurchase && _purchaseAmount > 0) {
+        await postPurchaseEntry({
+          description: cleanData.name,
+          amount: _purchaseAmount,
+          reference: cleanData.supplier || "",
+          payWithCash: _payWithCash,
+        });
+        queryClient.invalidateQueries({ queryKey: ["JournalEntry"] });
+      }
     }
   };
 

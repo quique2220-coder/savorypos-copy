@@ -8,6 +8,7 @@ import CategoryBar from "@/components/pos/CategoryBar";
 import MenuGrid from "@/components/pos/MenuGrid";
 import Cart from "@/components/pos/Cart";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
+import { postSaleEntry } from "@/utils/accountingSync";
 
 export default function POS() {
   const [cartItems, setCartItems] = useState([]);
@@ -112,6 +113,15 @@ export default function POS() {
 
   const handleCheckout = async (checkoutData) => {
     const { paymentMethod, orderType, orderSource, customerName, subtotal, tax, total, discountAmount, appliedCoupon } = checkoutData;
+
+    // Calcular costo total de los items vendidos para COGS
+    const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
+    const costOfGoods = cartItems.reduce((sum, cartItem) => {
+      const recipe = recipes.find(r => r.id === cartItem.menu_item_id);
+      if (!recipe) return sum;
+      const totals = calcRecipeTotals(recipe, ingMap);
+      return sum + (totals.foodCostPerServing || 0) * cartItem.quantity;
+    }, 0);
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
     const orderItems = cartItems.map((item) => ({
       ...item,
@@ -133,6 +143,10 @@ export default function POS() {
       ].filter(Boolean).join(" | ") || undefined,
       status: "completed",
     });
+
+    // Sincronizar con Contabilidad
+    await postSaleEntry({ orderNumber, total, tax, subtotal, paymentMethod, costOfGoods });
+    queryClient.invalidateQueries({ queryKey: ["JournalEntry"] });
 
     // CRM: crear o actualizar cliente
     const { customer, pointsToEarn } = checkoutData || {};
