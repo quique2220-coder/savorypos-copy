@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, CreditCard, Utensils } from "lucide-react";
-import { format, subDays, isAfter, startOfDay, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List } from "lucide-react";
+import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear, isWithinInterval, getISOWeek, getYear } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
+import SalesDetail from "@/components/reports/SalesDetail";
 import BalanceSheet from "@/components/reports/BalanceSheet";
 import CashFlow from "@/components/reports/CashFlow";
 
@@ -194,6 +195,7 @@ export default function Reports() {
       <Tabs defaultValue="overview">
         <TabsList className="mb-6 h-10">
           <TabsTrigger value="overview" className="flex items-center gap-1.5"><BarChart3 className="w-4 h-4" /> Overview</TabsTrigger>
+          <TabsTrigger value="sales" className="flex items-center gap-1.5"><List className="w-4 h-4" /> Sales Detail</TabsTrigger>
           <TabsTrigger value="pnl" className="flex items-center gap-1.5"><FileText className="w-4 h-4" /> P&amp;L</TabsTrigger>
           <TabsTrigger value="balance" className="flex items-center gap-1.5"><Scale className="w-4 h-4" /> Balance Sheet</TabsTrigger>
           <TabsTrigger value="cashflow" className="flex items-center gap-1.5"><Droplets className="w-4 h-4" /> Cash Flow</TabsTrigger>
@@ -309,6 +311,11 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* ── SALES DETAIL ── */}
+        <TabsContent value="sales">
+          <SalesDetail orders={orders} />
         </TabsContent>
 
         {/* ── P&L ── */}
