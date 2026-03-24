@@ -28,7 +28,10 @@ function groupOrders(orders, granularity) {
     const date = new Date(o.created_date);
     let key;
     if (granularity === "day") key = format(date, "yyyy-MM-dd");
-    else if (granularity === "week") key = `${getYear(date)}-W${String(getISOWeek(date)).padStart(2, "0")}`;
+    else if (granularity === "week") {
+      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+      key = format(weekStart, "yyyy-MM-dd");
+    }
     else if (granularity === "month") key = format(date, "yyyy-MM");
     else key = format(date, "yyyy");
 

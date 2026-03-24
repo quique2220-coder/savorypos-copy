@@ -108,12 +108,12 @@ export default function Reports() {
 
     const financials = { revenue, cogs, grossProfit, grossMargin, opExpenses, operatingIncome, taxes, netIncome, netMargin };
 
-    // Daily for last 7 days (used in charts)
+    // Daily for last 7 days (used in charts) — uses `completed` so it respects the period filter
     const dailyRevenue = [];
     for (let i = 6; i >= 0; i--) {
       const day = subDays(new Date(), i);
       const dayStr = format(day, "yyyy-MM-dd");
-      const dayOrders = allCompleted.filter((o) => o.created_date && format(new Date(o.created_date), "yyyy-MM-dd") === dayStr);
+      const dayOrders = completed.filter((o) => o.created_date && format(new Date(o.created_date), "yyyy-MM-dd") === dayStr);
       dailyRevenue.push({
         day: format(day, "EEE"),
         revenue: dayOrders.reduce((s, o) => s + (o.total || 0), 0),
