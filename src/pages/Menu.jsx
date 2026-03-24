@@ -32,17 +32,15 @@ export default function Menu() {
     [recipes]
   );
 
-  // Calculate cost from recipe_items + ingredients
+  // Calculate cost from recipe_items + ingredients using proper unit conversion
   const calcCost = (recipe) => {
     if (!recipe.recipe_items?.length) return null;
     let total = 0;
     for (const ri of recipe.recipe_items) {
       const ing = ingredients.find(i => i.id === ri.ingredient_id);
       if (!ing) continue;
-      const costPerUnit = ing.purchase_price && ing.purchase_quantity
-        ? (ing.purchase_price / ing.purchase_quantity) / ((ing.yield_percent || 100) / 100)
-        : 0;
-      total += costPerUnit * (ri.quantity || 0);
+      const cpu = costPerBaseUnit(ing);
+      total += cpu * (ri.quantity || 0);
     }
     return total > 0 ? total / (recipe.servings || 1) : null;
   };
