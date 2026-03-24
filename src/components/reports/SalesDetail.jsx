@@ -1,8 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, startOfWeek, startOfMonth, startOfYear, getISOWeek, getYear } from "date-fns";
+import { format, startOfWeek, subDays, subMonths, startOfMonth, endOfMonth, startOfYear } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { CalendarIcon, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 const SOURCE_LABELS = {
   in_person: "In Person",
@@ -20,9 +24,26 @@ const TYPE_LABELS = {
   catering: "Catering",
 };
 
-function groupOrders(orders, granularity) {
+const QUICK_RANGES = [
+  { label: "Hoy", getValue: () => ({ from: new Date(), to: new Date() }) },
+  { label: "Últ. 7 días", getValue: () => ({ from: subDays(new Date(), 6), to: new Date() }) },
+  { label: "Últ. 30 días", getValue: () => ({ from: subDays(new Date(), 29), to: new Date() }) },
+  { label: "Este mes", getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
+  { label: "Mes anterior", getValue: () => { const m = subMonths(new Date(), 1); return { from: startOfMonth(m), to: endOfMonth(m) }; } },
+  { label: "Todo", getValue: () => null },
+];
+
+function groupOrders(orders, granularity, dateRange) {
   const map = {};
-  const completed = orders.filter(o => o.status === "completed");
+  let completed = orders.filter(o => o.status === "completed");
+  if (dateRange?.from) {
+    const from = new Date(dateRange.from); from.setHours(0, 0, 0, 0);
+    const to = dateRange.to ? new Date(dateRange.to) : new Date(); to.setHours(23, 59, 59, 999);
+    completed = completed.filter(o => {
+      const d = new Date(o.created_date);
+      return d >= from && d <= to;
+    });
+  }
 
   completed.forEach(o => {
     const date = new Date(o.created_date);
@@ -127,8 +148,14 @@ const COLORS = ["hsl(25,95%,53%)", "hsl(160,60%,45%)", "hsl(220,70%,50%)", "hsl(
 
 export default function SalesDetail({ orders }) {
   const [granularity, setGranularity] = useState("day");
+  const [dateRange, setDateRange] = useState({ from: subDays(new Date(), 29), to: new Date() });
+  const [calOpen, setCalOpen] = useState(false);
 
-  const rows = useMemo(() => groupOrders(orders, granularity), [orders, granularity]);
+  const rows = useMemo(() => groupOrders(orders, granularity, dateRange), [orders, granularity, dateRange]);
+
+  const rangeLabel = dateRange
+    ? `${format(dateRange.from, "dd/MM/yy")}${dateRange.to && dateRange.to !== dateRange.from ? ` – ${format(dateRange.to, "dd/MM/yy")}` : ""}`
+    : "Todo el tiempo";
 
   // Build chart data with sales + tips
   const chartData = rows.slice(-20).map(r => ({ name: r.key, Ventas: parseFloat(r.sales.toFixed(2)), Tips: parseFloat(r.tips.toFixed(2)) }));
@@ -151,19 +178,51 @@ export default function SalesDetail({ orders }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Sales Detail</h2>
-        <Select value={granularity} onValueChange={setGranularity}>
-          <SelectTrigger className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">Por Día</SelectItem>
-            <SelectItem value="week">Por Semana</SelectItem>
-            <SelectItem value="month">Por Mes</SelectItem>
-            <SelectItem value="year">Por Año</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick range buttons */}
+          {QUICK_RANGES.map(r => (
+            <button
+              key={r.label}
+              onClick={() => setDateRange(r.getValue())}
+              className="text-xs px-2.5 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+            >
+              {r.label}
+            </button>
+          ))}
+
+          {/* Calendar picker */}
+          <Popover open={calOpen} onOpenChange={setCalOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+                <CalendarIcon className="w-3.5 h-3.5" />
+                {rangeLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => { setDateRange(range); if (range?.from && range?.to) setCalOpen(false); }}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Granularity */}
+          <Select value={granularity} onValueChange={setGranularity}>
+            <SelectTrigger className="w-32 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Por Día</SelectItem>
+              <SelectItem value="week">Por Semana</SelectItem>
+              <SelectItem value="month">Por Mes</SelectItem>
+              <SelectItem value="year">Por Año</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Sales + Tips Chart */}
