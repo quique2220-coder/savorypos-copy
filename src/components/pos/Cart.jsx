@@ -198,6 +198,34 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
           )}
           {couponError && <p className="text-xs text-destructive">{couponError}</p>}
 
+          {/* Tip */}
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground font-medium">Propina</p>
+            <div className="flex gap-1">
+              {[0, 10, 15, 18, 20].map(pct => (
+                <button
+                  key={pct}
+                  onClick={() => { setTipPercent(pct); setCustomTip(""); }}
+                  className={cn(
+                    "flex-1 text-xs py-1.5 rounded-md font-medium border transition-all",
+                    tipPercent === pct && customTip === ""
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80"
+                  )}
+                >
+                  {pct === 0 ? "No" : `${pct}%`}
+                </button>
+              ))}
+            </div>
+            <Input
+              type="number"
+              placeholder="Monto personalizado..."
+              value={customTip}
+              onChange={(e) => { setCustomTip(e.target.value); setTipPercent(0); }}
+              className="h-8 text-xs"
+            />
+          </div>
+
           {/* Totals */}
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between text-muted-foreground">
@@ -227,34 +255,6 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
             {selectedCustomer?.id && (
               <p className="text-xs text-amber-600 text-right">+{pointsToEarn} pts de lealtad</p>
             )}
-          </div>
-
-          {/* Tip */}
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground font-medium">Propina</p>
-            <div className="flex gap-1">
-              {[0, 10, 15, 18, 20].map(pct => (
-                <button
-                  key={pct}
-                  onClick={() => { setTipPercent(pct); setCustomTip(""); }}
-                  className={cn(
-                    "flex-1 text-xs py-1.5 rounded-md font-medium border transition-all",
-                    tipPercent === pct && customTip === ""
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80"
-                  )}
-                >
-                  {pct === 0 ? "No" : `${pct}%`}
-                </button>
-              ))}
-            </div>
-            <Input
-              type="number"
-              placeholder="Monto personalizado..."
-              value={customTip}
-              onChange={(e) => { setCustomTip(e.target.value); setTipPercent(0); }}
-              className="h-8 text-xs"
-            />
           </div>
 
           {/* Payment Method */}
