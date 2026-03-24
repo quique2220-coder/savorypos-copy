@@ -26,6 +26,8 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
+  const [tipPercent, setTipPercent] = useState(0);
+  const [customTip, setCustomTip] = useState("");
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -42,7 +44,8 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
 
   const discountedSubtotal = subtotal - discountAmount;
   const tax = discountedSubtotal * TAX_RATE;
-  const total = discountedSubtotal + tax;
+  const tipAmount = customTip !== "" ? parseFloat(customTip) || 0 : (discountedSubtotal + tax) * (tipPercent / 100);
+  const total = discountedSubtotal + tax + tipAmount;
   const pointsToEarn = Math.floor(total * POINTS_PER_DOLLAR);
 
   const handleApplyCoupon = () => {
@@ -72,6 +75,7 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
       discountAmount,
       subtotal,
       tax,
+      tip: tipAmount,
       total,
       pointsToEarn,
     });
@@ -80,6 +84,8 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
     setAppliedCoupon(null);
     setCouponCode("");
     setOrderSource("in_person");
+    setTipPercent(0);
+    setCustomTip("");
   };
 
   return (
@@ -208,6 +214,12 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
               <span>Tax (8%)</span>
               <span>${tax.toFixed(2)}</span>
             </div>
+            {tipAmount > 0 && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Propina</span>
+                <span>${tipAmount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-lg font-bold pt-1.5 border-t border-border">
               <span>Total</span>
               <span className="text-primary">${total.toFixed(2)}</span>
@@ -215,6 +227,34 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
             {selectedCustomer?.id && (
               <p className="text-xs text-amber-600 text-right">+{pointsToEarn} pts de lealtad</p>
             )}
+          </div>
+
+          {/* Tip */}
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground font-medium">Propina</p>
+            <div className="flex gap-1">
+              {[0, 10, 15, 18, 20].map(pct => (
+                <button
+                  key={pct}
+                  onClick={() => { setTipPercent(pct); setCustomTip(""); }}
+                  className={cn(
+                    "flex-1 text-xs py-1.5 rounded-md font-medium border transition-all",
+                    tipPercent === pct && customTip === ""
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80"
+                  )}
+                >
+                  {pct === 0 ? "No" : `${pct}%`}
+                </button>
+              ))}
+            </div>
+            <Input
+              type="number"
+              placeholder="Monto personalizado..."
+              value={customTip}
+              onChange={(e) => { setCustomTip(e.target.value); setTipPercent(0); }}
+              className="h-8 text-xs"
+            />
           </div>
 
           {/* Payment Method */}

@@ -113,7 +113,7 @@ export default function POS() {
   };
 
   const handleCheckout = async (checkoutData) => {
-    const { paymentMethod, orderType, orderSource, customerName, subtotal, tax, total, discountAmount, appliedCoupon } = checkoutData;
+    const { paymentMethod, orderType, orderSource, customerName, subtotal, tax, tip, total, discountAmount, appliedCoupon } = checkoutData;
 
     // Calcular costo total de los items vendidos para COGS
     const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
@@ -134,6 +134,7 @@ export default function POS() {
       items: orderItems,
       subtotal,
       tax,
+      tip: tip || 0,
       total,
       payment_method: paymentMethod,
       order_type: orderType,
@@ -147,7 +148,7 @@ export default function POS() {
     });
 
     // Sincronizar con Contabilidad
-    await postSaleEntry({ orderNumber, total, tax, subtotal, paymentMethod, costOfGoods });
+    await postSaleEntry({ orderNumber, total, tax, subtotal, paymentMethod, costOfGoods, tip: tip || 0 });
     queryClient.invalidateQueries({ queryKey: ["JournalEntry"] });
 
     // CRM: crear o actualizar cliente

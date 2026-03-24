@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
  * Dr: 1100 Caja  |  Cr: 4100 Ventas de Alimentos
  * Dr: 5100 Costo de Alimentos  |  Cr: 1130 Inventario  (si hay costo calculado)
  */
-export async function postSaleEntry({ orderNumber, total, tax, subtotal, paymentMethod, costOfGoods = 0 }) {
+export async function postSaleEntry({ orderNumber, total, tax, subtotal, paymentMethod, costOfGoods = 0, tip = 0 }) {
   const today = new Date().toISOString().split("T")[0];
 
   const drAccount = paymentMethod === "card" ? "1110 Banco" : "1100 Caja / Efectivo";
@@ -46,6 +46,25 @@ export async function postSaleEntry({ orderNumber, total, tax, subtotal, payment
       reference: orderNumber,
       payment_method: pmLabel,
       notes: `Sales Tax sobre venta $${subAmt.toFixed(2)}`,
+    });
+  }
+
+  // Asiento 1c: Tip  Dr: Caja  |  Cr: 2300 Tips por Pagar
+  const tipAmt = parseFloat((tip || 0).toFixed(2));
+  if (tipAmt > 0) {
+    await base44.entities.JournalEntry.create({
+      date: today,
+      description: `Tip POS — ${orderNumber}`,
+      account_dr: drAccount,
+      account_dr_type: drType,
+      account_cr: "2300 Tips por Pagar",
+      account_cr_type: "Liability",
+      amount_dr: tipAmt,
+      amount_cr: tipAmt,
+      category: "Liability",
+      reference: orderNumber,
+      payment_method: pmLabel,
+      notes: `Propina $${tipAmt.toFixed(2)}`,
     });
   }
 
