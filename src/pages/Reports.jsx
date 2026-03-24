@@ -130,7 +130,7 @@ export default function Reports() {
     });
     const topItems = Object.entries(itemCounts).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, count]) => ({ name, count }));
 
-    const totalTips = completed.reduce((s, o) => s + (o.tip || 0), 0);
+    const totalTips = completed.reduce((s, o) => s + (parseFloat(o.tip) || 0), 0);
 
     const paymentBreakdown = {};
     completed.forEach((o) => {
@@ -208,7 +208,7 @@ export default function Reports() {
             <StatCard title="Gross Profit" value={`$${financials.grossProfit.toFixed(2)}`} subValue={`${financials.grossMargin.toFixed(1)}% margin`} icon={TrendingUp} />
             <StatCard title="Net Income" value={`$${financials.netIncome.toFixed(2)}`} subValue={`${financials.netMargin.toFixed(1)}% net margin`} icon={ShoppingBag} />
             <StatCard title="Avg Order Value" value={`$${completed.length ? (financials.revenue / completed.length).toFixed(2) : "0.00"}`} subValue={`${menuItems.length} menu items`} icon={BarChart3} />
-            <StatCard title="Total Tips" value={`$${totalTips.toFixed(2)}`} subValue={`${completed.filter(o => (o.tip || 0) > 0).length} orders with tip`} icon={HandCoins} />
+            <StatCard title="Total Tips" value={`$${totalTips.toFixed(2)}`} subValue={`${completed.filter(o => parseFloat(o.tip) > 0).length} órdenes con propina`} icon={HandCoins} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
