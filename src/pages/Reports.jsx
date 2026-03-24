@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List } from "lucide-react";
-import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear, isWithinInterval, getISOWeek, getYear } from "date-fns";
+import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
 import SalesDetail from "@/components/reports/SalesDetail";
@@ -77,7 +77,12 @@ export default function Reports() {
     const range = getPeriodRange(period);
     const allCompleted = orders.filter((o) => o.status === "completed");
     const completed = range
-      ? allCompleted.filter((o) => o.created_date && isWithinInterval(new Date(o.created_date), range))
+      ? allCompleted.filter((o) => {
+          if (!o.created_date) return false;
+          const d = new Date(o.created_date);
+          const end = new Date(range.end); end.setHours(23, 59, 59, 999);
+          return d >= range.start && d <= end;
+        })
       : allCompleted;
 
     const revenue = completed.reduce((s, o) => s + (o.total || 0), 0);
