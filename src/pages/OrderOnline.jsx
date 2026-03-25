@@ -26,9 +26,9 @@ export default function OrderOnline() {
     try {
       const s = JSON.parse(localStorage.getItem("pos_settings") || "{}");
       return {
-        enabled: !!s.delivery_enabled,
-        lat: parseFloat(s.delivery_lat),
-        lng: parseFloat(s.delivery_lng),
+        enabled: s.delivery_enabled === true || s.delivery_enabled === "true",
+        lat: parseFloat(s.delivery_lat) || null,
+        lng: parseFloat(s.delivery_lng) || null,
         radius: parseFloat(s.delivery_radius_miles) || 5,
         feePercent: parseFloat(s.delivery_fee_percent) || 40,
       };
@@ -38,10 +38,9 @@ export default function OrderOnline() {
   const [deliverySettings, setDeliverySettings] = React.useState(getDeliverySettings);
 
   React.useEffect(() => {
+    setDeliverySettings(getDeliverySettings());
     const onStorage = () => setDeliverySettings(getDeliverySettings());
     window.addEventListener("storage", onStorage);
-    // Also refresh every time the cart opens
-    if (showCart) setDeliverySettings(getDeliverySettings());
     return () => window.removeEventListener("storage", onStorage);
   }, [showCart]);
 
