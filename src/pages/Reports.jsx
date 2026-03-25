@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import SalesDetail from "@/components/reports/SalesDetail";
 import BalanceSheet from "@/components/reports/BalanceSheet";
 import CashFlow from "@/components/reports/CashFlow";
 import PrintButton from "@/components/reports/PrintButton";
-import { useRef } from "react";
 
 const COLORS = ["hsl(25, 95%, 53%)", "hsl(160, 60%, 45%)", "hsl(220, 70%, 50%)", "hsl(280, 65%, 60%)", "hsl(340, 75%, 55%)"];
 
@@ -68,12 +67,9 @@ export default function Reports() {
   const [customEnd, setCustomEnd] = useState("");
   const queryClient = useQueryClient();
   
-  const pnlRef = useRef(null);
-  const balanceRef = useRef(null);
-  const cashflowRef = useRef(null);
-  const { ref: pnlPrintRef, button: pnlPrintBtn } = PrintButton({ filename: "profit-loss" });
-  const { ref: balancePrintRef, button: balancePrintBtn } = PrintButton({ filename: "balance-sheet" });
-  const { ref: cashflowPrintRef, button: cashflowPrintBtn } = PrintButton({ filename: "cash-flow" });
+  const pnlPrintRef = useRef(null);
+  const balancePrintRef = useRef(null);
+  const cashflowPrintRef = useRef(null);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
@@ -408,7 +404,7 @@ export default function Reports() {
         {/* ── P&L ── */}
         <TabsContent value="pnl">
           <div className="flex justify-end mb-3">
-            {pnlPrintBtn}
+            <PrintButton contentRef={pnlPrintRef} filename="profit-loss" />
           </div>
           <Card><CardContent className="p-6">
             <ProfitLoss contentRef={pnlPrintRef} financials={financials} period={periodLabel} />
@@ -418,7 +414,7 @@ export default function Reports() {
         {/* ── BALANCE SHEET ── */}
         <TabsContent value="balance">
           <div className="flex justify-end mb-3">
-            {balancePrintBtn}
+            <PrintButton contentRef={balancePrintRef} filename="balance-sheet" />
           </div>
           <Card><CardContent className="p-6">
             <BalanceSheet contentRef={balancePrintRef} financials={financials} inventory={inventory} period={periodLabel} />
@@ -428,7 +424,7 @@ export default function Reports() {
         {/* ── CASH FLOW ── */}
         <TabsContent value="cashflow">
           <div className="flex justify-end mb-3">
-            {cashflowPrintBtn}
+            <PrintButton contentRef={cashflowPrintRef} filename="cash-flow" />
           </div>
           <Card><CardContent className="p-6">
             <CashFlow contentRef={cashflowPrintRef} financials={financials} dailyRevenue={dailyRevenue} period={periodLabel} />

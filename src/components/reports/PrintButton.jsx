@@ -1,14 +1,12 @@
-import React, { useRef } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-export default function PrintButton({ filename = "statement" }) {
-  const contentRef = useRef(null);
-
+export default function PrintButton({ filename = "statement", contentRef }) {
   const handlePrint = async () => {
-    if (!contentRef.current) return;
+    if (!contentRef?.current) return;
 
     try {
       const canvas = await html2canvas(contentRef.current, {
@@ -43,5 +41,5 @@ export default function PrintButton({ filename = "statement" }) {
     }
   };
 
-  return { ref: contentRef, button: <Button onClick={handlePrint} size="sm" variant="outline" className="gap-2"><Printer className="w-4 h-4" />Imprimir</Button> };
+  return <Button onClick={handlePrint} size="sm" variant="outline" className="gap-2"><Printer className="w-4 h-4" />Imprimir</Button>;
 }
