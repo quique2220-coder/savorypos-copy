@@ -450,8 +450,10 @@ export default function OrderOnline() {
                       </button>
                       <button
                         onClick={() => {
-                          if (!deliverySettings.enabled) { setOrderType("delivery"); setDeliveryStatus("disabled"); return; }
+                          const fresh = getDeliverySettings();
+                          setDeliverySettings(fresh);
                           setOrderType("delivery");
+                          if (!fresh.enabled) { setDeliveryStatus("disabled"); return; }
                           setDeliveryStatus(null);
                           setDeliveryDistanceMiles(null);
                         }}
