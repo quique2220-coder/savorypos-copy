@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, BookOpen, BarChart3, Scale, CheckSquare, FileText, Undo2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, BookOpen, BarChart3, Scale, CheckSquare, FileText, Undo2, Printer } from "lucide-react";
 import JournalForm from "../components/accounting/JournalForm";
 import TrialBalance from "../components/accounting/TrialBalance";
 import IRSDeductibles from "../components/accounting/IRSDeductibles";
@@ -64,6 +64,8 @@ export default function Contabilidad() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
+  const [statementsStartDate, setStatementsStartDate] = useState("");
+  const [statementsEndDate, setStatementsEndDate] = useState("");
   const qc = useQueryClient();
 
   const { data: entries = [] } = useQuery({
@@ -220,7 +222,31 @@ export default function Contabilidad() {
 
           {/* ESTADOS FINANCIEROS */}
           <TabsContent value="statements">
-            <AccountingStatements entries={entries} />
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Fecha Inicio</label>
+                  <Input type="date" value={statementsStartDate} onChange={e => setStatementsStartDate(e.target.value)} />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Fecha Fin</label>
+                  <Input type="date" value={statementsEndDate} onChange={e => setStatementsEndDate(e.target.value)} />
+                </div>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => { setStatementsStartDate(""); setStatementsEndDate(""); }}>
+                  Limpiar
+                </Button>
+                <Button size="sm" className="gap-2" onClick={() => window.print()}>
+                  <Printer className="w-4 h-4" />Imprimir
+                </Button>
+              </div>
+              <AccountingStatements entries={entries.filter(e => {
+                if (!statementsStartDate && !statementsEndDate) return true;
+                const entryDate = new Date(e.date);
+                const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
+                const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
+                return entryDate >= start && entryDate <= end;
+              })} />
+            </div>
           </TabsContent>
 
           {/* BALANZA DE COMPROBACIÓN */}
