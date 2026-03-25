@@ -142,7 +142,6 @@ const DEFAULTS = {
   delivery_lng: "",
   delivery_radius_miles: 5,
   delivery_fee_percent: 40,
-  current_plan: "growth",
 };
 
 export default function Settings() {
@@ -173,7 +172,6 @@ export default function Settings() {
           delivery_lng: s.delivery_lng != null ? String(s.delivery_lng) : "",
           delivery_radius_miles: s.delivery_radius_miles || 5,
           delivery_fee_percent: s.delivery_fee_percent || 40,
-          current_plan: s.current_plan || "growth",
         });
         localStorage.setItem("pos_settings", JSON.stringify({
           ...s,
@@ -210,7 +208,6 @@ export default function Settings() {
       delivery_lng: business.delivery_lng ? parseFloat(business.delivery_lng) : null,
       delivery_radius_miles: parseFloat(business.delivery_radius_miles) || 5,
       delivery_fee_percent: parseFloat(business.delivery_fee_percent) || 40,
-      current_plan: business.current_plan,
     };
     try {
       if (settingsId) {
@@ -420,88 +417,16 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Membership Plans */}
+          {/* Membership Plans - View Only */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Plan de Membresía</CardTitle>
-              <p className="text-xs text-muted-foreground mt-2">Maneja tu restaurante sin complicaciones y sin ser contador</p>
+              <p className="text-xs text-muted-foreground mt-2">Cambiar tu plan requiere pago. Ve a tu cuenta para upgradearte.</p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {PLANS.map(plan => (
-                  <div
-                    key={plan.id}
-                    className={`p-4 rounded-xl border-2 transition-all relative ${
-                      plan.featured
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                        : "border-border hover:border-border"
-                    }`}
-                  >
-                    {plan.featured && (
-                      <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded">
-                        ⭐ Más popular
-                      </div>
-                    )}
-                    {business.current_plan === plan.id && (
-                      <div className="absolute -top-3 right-4 bg-emerald-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                        ✓ Actual
-                      </div>
-                    )}
-                    <div className="mb-3">
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="font-bold text-lg">{plan.name}</span>
-                        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
-                          {plan.subtitle}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground italic">{plan.tagline}</p>
-                    </div>
-                    <p className="text-2xl font-bold text-primary mb-3">{plan.price}</p>
-                    {plan.message && (
-                      <p className="text-xs font-semibold text-primary/80 bg-primary/10 rounded px-2 py-1 mb-3">
-                        👉 {plan.message}
-                      </p>
-                    )}
-                    {plan.messages && (
-                      <div className="space-y-1.5 mb-3">
-                        {plan.messages.map((msg, idx) => (
-                          <p key={idx} className="text-xs font-semibold text-primary/80 bg-primary/10 rounded px-2 py-1">
-                            👉 {msg}
-                          </p>
-                        ))}
-                        {plan.example && (
-                          <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5 border border-amber-200 italic">
-                            💡 {plan.example}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    <ul className="space-y-2 mb-4">
-                      {plan.features.map(f => (
-                        <li key={f} className="flex items-start gap-2 text-xs leading-relaxed">
-                          <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-muted-foreground">{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    {plan.restrictions && (
-                      <ul className="space-y-1 mb-4 border-t pt-3">
-                        {plan.restrictions.map(r => (
-                          <li key={r} className="text-xs text-red-600">{r}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <Button
-                      variant={business.current_plan === plan.id ? "default" : "outline"}
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setBusiness({ ...business, current_plan: plan.id })}
-                    >
-                      {business.current_plan === plan.id ? "Plan Actual" : "Cambiar"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                La gestión de planes se maneja desde la cuenta. Contáctate con soporte para cambiar tu plan actual.
+              </p>
             </CardContent>
           </Card>
 

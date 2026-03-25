@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from './AuthContext';
 
 const PLAN_FEATURES = {
   starter: {
@@ -64,12 +65,15 @@ const PLAN_FEATURES = {
 };
 
 export function usePlanAccess() {
-  const { data: settings = [] } = useQuery({
-    queryKey: ['AppSettings', 'business'],
-    queryFn: () => base44.entities.AppSettings.filter({ key: 'business' }),
+  const { user } = useAuth();
+  
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['Account', user?.email],
+    queryFn: () => base44.entities.Account.filter({ email: user?.email }),
+    enabled: !!user?.email,
   });
 
-  const currentPlan = settings[0]?.current_plan || 'growth';
+  const currentPlan = accounts[0]?.current_plan || 'starter';
   const features = PLAN_FEATURES[currentPlan] || PLAN_FEATURES.growth;
 
   // Map group names to feature checks
