@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,16 +41,30 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
   const [tipPercent, setTipPercent] = useState(0);
   const [customTip, setCustomTip] = useState("");
   const [TAX_RATE, setTaxRate] = useState(getTaxRate());
+  const [logoUrl, setLogoUrl] = useState("");
 
   useEffect(() => {
     const handleStorage = () => setTaxRate(getTaxRate());
     window.addEventListener("storage", handleStorage);
-    // Also poll in case changes happen in the same tab
     const interval = setInterval(() => setTaxRate(getTaxRate()), 1000);
     return () => {
       window.removeEventListener("storage", handleStorage);
       clearInterval(interval);
     };
+  }, []);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const settings = await base44.entities.AppSettings.filter({ key: "business" });
+        if (settings?.length > 0 && settings[0].logo_url) {
+          setLogoUrl(settings[0].logo_url);
+        }
+      } catch (err) {
+        console.error("Error fetching logo:", err);
+      }
+    };
+    fetchLogo();
   }, []);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -309,8 +324,58 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
           >
             {isProcessing ? "Procesando..." : `Cobrar $${total.toFixed(2)}`}
           </Button>
-        </div>
-      )}
-    </div>
-  );
-}
+
+          {/* Ticket Preview with Watermark */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="relative bg-white border border-border rounded-lg p-4 text-xs text-foreground overflow-hidden print:border-0 print:bg-transparent">
+              {/* Logo Watermark */}
+              {logoUrl && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none print:opacity-20">
+                  <img src={logoUrl} alt="Watermark" className="max-w-[80%] max-h-[80%] object-contain" />
+                </div>
+              )}
+
+              <div className="relative z-10 space-y-1.5">
+                <div className="text-center font-semibold mb-2">TICKET</div>
+                <div className="border-b border-dashed pb-1.5">
+                  {items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-[11px]">
+                      <span>{item.name} x{item.quantity}</span>
+                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-right space-y-0.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span>Sub:</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Desc:</span>
+                      <span>-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Tax:</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  {tipAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span>Propina:</span>
+                      <span>${tipAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold border-t border-dashed pt-1 mt-1">
+                    <span>Total:</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+          )}
+          </div>
+          );
+          }

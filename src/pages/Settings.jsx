@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Store, Receipt, Globe, CreditCard, Check, Truck, MapPin } from "lucide-react";
+import { Settings2, Store, Receipt, Globe, CreditCard, Check, Truck, MapPin, Image, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
@@ -143,6 +143,7 @@ const DEFAULTS = {
   delivery_lng: "",
   delivery_radius_miles: 5,
   delivery_fee_percent: 40,
+  logo_url: "",
 };
 
 export default function Settings() {
@@ -174,6 +175,7 @@ export default function Settings() {
           delivery_lng: s.delivery_lng != null ? String(s.delivery_lng) : "",
           delivery_radius_miles: s.delivery_radius_miles || 5,
           delivery_fee_percent: s.delivery_fee_percent || 40,
+          logo_url: s.logo_url || "",
         });
         localStorage.setItem("pos_settings", JSON.stringify({
           ...s,
@@ -233,6 +235,7 @@ export default function Settings() {
       delivery_lng: business.delivery_lng ? parseFloat(business.delivery_lng) : null,
       delivery_radius_miles: parseFloat(business.delivery_radius_miles) || 5,
       delivery_fee_percent: parseFloat(business.delivery_fee_percent) || 40,
+      logo_url: business.logo_url || "",
     };
     try {
       if (settingsId) {
@@ -275,22 +278,57 @@ export default function Settings() {
           {/* Business Info */}
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Store className="w-4 h-4" />Información del Negocio</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Nombre del negocio</Label>
-                <Input value={business.name} onChange={e => setBusiness({ ...business, name: e.target.value })} />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Nombre del negocio</Label>
+                  <Input value={business.name} onChange={e => setBusiness({ ...business, name: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Teléfono</Label>
+                  <Input value={business.phone} onChange={e => setBusiness({ ...business, phone: e.target.value })} placeholder="+1 555 000 0000" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input value={business.email} onChange={e => setBusiness({ ...business, email: e.target.value })} placeholder="negocio@email.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Dirección</Label>
+                  <Input value={business.address} onChange={e => setBusiness({ ...business, address: e.target.value })} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>Teléfono</Label>
-                <Input value={business.phone} onChange={e => setBusiness({ ...business, phone: e.target.value })} placeholder="+1 555 000 0000" />
-              </div>
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input value={business.email} onChange={e => setBusiness({ ...business, email: e.target.value })} placeholder="negocio@email.com" />
-              </div>
-              <div className="space-y-1">
-                <Label>Dirección</Label>
-                <Input value={business.address} onChange={e => setBusiness({ ...business, address: e.target.value })} />
+              <div className="border-t pt-4">
+                <Label className="flex items-center gap-2 mb-3"><Image className="w-4 h-4" />Logo de tu negocio</Label>
+                <div className="flex flex-col gap-3">
+                  {business.logo_url && (
+                    <div className="relative w-32 h-32 rounded-lg border border-border bg-secondary/30 flex items-center justify-center overflow-hidden">
+                      <img src={business.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => setBusiness({ ...business, logo_url: "" })}
+                        className="absolute top-1 right-1 bg-destructive/80 hover:bg-destructive text-white p-1 rounded transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  <label className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                    <Image className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Subir logo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const res = await base44.integrations.Core.UploadFile({ file });
+                        setBusiness({ ...business, logo_url: res.file_url });
+                      }}
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground">Se mostrará como watermark en los tickets de los clientes</p>
+                </div>
               </div>
             </CardContent>
           </Card>
