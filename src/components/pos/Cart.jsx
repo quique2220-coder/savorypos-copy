@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,8 +39,18 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
   const [couponError, setCouponError] = useState("");
   const [tipPercent, setTipPercent] = useState(0);
   const [customTip, setCustomTip] = useState("");
+  const [TAX_RATE, setTaxRate] = useState(getTaxRate());
 
-  const TAX_RATE = getTaxRate();
+  useEffect(() => {
+    const handleStorage = () => setTaxRate(getTaxRate());
+    window.addEventListener("storage", handleStorage);
+    // Also poll in case changes happen in the same tab
+    const interval = setInterval(() => setTaxRate(getTaxRate()), 1000);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   // Coupon discount
