@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,8 +64,9 @@ export default function Reports() {
   const [period, setPeriod] = useState("30d");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
+  const queryClient = useQueryClient();
 
-  const { data: orders = [], isLoading, refetch } = useQuery({
+  const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
     queryFn: () => base44.entities.Order.list("-created_date", 500),
   });
@@ -73,10 +74,10 @@ export default function Reports() {
   // Real-time subscription to order changes
   useEffect(() => {
     const unsubscribe = base44.entities.Order.subscribe(() => {
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     });
     return () => unsubscribe();
-  }, [refetch]);
+  }, [queryClient]);
 
   const { data: menuItems = [] } = useQuery({
     queryKey: ["menuItems"],
