@@ -6,6 +6,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { TrendingUp, Store, ShoppingBag } from "lucide-react";
 import BreakEvenAnalysis from "@/components/financial/BreakEvenAnalysis";
 import StartupMode from "@/components/financial/StartupMode";
+import LiveDashboard from "@/components/financial/LiveDashboard";
 
 // Data from the Restaurant Financial Model Excel
 const MONTHLY_DATA = [
@@ -95,8 +96,9 @@ export default function Proyecciones() {
           <p className="text-muted-foreground text-sm mt-1">Modelo a 36 meses — Canales: On-Premises, Takeaway, Doordash, Ubereats, Grubhub</p>
         </div>
 
-        <Tabs defaultValue="startup">
+        <Tabs defaultValue="live">
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
+            <TabsTrigger value="live">🔴 En Vivo</TabsTrigger>
             <TabsTrigger value="startup">🟢 Estoy empezando</TabsTrigger>
             <TabsTrigger value="overview">Resumen Ejecutivo</TabsTrigger>
             <TabsTrigger value="breakeven">📊 Break-Even</TabsTrigger>
@@ -104,6 +106,11 @@ export default function Proyecciones() {
             <TabsTrigger value="channels">Canales de Venta</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
           </TabsList>
+
+          {/* LIVE DASHBOARD */}
+          <TabsContent value="live">
+            <LiveDashboard />
+          </TabsContent>
 
           {/* STARTUP MODE */}
           <TabsContent value="startup">
