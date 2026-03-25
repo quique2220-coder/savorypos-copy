@@ -82,7 +82,7 @@ export default function Reports() {
 
   const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
     const range = getPeriodRange(period, customStart, customEnd);
-    const allCompleted = orders.filter((o) => o.status === "completed");
+    const allCompleted = orders.filter((o) => o.status === "completed" || o.status === "ready");
     const completed = range
       ? allCompleted.filter((o) => {
           if (!o.created_date) return false;
