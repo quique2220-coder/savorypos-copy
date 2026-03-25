@@ -58,7 +58,7 @@ const AuthenticatedApp = () => {
         <Route path="/Settings" element={<Settings />} />
         <Route path="/Ingredients" element={<ProtectedRoute requiredGroup="costing"><Ingredients /></ProtectedRoute>} />
         <Route path="/Recipes" element={<ProtectedRoute requiredGroup="costing"><Recipes /></ProtectedRoute>} />
-        <Route path="/VoiceAssistant" element={<ProtectedRoute><VoiceAssistant /></ProtectedRoute>} />
+        <Route path="/VoiceAssistant" element={<VoiceAssistant />} />
       </Route>
       {/* Public pages - outside Layout */}
       <Route path="/OrderOnline" element={<OrderOnline />} />
