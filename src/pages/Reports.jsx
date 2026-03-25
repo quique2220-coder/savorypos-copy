@@ -347,7 +347,7 @@ export default function Reports() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base">Order Types</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Tipo de Orden</CardTitle></CardHeader>
               <CardContent className="h-52">
                 {typeData.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No data</p> : (
                   <ResponsiveContainer width="100%" height="100%">
