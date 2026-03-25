@@ -159,7 +159,13 @@ export default function Reports() {
       const t = o.order_type || "dine_in";
       typeBreakdown[t] = (typeBreakdown[t] || 0) + 1;
     });
-    const typeData = Object.entries(typeBreakdown).map(([name, value]) => ({ name: name.replace("_", " "), value }));
+    const typeLabels = {
+      dine_in: "Dine In",
+      takeout: "Takeout",
+      delivery: "Delivery",
+      catering: "Catering",
+    };
+    const typeData = Object.entries(typeBreakdown).map(([key, value]) => ({ name: typeLabels[key] || key, value }));
 
     const SOURCE_LABELS = {
       in_person: "In Person",
