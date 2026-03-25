@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Eye, CreditCard, Banknote, Smartphone, Store, Bike, RotateCcw } from "lucide-react";
+import { Eye, CreditCard, Banknote, Smartphone, Store, Bike } from "lucide-react";
 import { toast } from "sonner";
-import RefundDialog from "@/components/pos/RefundDialog";
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -33,7 +32,6 @@ const SOURCE_LABELS = {
 export default function Orders() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [refundOrder, setRefundOrder] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading } = useQuery({
@@ -170,34 +168,28 @@ export default function Orders() {
                 <div className="flex justify-between font-bold text-base border-t pt-2"><span>Total</span><span>${selectedOrder.total?.toFixed(2)}</span></div>
               </div>
 
-              <div className="flex gap-2">
-                 {selectedOrder.status !== "completed" && selectedOrder.status !== "cancelled" && (
-                   <>
-                     {selectedOrder.status === "pending" && (
-                       <Button size="sm" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "preparing" } }); setSelectedOrder(null); }}>
-                         Start Preparing
-                       </Button>
-                     )}
-                     {selectedOrder.status === "preparing" && (
-                       <Button size="sm" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "ready" } }); setSelectedOrder(null); }}>
-                         Mark Ready
-                       </Button>
-                     )}
-                     {selectedOrder.status === "ready" && (
-                       <Button size="sm" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "completed" } }); setSelectedOrder(null); }}>
-                         Complete
-                       </Button>
-                     )}
-                     <Button size="sm" variant="destructive" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "cancelled" } }); setSelectedOrder(null); }}>
-                       Cancel
+               {selectedOrder.status !== "completed" && selectedOrder.status !== "cancelled" && (
+                 <div className="flex gap-2">
+                   {selectedOrder.status === "pending" && (
+                     <Button size="sm" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "preparing" } }); setSelectedOrder(null); }}>
+                       Start Preparing
                      </Button>
-                   </>
-                 )}
-                 <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setRefundOrder(selectedOrder)}>
-                   <RotateCcw className="w-3.5 h-3.5" />
-                   Create Refund
-                 </Button>
-               </div>
+                   )}
+                   {selectedOrder.status === "preparing" && (
+                     <Button size="sm" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "ready" } }); setSelectedOrder(null); }}>
+                       Mark Ready
+                     </Button>
+                   )}
+                   {selectedOrder.status === "ready" && (
+                     <Button size="sm" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "completed" } }); setSelectedOrder(null); }}>
+                       Complete
+                     </Button>
+                   )}
+                   <Button size="sm" variant="destructive" onClick={() => { updateOrder.mutate({ id: selectedOrder.id, data: { status: "cancelled" } }); setSelectedOrder(null); }}>
+                     Cancel
+                   </Button>
+                 </div>
+               )}
             </div>
           )}
         </DialogContent>
