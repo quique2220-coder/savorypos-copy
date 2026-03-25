@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       tip: 0,
       total,
       payment_method: "card",
-      status: "pending",
+      status: "completed",
       order_type: dbOrderType,
       order_source: "online",
       customer_name: customerName,
