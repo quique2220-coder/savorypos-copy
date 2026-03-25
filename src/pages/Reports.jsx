@@ -61,7 +61,7 @@ function getPeriodRange(period, customStart, customEnd) {
 }
 
 export default function Reports() {
-  const [period, setPeriod] = useState("30d");
+  const [period, setPeriod] = useState("7d");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const queryClient = useQueryClient();
