@@ -35,7 +35,7 @@ const QUICK_RANGES = [
 
 function groupOrders(orders, granularity, dateRange) {
   const map = {};
-  let completed = orders.filter(o => o.status === "completed" || o.status === "ready");
+  let completed = orders.filter(o => o.status === "completed" || o.status === "ready" || o.status === "pending" || o.status === "preparing");
   if (dateRange?.from) {
     const from = new Date(dateRange.from); from.setHours(0, 0, 0, 0);
     const to = dateRange.to ? new Date(dateRange.to) : new Date(); to.setHours(23, 59, 59, 999);
