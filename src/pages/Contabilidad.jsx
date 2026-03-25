@@ -14,10 +14,18 @@ import AccountingStatements from "../components/accounting/AccountingStatements"
 
 const printStyles = `
   @media print {
-    body { margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; }
+    body { background: white; }
+    aside { display: none !important; }
+    [class*="sidebar"] { display: none !important; }
     .print-hidden { display: none !important; }
-    .print-only { display: block !important; }
-    .page-content { margin: 0; padding: 20px; }
+    .page-content { 
+      display: block !important; 
+      margin: 0; 
+      padding: 40px 20px; 
+      width: 100%;
+      max-width: 100%;
+    }
   }
 `;
 
