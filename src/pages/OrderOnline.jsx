@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Plus, Minus, Trash2, Search, X, Flame, ChevronRight, Clock } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Search, X, Flame, ChevronRight, Clock, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -14,6 +15,7 @@ export default function OrderOnline() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [showCart, setShowCart] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [customer, setCustomer] = useState({ name: "", phone: "", email: "", opted_in_sms: false, opted_in_email: false });
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-public"],
@@ -85,9 +87,10 @@ export default function OrderOnline() {
         quantity: c.quantity,
         price: c.price.toFixed(2),
       }));
-      // Save cart snapshot so confirmation page can find the order
+      // Save cart + customer so confirmation/webhook can use it
       sessionStorage.setItem("pending_cart", JSON.stringify(items));
-      const res = await base44.functions.invoke("create-checkout", { items });
+      sessionStorage.setItem("pending_customer", JSON.stringify(customer));
+      const res = await base44.functions.invoke("create-checkout", { items, customer });
       const redirectUrl = res?.data?.redirectUrl || res?.redirectUrl;
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -358,6 +361,43 @@ export default function OrderOnline() {
               {/* Checkout footer */}
               {cart.length > 0 && (
                 <div className="px-5 pt-4 pb-6 border-t bg-white space-y-4">
+                  {/* Customer Info */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-primary" /> Tus datos (opcional)
+                    </p>
+                    <Input
+                      placeholder="Nombre completo"
+                      value={customer.name}
+                      onChange={(e) => setCustomer(c => ({ ...c, name: e.target.value }))}
+                      className="h-9 text-sm"
+                    />
+                    <Input
+                      placeholder="Teléfono"
+                      type="tel"
+                      value={customer.phone}
+                      onChange={(e) => setCustomer(c => ({ ...c, phone: e.target.value }))}
+                      className="h-9 text-sm"
+                    />
+                    <Input
+                      placeholder="Email"
+                      type="email"
+                      value={customer.email}
+                      onChange={(e) => setCustomer(c => ({ ...c, email: e.target.value }))}
+                      className="h-9 text-sm"
+                    />
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <label className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Recibir promociones por SMS</span>
+                        <Switch checked={customer.opted_in_sms} onCheckedChange={(v) => setCustomer(c => ({ ...c, opted_in_sms: v }))} />
+                      </label>
+                      <label className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Recibir promociones por Email</span>
+                        <Switch checked={customer.opted_in_email} onCheckedChange={(v) => setCustomer(c => ({ ...c, opted_in_email: v }))} />
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Subtotal</span>

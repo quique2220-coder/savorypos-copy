@@ -29,18 +29,6 @@ export async function handler(req) {
       return new Response("OK", { status: 200 });
     }
 
-    console.log("Order approved:", {
-      orderId: order.id,
-      checkoutId: order.checkoutId,
-      total: order.priceSummary?.total?.amount,
-      buyerEmail: order.buyerInfo?.email,
-      items: order.lineItems?.map((i) => ({
-        name: i.productName?.original,
-        qty: i.quantity,
-        price: i.price?.amount,
-      })),
-    });
-
     // Create the order in our database
     const { base44 } = await import("@base44/sdk");
     const orderNumber = `ONL-${order.number || Date.now().toString(36).toUpperCase()}`;
@@ -54,6 +42,16 @@ export async function handler(req) {
     const total = parseFloat(order.priceSummary?.total?.amount || 0);
     const subtotal = parseFloat(order.priceSummary?.subtotal?.amount || 0);
     const contact = order.billingInfo?.contactDetails || {};
+    const buyerEmail = order.buyerInfo?.email || "";
+    const customerName = `${contact.firstName || ""} ${contact.lastName || ""}`.trim() || buyerEmail || "Online Customer";
+
+    // Try to get customer metadata from order customFields (passed via checkout)
+    const customFields = order.customFields || [];
+    const getField = (key) => customFields.find(f => f.title === key)?.value || "";
+    const custPhone = getField("phone") || contact.phone || "";
+    const custEmail = buyerEmail;
+    const optedSms = getField("opted_in_sms") === "true";
+    const optedEmail = getField("opted_in_email") === "true";
 
     const createdOrder = await base44.entities.Order.create({
       order_number: orderNumber,
@@ -66,11 +64,44 @@ export async function handler(req) {
       status: "pending",
       order_type: "takeout",
       order_source: "online",
-      customer_name: `${contact.firstName || ""} ${contact.lastName || ""}`.trim() || order.buyerInfo?.email || "Online Customer",
-      notes: `Wix Order #${order.number} | ${order.buyerInfo?.email || ""}`,
+      customer_name: customerName,
+      notes: `Wix Order #${order.number} | ${buyerEmail}`,
     });
 
     console.log("Order created in DB:", orderNumber, "id:", createdOrder?.id);
+
+    // Create or update CRM customer
+    if (custEmail || custPhone || customerName !== "Online Customer") {
+      const existing = custEmail
+        ? await base44.entities.Customer.filter({ email: custEmail })
+        : [];
+      if (existing?.length > 0) {
+        const cust = existing[0];
+        await base44.entities.Customer.update(cust.id, {
+          visit_count: (cust.visit_count || 0) + 1,
+          total_spent: (cust.total_spent || 0) + total,
+          last_visit: new Date().toISOString().split("T")[0],
+          avg_ticket: ((cust.total_spent || 0) + total) / ((cust.visit_count || 0) + 1),
+          ...(optedSms && { opted_in_sms: true }),
+          ...(optedEmail && { opted_in_email: true }),
+        });
+        console.log("CRM customer updated:", cust.id);
+      } else {
+        await base44.entities.Customer.create({
+          name: customerName,
+          email: custEmail,
+          phone: custPhone,
+          opted_in_sms: optedSms,
+          opted_in_email: optedEmail,
+          total_spent: total,
+          visit_count: 1,
+          last_visit: new Date().toISOString().split("T")[0],
+          avg_ticket: total,
+          status: "active",
+        });
+        console.log("CRM customer created:", customerName);
+      }
+    }
 
     return new Response("OK", { status: 200 });
   } catch (err) {
