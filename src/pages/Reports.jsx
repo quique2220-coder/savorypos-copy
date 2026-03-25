@@ -69,6 +69,8 @@ export default function Reports() {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
     queryFn: () => base44.entities.Order.list("-created_date", 500),
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    staleTime: 2000, // Data considered stale after 2 seconds
   });
 
   // Real-time subscription to order changes
