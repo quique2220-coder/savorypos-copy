@@ -3,10 +3,9 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
   Monitor, UtensilsCrossed, Package, BarChart3, 
   ClipboardList, ChevronLeft, ChevronRight, Flame,
-  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat, Globe, Lock
+  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat, Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePlanAccess } from "@/lib/usePlanAccess";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,32 +27,10 @@ const navItems = [
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const { canAccess } = usePlanAccess();
 
   const renderLinks = (group) => navItems.filter(i => i.group === group).map((item) => {
     const isActive = location.pathname === item.path;
-    const hasAccess = canAccess(item.group);
     
-    if (!hasAccess) {
-      return (
-        <TooltipProvider key={item.path}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 opacity-50 cursor-not-allowed",
-                "text-sidebar-foreground/50"
-              )}>
-                <item.icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span className="text-sm font-medium truncate">{item.label}</span>}
-                {!collapsed && <Lock className="w-3 h-3 ml-auto" />}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="right">Upgrade tu plan</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
     return (
       <Link
         key={item.path}
