@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List } from "lucide-react";
-import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
 import SalesDetail from "@/components/reports/SalesDetail";
@@ -41,9 +42,10 @@ const PERIOD_OPTIONS = [
   { label: "Last Month", value: "lastMonth" },
   { label: "Last 3 Months", value: "3m" },
   { label: "All Time", value: "all" },
+  { label: "Custom Range", value: "custom" },
 ];
 
-function getPeriodRange(period) {
+function getPeriodRange(period, customStart, customEnd) {
   const now = new Date();
   switch (period) {
     case "7d": return { start: subDays(now, 7), end: now };
@@ -51,12 +53,17 @@ function getPeriodRange(period) {
     case "thisMonth": return { start: startOfMonth(now), end: now };
     case "lastMonth": return { start: startOfMonth(subMonths(now, 1)), end: endOfMonth(subMonths(now, 1)) };
     case "3m": return { start: subMonths(now, 3), end: now };
+    case "custom":
+      if (customStart && customEnd) return { start: parseISO(customStart), end: parseISO(customEnd) };
+      return null;
     default: return null;
   }
 }
 
 export default function Reports() {
   const [period, setPeriod] = useState("30d");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
@@ -74,7 +81,7 @@ export default function Reports() {
   });
 
   const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
-    const range = getPeriodRange(period);
+    const range = getPeriodRange(period, customStart, customEnd);
     const allCompleted = orders.filter((o) => o.status === "completed");
     const completed = range
       ? allCompleted.filter((o) => {
@@ -169,9 +176,11 @@ export default function Reports() {
     });
     const sourceData = Object.entries(sourceBreakdown).map(([key, value]) => ({ name: SOURCE_LABELS[key] || key, value }));
 
-    const periodLabel = PERIOD_OPTIONS.find((p) => p.value === period)?.label || "All Time";
+    const periodLabel = period === "custom" && customStart && customEnd
+      ? `${customStart} → ${customEnd}`
+      : PERIOD_OPTIONS.find((p) => p.value === period)?.label || "All Time";
     return { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel };
-  }, [orders, menuItems, period]);
+  }, [orders, menuItems, period, customStart, customEnd]);
 
   if (isLoading) {
     return (
@@ -188,16 +197,35 @@ export default function Reports() {
           <h1 className="text-2xl font-bold">Financial Reports</h1>
           <p className="text-sm text-muted-foreground mt-1">Statements driven by real sales data</p>
         </div>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIOD_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {period === "custom" && (
+            <>
+              <Input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="w-36 h-9 text-sm"
+              />
+              <span className="text-muted-foreground text-sm">→</span>
+              <Input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="w-36 h-9 text-sm"
+              />
+            </>
+          )}
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Tabs defaultValue="overview">
