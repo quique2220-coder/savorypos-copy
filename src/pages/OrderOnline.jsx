@@ -21,8 +21,8 @@ export default function OrderOnline() {
   const [deliveryStatus, setDeliveryStatus] = useState(null); // null | "checking" | "ok" | "out_of_range" | "disabled"
   const [deliveryDistanceMiles, setDeliveryDistanceMiles] = useState(null);
 
-  // Read delivery settings from localStorage
-  const deliverySettings = React.useMemo(() => {
+  // Read delivery settings from localStorage - always fresh
+  const getDeliverySettings = () => {
     try {
       const s = JSON.parse(localStorage.getItem("pos_settings") || "{}");
       return {
@@ -33,7 +33,17 @@ export default function OrderOnline() {
         feePercent: parseFloat(s.delivery_fee_percent) || 40,
       };
     } catch { return { enabled: false, lat: null, lng: null, radius: 5, feePercent: 40 }; }
-  }, [showCart]); // re-read when cart opens
+  };
+
+  const [deliverySettings, setDeliverySettings] = React.useState(getDeliverySettings);
+
+  React.useEffect(() => {
+    const onStorage = () => setDeliverySettings(getDeliverySettings());
+    window.addEventListener("storage", onStorage);
+    // Also refresh every time the cart opens
+    if (showCart) setDeliverySettings(getDeliverySettings());
+    return () => window.removeEventListener("storage", onStorage);
+  }, [showCart]);
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-public"],
