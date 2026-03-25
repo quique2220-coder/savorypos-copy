@@ -29,6 +29,8 @@ const printStyles = `
     [class*="sidebar"] { display: none !important; }
     .print-hidden { display: none !important; }
     [role="tabcontent"] { display: block !important; }
+    [role="tab"] { display: none !important; }
+    [role="tablist"] { display: none !important; }
     .page-content { 
       display: block !important; 
       margin: 0 !important;
