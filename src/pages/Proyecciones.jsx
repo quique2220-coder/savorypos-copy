@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, Store, ShoppingBag } from "lucide-react";
 import BreakEvenAnalysis from "@/components/financial/BreakEvenAnalysis";
+import StartupMode from "@/components/financial/StartupMode";
 
 // Data from the Restaurant Financial Model Excel
 const MONTHLY_DATA = [
@@ -94,14 +95,20 @@ export default function Proyecciones() {
           <p className="text-muted-foreground text-sm mt-1">Modelo a 36 meses — Canales: On-Premises, Takeaway, Doordash, Ubereats, Grubhub</p>
         </div>
 
-        <Tabs defaultValue="overview">
+        <Tabs defaultValue="startup">
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
+            <TabsTrigger value="startup">🟢 Estoy empezando</TabsTrigger>
             <TabsTrigger value="overview">Resumen Ejecutivo</TabsTrigger>
             <TabsTrigger value="breakeven">📊 Break-Even</TabsTrigger>
             <TabsTrigger value="monthly">36 Meses</TabsTrigger>
             <TabsTrigger value="channels">Canales de Venta</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
           </TabsList>
+
+          {/* STARTUP MODE */}
+          <TabsContent value="startup">
+            <StartupMode />
+          </TabsContent>
 
           {/* RESUMEN */}
           <TabsContent value="overview">
