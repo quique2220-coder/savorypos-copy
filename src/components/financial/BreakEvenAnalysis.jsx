@@ -1,216 +1,326 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Legend
+  Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-import { TrendingUp, Target, AlertTriangle, CheckCircle2, Sparkles, Volume2, Loader2 } from "lucide-react";
+import {
+  TrendingUp, Target, AlertTriangle, CheckCircle2, Sparkles,
+  Loader2, ChevronDown, ChevronUp, Users, DollarSign, Zap, Info
+} from "lucide-react";
 
-// ── Financial assumptions (editable defaults) ─────────────────
-const DEFAULT_YEARLY = [
-  { year: "Actual", sales: 0, cogs: 0, fixedCosts: 0, netIncome: 0, breakEven: 0 },
-  { year: "Meta Año 1", sales: 0, cogs: 0, fixedCosts: 0, netIncome: 0, breakEven: 0 },
-  { year: "Meta Año 2", sales: 0, cogs: 0, fixedCosts: 0, netIncome: 0, breakEven: 0 },
-];
-
-// Generates the break-even chart data (monthly ramp)
-function buildChartData(yearData) {
-  const variableRatio = yearData.cogs / yearData.sales;
-  const monthlyFixed = yearData.fixedCosts / 12;
-  const points = [];
-  for (let s = 0; s <= yearData.sales / 12 * 1.1; s += yearData.sales / 12 / 10) {
-    const totalCost = monthlyFixed + s * variableRatio;
-    points.push({
+// ── helpers ──────────────────────────────────────────────────────────
+function buildChartData(sales, cogs, fixedCosts) {
+  if (!sales || !cogs || !fixedCosts) return [];
+  const variableRatio = cogs / sales;
+  const monthlyFixed = fixedCosts / 12;
+  const maxMonthly = sales / 12 * 1.2;
+  const steps = 12;
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const s = (maxMonthly / steps) * i;
+    return {
       revenue: Math.round(s),
-      totalCost: Math.round(totalCost),
+      totalCost: Math.round(monthlyFixed + s * variableRatio),
       fixedCost: Math.round(monthlyFixed),
-    });
-  }
-  return points;
+    };
+  });
 }
 
 function MarginBar({ sales, breakEven, year }) {
-  const safetyPct = Math.min(((sales - breakEven) / sales) * 100, 100);
-  const bePct = (breakEven / sales) * 100;
+  if (!sales) return null;
+  const safetyPct = Math.min(Math.max(((sales - breakEven) / sales) * 100, 0), 100);
+  const bePct = Math.min((breakEven / sales) * 100, 100);
   const isHealthy = safetyPct > 20;
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{year}</span>
+        <span className="font-medium">{year}</span>
         <span className={isHealthy ? "text-emerald-600 font-semibold" : "text-amber-600 font-semibold"}>
           Margen de seguridad: {safetyPct.toFixed(1)}%
         </span>
       </div>
-      <div className="h-4 w-full bg-muted rounded-full overflow-hidden relative flex">
+      <div className="h-4 w-full bg-muted rounded-full overflow-hidden flex">
         <div className="h-full bg-red-400/70 rounded-l-full" style={{ width: `${bePct}%` }} />
         <div className="h-full bg-emerald-400" style={{ width: `${safetyPct}%` }} />
-        <div
-          className="absolute top-0 h-full w-0.5 bg-white"
-          style={{ left: `${bePct}%` }}
-          title="Break-Even"
-        />
       </div>
       <div className="flex justify-between text-xs">
         <span className="text-red-500">Costos fijos</span>
-        <span className="text-muted-foreground">▲ Break-Even ${(breakEven / 1000).toFixed(0)}K</span>
+        <span className="text-muted-foreground">▲ BE ${(breakEven / 1000).toFixed(0)}K</span>
         <span className="text-emerald-600">Ganancia</span>
       </div>
     </div>
   );
 }
 
-function InputField({ label, value, onChange }) {
+function NumberInput({ label, value, onChange, prefix = "$", hint }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs text-muted-foreground">{label}</label>
+      <label className="text-xs text-muted-foreground font-medium">{label}</label>
       <div className="relative">
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{prefix}</span>
         <input
-          type="number"
-          min="0"
-          step="1"
-          className="w-full h-9 pl-5 pr-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          type="number" min="0" step="1"
+          className="w-full h-9 pl-6 pr-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
           value={value === 0 ? "" : value}
           placeholder="0"
           onChange={e => onChange(parseFloat(e.target.value) || 0)}
         />
       </div>
+      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
 
+// ── Alert banner ──────────────────────────────────────────────────────
+function AlertBanner({ type, message }) {
+  const styles = {
+    danger: "bg-red-50 border-red-200 text-red-700",
+    warning: "bg-amber-50 border-amber-200 text-amber-700",
+    success: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    info: "bg-blue-50 border-blue-200 text-blue-700",
+  };
+  const icons = {
+    danger: "🚨", warning: "⚠️", success: "✅", info: "💡"
+  };
+  return (
+    <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border text-xs ${styles[type]}`}>
+      <span>{icons[type]}</span>
+      <span>{message}</span>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────
+const DEFAULT_YR = { sales: 0, cogs: 0, avgTicket: 18.5 };
+const DEFAULT_FIXED = {
+  rent: 0, payrollCooks: 0, payrollFront: 0, payrollManager: 0,
+  insurance: 0, electricity: 0, water: 0, gas: 0, internet: 0, other: 0,
+};
+
 export default function BreakEvenAnalysis() {
   const [selectedYear, setSelectedYear] = useState(0);
-  const [yearly, setYearly] = useState(DEFAULT_YEARLY);
-  const [editing, setEditing] = useState(true);
+  const [years, setYears] = useState([
+    { label: "Actual", ...DEFAULT_YR },
+    { label: "Meta Año 1", ...DEFAULT_YR },
+    { label: "Meta Año 2", ...DEFAULT_YR },
+  ]);
+  const [fixed, setFixed] = useState(DEFAULT_FIXED);
+  const [showFixedBreakdown, setShowFixedBreakdown] = useState(true);
+  const [showImport, setShowImport] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [loadingAudio, setLoadingAudio] = useState(false);
-  const [elevenLabsKey, setElevenLabsKey] = useState("");
-  const [showKeyInput, setShowKeyInput] = useState(false);
 
-  function updateField(yearIdx, field, value) {
-    setYearly(prev => {
-      const next = prev.map((y, i) => i === yearIdx ? { ...y, [field]: value } : y);
-      // Auto-calc breakEven when we have enough data
-      const yr = next[yearIdx];
-      if (yr.sales > 0 && yr.cogs > 0 && yr.fixedCosts > 0) {
-        const contributionMargin = 1 - yr.cogs / yr.sales;
-        const be = contributionMargin > 0 ? yr.fixedCosts / contributionMargin : 0;
-        next[yearIdx] = { ...next[yearIdx], breakEven: Math.round(be), netIncome: Math.round(yr.sales - yr.cogs - yr.fixedCosts) };
-      }
-      return next;
+  // Pull OperatingExpenses from DB to auto-fill
+  const { data: opex = [] } = useQuery({
+    queryKey: ["opex-breakeven"],
+    queryFn: () => base44.entities.OperatingExpense.list(),
+  });
+
+  function importFromOpex() {
+    const sum = (cats) => opex.filter(e => cats.includes(e.category)).reduce((s, e) => s + (e.amount * 12), 0);
+    setFixed({
+      rent: sum(["commissary", "rent"]),
+      payrollCooks: 0,
+      payrollFront: 0,
+      payrollManager: 0,
+      insurance: sum(["insurance"]),
+      electricity: sum(["electricity"]),
+      water: sum(["water"]),
+      gas: sum(["gas"]),
+      internet: sum(["internet"]),
+      other: sum(["admin", "cleaning", "packaging", "card_fees", "maintenance", "waste", "other"]),
     });
+    setShowImport(false);
   }
 
-  const yr = yearly[selectedYear];
-  const monthlySales = (yr.sales || 0) / 12;
-  const monthlyBreakEven = (yr.breakEven || 0) / 12;
-  const variableRatio = yr.sales > 0 ? yr.cogs / yr.sales : 0;
-  const contributionMargin = 1 - variableRatio;
-  const safetyMargin = yr.sales > 0 ? ((yr.sales - yr.breakEven) / yr.sales * 100).toFixed(1) : "0.0";
-  const avgTicket = 18.5;
-  const dailyBreakEvenCustomers = monthlyBreakEven > 0 ? Math.ceil((monthlyBreakEven / 30) / avgTicket) : 0;
-  const chartData = yr.sales > 0 ? buildChartData(yr) : [];
+  const totalFixedAnnual = Object.values(fixed).reduce((s, v) => s + v, 0);
+  const totalLaborAnnual = fixed.payrollCooks + fixed.payrollFront + fixed.payrollManager;
+  const yr = years[selectedYear];
 
-  async function handleAIAnalysis() {
-    setLoadingAI(true);
-    setAiAnalysis("");
-    const prompt = `Eres un analista financiero de restaurantes. Analiza este punto de equilibrio de forma clara y amigable en español:
-    
-    ${yr.year}: Ventas = $${(yr.sales/1000).toFixed(0)}K | Break-Even = $${(yr.breakEven/1000).toFixed(0)}K | 
-    Costos Fijos = $${(yr.fixedCosts/1000).toFixed(0)}K | Margen Contribución = ${(contributionMargin*100).toFixed(1)}% | 
-    Margen de Seguridad = ${safetyMargin}% | Clientes/día necesarios = ${dailyBreakEvenCustomers}
-    
-    Dame: 1) Qué significa este resultado en términos simples 2) Si es saludable o hay riesgo 3) 2 recomendaciones concretas.
-    Sé breve, máximo 150 palabras, usa lenguaje de dueño de restaurante, no de contador.`;
+  function updateYr(field, value) {
+    setYears(prev => prev.map((y, i) => i === selectedYear ? { ...y, [field]: value } : y));
+  }
 
+  // Computed values
+  const computed = useMemo(() => {
+    return years.map(y => {
+      if (!y.sales || !y.cogs || !totalFixedAnnual) return { ...y, breakEven: 0, netIncome: 0, contributionMargin: 0, safetyMargin: 0 };
+      const variableRatio = y.cogs / y.sales;
+      const cm = 1 - variableRatio;
+      const be = cm > 0 ? totalFixedAnnual / cm : 0;
+      const ni = y.sales - y.cogs - totalFixedAnnual;
+      const sm = ((y.sales - be) / y.sales) * 100;
+      return { ...y, breakEven: Math.round(be), netIncome: Math.round(ni), contributionMargin: cm, safetyMargin: sm };
+    });
+  }, [years, totalFixedAnnual]);
+
+  const c = computed[selectedYear];
+  const monthlyBreakEven = c.breakEven / 12;
+  const dailyBE = yr.avgTicket > 0 ? Math.ceil((monthlyBreakEven / 30) / yr.avgTicket) : 0;
+
+  // Alerts
+  const alerts = useMemo(() => {
+    const list = [];
+    if (!c.sales) return list;
+    const foodCostPct = (c.cogs / c.sales) * 100;
+    const laborPct = (totalLaborAnnual / c.sales) * 100;
+    const primeCost = foodCostPct + laborPct;
+    if (foodCostPct > 35) list.push({ type: "danger", msg: `Food cost del ${foodCostPct.toFixed(1)}% — lo ideal para restaurantes es < 30%. Revisa precios o proveedores.` });
+    if (laborPct > 35) list.push({ type: "warning", msg: `Labor cost del ${laborPct.toFixed(1)}% — demasiado alto. El ideal es < 30% de ventas.` });
+    if (primeCost > 65) list.push({ type: "danger", msg: `Prime cost (food + labor) del ${primeCost.toFixed(1)}% — peligro. Debe ser < 65% para ser rentable.` });
+    if (c.safetyMargin < 10) list.push({ type: "danger", msg: `Margen de seguridad de solo ${c.safetyMargin.toFixed(1)}% — cualquier caída en ventas genera pérdidas.` });
+    else if (c.safetyMargin < 20) list.push({ type: "warning", msg: `Margen de seguridad del ${c.safetyMargin.toFixed(1)}% — aceptable pero frágil. Apunta a > 20%.` });
+    if (c.netIncome < 0) list.push({ type: "danger", msg: `Pérdida neta de $${Math.abs(c.netIncome).toLocaleString()} — necesitas vender $${Math.abs(c.netIncome / (c.contributionMargin || 1)).toFixed(0).toLocaleString()} más para breakeven.` });
+    if (totalFixedAnnual === 0) list.push({ type: "info", msg: "Ingresa tus costos fijos para calcular el break-even real. Usa el desglose de abajo." });
+    if (list.length === 0 && c.safetyMargin >= 20) list.push({ type: "success", msg: `Negocio saludable. Margen de seguridad del ${c.safetyMargin.toFixed(1)}% — puedes aguantar una caída de ventas sin perder dinero.` });
+    return list;
+  }, [c, totalLaborAnnual]);
+
+  const chartData = buildChartData(c.sales, c.cogs, totalFixedAnnual);
+
+  async function handleAI() {
+    if (!c.sales) return;
+    setLoadingAI(true); setAiAnalysis("");
+    const foodCostPct = c.sales > 0 ? ((c.cogs / c.sales) * 100).toFixed(1) : 0;
+    const laborPct = c.sales > 0 ? ((totalLaborAnnual / c.sales) * 100).toFixed(1) : 0;
+    const prompt = `Eres un consultor financiero de restaurantes. Analiza estos datos en español simple, máximo 150 palabras. Habla como si fuera al dueño directo:
+
+${c.label}: Ventas=$${(c.sales/1000).toFixed(0)}K | COGS=$${(c.cogs/1000).toFixed(0)}K (${foodCostPct}%) | Labor=$${(totalLaborAnnual/1000).toFixed(0)}K (${laborPct}%) | Costos fijos=$${(totalFixedAnnual/1000).toFixed(0)}K | Break-Even=$${(c.breakEven/1000).toFixed(0)}K | Utilidad=$${(c.netIncome/1000).toFixed(0)}K | Margen seguridad=${c.safetyMargin.toFixed(1)}% | Clientes/día necesarios=${dailyBE}
+
+Dame: 1) Estado del negocio 2) 2 riesgos específicos 3) 1 acción concreta para mejorar.`;
     const result = await base44.integrations.Core.InvokeLLM({ prompt });
     setAiAnalysis(result);
     setLoadingAI(false);
   }
 
-  async function handleElevenLabs() {
-    if (!aiAnalysis) await handleAIAnalysis();
-    if (!elevenLabsKey) { setShowKeyInput(true); return; }
-    setLoadingAudio(true);
-    try {
-      const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL", {
-        method: "POST",
-        headers: { "xi-api-key": elevenLabsKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ text: aiAnalysis || `El punto de equilibrio del ${yr.year} es de $${(yr.breakEven/1000).toFixed(0)} mil dólares, con un margen de seguridad de ${safetyMargin}%.`, model_id: "eleven_multilingual_v2", voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
-      });
-      const blob = await response.blob();
-      setAudioUrl(URL.createObjectURL(blob));
-    } catch (e) { console.error(e); }
-    setLoadingAudio(false);
-  }
+  const foodCostPct = c.sales > 0 ? (c.cogs / c.sales * 100) : 0;
+  const laborPct = c.sales > 0 ? (totalLaborAnnual / c.sales * 100) : 0;
+  const primeCost = foodCostPct + laborPct;
 
   return (
-    <div className="space-y-6">
-      {/* Year selector + edit toggle */}
+    <div className="space-y-5">
+
+      {/* Year selector */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex gap-2">
-          {yearly.map((y, i) => (
-            <button key={i} onClick={() => { setSelectedYear(i); setAiAnalysis(""); setAudioUrl(null); }}
+          {computed.map((y, i) => (
+            <button key={i} onClick={() => { setSelectedYear(i); setAiAnalysis(""); }}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedYear === i ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"}`}>
-              {y.year}
+              {y.label}
             </button>
           ))}
         </div>
-        <button onClick={() => setEditing(!editing)}
-          className="text-xs px-3 py-1.5 rounded-lg border border-input bg-background hover:bg-muted transition-colors">
-          {editing ? "✅ Listo" : "✏️ Editar números"}
-        </button>
+        {opex.length > 0 && (
+          <button onClick={() => setShowImport(true)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-input bg-background hover:bg-muted transition-colors flex items-center gap-1.5">
+            <Zap className="w-3 h-3 text-primary" /> Auto-importar gastos
+          </button>
+        )}
       </div>
 
-      {/* Editable inputs */}
-      {editing && (
-        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-amber-700">✏️ Ingresa tus números reales — {yr.year}</CardTitle>
-            <p className="text-xs text-muted-foreground">El Break-Even y la Utilidad Neta se calculan automáticamente</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <InputField label="Ventas anuales ($)" value={yr.sales} onChange={v => updateField(selectedYear, 'sales', v)} />
-              <InputField label="Costo ingredientes / COGS ($)" value={yr.cogs} onChange={v => updateField(selectedYear, 'cogs', v)} />
-              <InputField label="Costos fijos anuales ($)" value={yr.fixedCosts} onChange={v => updateField(selectedYear, 'fixedCosts', v)} />
+      {/* Import confirm */}
+      {showImport && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-3">
+            <p className="text-sm font-semibold mb-1">Importar desde Gastos Operativos</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Se encontraron {opex.length} gastos. Se importarán como costos fijos anuales (mensual × 12). Labor deberás ingresar manualmente.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={importFromOpex}>Importar</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowImport(false)}>Cancelar</Button>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="p-2 bg-background rounded-lg border text-center">
-                <p className="text-xs text-muted-foreground">Break-Even calculado</p>
-                <p className="font-bold text-primary">${(yr.breakEven || 0).toLocaleString()}</p>
-              </div>
-              <div className="p-2 bg-background rounded-lg border text-center">
-                <p className="text-xs text-muted-foreground">Utilidad Neta</p>
-                <p className={`font-bold ${(yr.netIncome || 0) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                  ${(yr.netIncome || 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">💡 Tip: Costos fijos = renta + sueldos fijos + seguros + servicios (todo lo que pagas aunque no vendas nada)</p>
           </CardContent>
         </Card>
       )}
 
-      {/* KPI Strip */}
+      {/* ── INPUTS ── */}
+      <div className="grid md:grid-cols-2 gap-4">
+
+        {/* Ventas + COGS */}
+        <Card className="border-amber-200 bg-amber-50/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-amber-700">📊 Ventas & COGS — {c.label}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <NumberInput label="Ventas anuales ($)" value={yr.sales} onChange={v => updateYr("sales", v)} />
+            <NumberInput label="COGS ingredientes anuales ($)" value={yr.cogs} onChange={v => updateYr("cogs", v)} hint="Solo ingredientes. Labor va abajo en costos fijos." />
+            <NumberInput label="Ticket promedio ($)" value={yr.avgTicket} onChange={v => updateYr("avgTicket", v)} prefix="$" hint="Precio promedio por cliente" />
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="p-2 bg-background rounded-lg border text-center">
+                <p className="text-[10px] text-muted-foreground">Break-Even</p>
+                <p className="font-bold text-primary text-sm">${(c.breakEven || 0).toLocaleString()}</p>
+              </div>
+              <div className="p-2 bg-background rounded-lg border text-center">
+                <p className="text-[10px] text-muted-foreground">Utilidad Neta</p>
+                <p className={`font-bold text-sm ${(c.netIncome || 0) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  ${(c.netIncome || 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fixed Costs Breakdown */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm text-blue-700">🏢 Costos Fijos Anuales — ${totalFixedAnnual.toLocaleString()}</CardTitle>
+              <button onClick={() => setShowFixedBreakdown(!showFixedBreakdown)} className="text-muted-foreground">
+                {showFixedBreakdown ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Ingresa montos anuales (o mensual × 12)</p>
+          </CardHeader>
+          {showFixedBreakdown && (
+            <CardContent>
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Operación</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberInput label="Renta / Comisaría" value={fixed.rent} onChange={v => setFixed(p => ({ ...p, rent: v }))} hint="Anual" />
+                  <NumberInput label="Seguros" value={fixed.insurance} onChange={v => setFixed(p => ({ ...p, insurance: v }))} hint="Anual" />
+                  <NumberInput label="Electricidad" value={fixed.electricity} onChange={v => setFixed(p => ({ ...p, electricity: v }))} />
+                  <NumberInput label="Agua" value={fixed.water} onChange={v => setFixed(p => ({ ...p, water: v }))} />
+                  <NumberInput label="Gas" value={fixed.gas} onChange={v => setFixed(p => ({ ...p, gas: v }))} />
+                  <NumberInput label="Internet / Otros" value={fixed.internet} onChange={v => setFixed(p => ({ ...p, internet: v }))} />
+                  <NumberInput label="Otros gastos" value={fixed.other} onChange={v => setFixed(p => ({ ...p, other: v }))} />
+                </div>
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1 pt-1"><Users className="w-3 h-3" /> Payroll anual (labor indirecta)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberInput label="Cocineros" value={fixed.payrollCooks} onChange={v => setFixed(p => ({ ...p, payrollCooks: v }))} />
+                  <NumberInput label="Cajeros / Servicio" value={fixed.payrollFront} onChange={v => setFixed(p => ({ ...p, payrollFront: v }))} />
+                  <NumberInput label="Manager / Admin" value={fixed.payrollManager} onChange={v => setFixed(p => ({ ...p, payrollManager: v }))} />
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      </div>
+
+      {/* ── ALERTS ── */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((a, i) => <AlertBanner key={i} type={a.type} message={a.msg} />)}
+        </div>
+      )}
+
+      {/* ── KPI Strip ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Break-Even Mensual", value: `$${(monthlyBreakEven/1000).toFixed(1)}K`, sub: "ventas mínimas/mes", icon: Target, color: "text-amber-600" },
-          { label: "Clientes/día mínimos", value: dailyBreakEvenCustomers, sub: `a $${avgTicket} ticket promedio`, icon: TrendingUp, color: "text-blue-600" },
-          { label: "Margen Contribución", value: `${(contributionMargin*100).toFixed(1)}%`, sub: "de cada $1 vendido", icon: CheckCircle2, color: "text-emerald-600" },
-          { label: "Margen de Seguridad", value: `${safetyMargin}%`, sub: "cuánto puedes caer", icon: parseFloat(safetyMargin) > 20 ? CheckCircle2 : AlertTriangle, color: parseFloat(safetyMargin) > 20 ? "text-emerald-600" : "text-amber-500" },
+          { label: "Break-Even Mensual", value: `$${(monthlyBreakEven / 1000).toFixed(1)}K`, sub: "ventas mínimas/mes", icon: Target, color: "text-amber-600" },
+          { label: "Clientes/día mínimos", value: dailyBE || "—", sub: `a $${yr.avgTicket} ticket`, icon: TrendingUp, color: "text-blue-600" },
+          { label: "Food Cost %", value: `${foodCostPct.toFixed(1)}%`, sub: foodCostPct > 35 ? "⚠️ Alto (ideal < 30%)" : "✅ Aceptable", icon: CheckCircle2, color: foodCostPct > 35 ? "text-red-500" : "text-emerald-600" },
+          { label: "Prime Cost %", value: `${primeCost.toFixed(1)}%`, sub: primeCost > 65 ? "🚨 Peligro > 65%" : primeCost > 55 ? "⚠️ Riesgo" : "✅ Saludable", icon: primeCost > 65 ? AlertTriangle : CheckCircle2, color: primeCost > 65 ? "text-red-500" : primeCost > 55 ? "text-amber-500" : "text-emerald-600" },
         ].map((k, i) => (
           <Card key={i}>
             <CardContent className="pt-4 pb-3">
               <div className="flex items-start gap-2">
-                <k.icon className={`w-4 h-4 mt-0.5 ${k.color}`} />
-                <div>
+                <k.icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${k.color}`} />
+                <div className="min-w-0">
                   <p className="text-xs text-muted-foreground leading-tight">{k.label}</p>
                   <p className={`text-xl font-bold ${k.color}`}>{k.value}</p>
                   <p className="text-xs text-muted-foreground">{k.sub}</p>
@@ -221,132 +331,105 @@ export default function BreakEvenAnalysis() {
         ))}
       </div>
 
-      {/* Chart + Explanation side by side */}
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* ── Charts ── */}
+      <div className="grid md:grid-cols-2 gap-5">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Gráfica Break-Even — {yr.year}</CardTitle>
-            <p className="text-xs text-muted-foreground">Donde la línea de ingresos cruza los costos totales = punto de equilibrio</p>
+            <CardTitle className="text-sm">Gráfica Break-Even — {c.label}</CardTitle>
+            <p className="text-xs text-muted-foreground">Donde Ingresos cruza Costos = equilibrio</p>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(160,60%,45%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(160,60%,45%)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradCost" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(0,84%,60%)" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="hsl(0,84%,60%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(30,10%,90%)" />
-                <XAxis dataKey="revenue" tickFormatter={v => `$${(v/1000).toFixed(0)}K`} tick={{ fontSize: 10 }} />
-                <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}K`} tick={{ fontSize: 10 }} />
-                <Tooltip formatter={v => `$${v.toLocaleString()}`} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area type="monotone" dataKey="revenue" name="Ingresos" stroke="hsl(160,60%,45%)" fill="url(#gradRev)" strokeWidth={2.5} dot={false} />
-                <Area type="monotone" dataKey="totalCost" name="Costo Total" stroke="hsl(0,84%,60%)" fill="url(#gradCost)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="fixedCost" name="Costo Fijo" stroke="hsl(220,70%,50%)" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(160,60%,45%)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="hsl(160,60%,45%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(30,10%,90%)" />
+                  <XAxis dataKey="revenue" tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10 }} />
+                  <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={v => `$${v.toLocaleString()}`} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area type="monotone" dataKey="revenue" name="Ingresos" stroke="hsl(160,60%,45%)" fill="url(#gradRev)" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="totalCost" name="Costo Total" stroke="hsl(0,84%,60%)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="fixedCost" name="Costo Fijo" stroke="hsl(220,70%,50%)" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">
+                Ingresa ventas, COGS y costos fijos para ver la gráfica
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Safety margin visual for all 3 years */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Margen de Seguridad — 3 Años</CardTitle>
-            <p className="text-xs text-muted-foreground">Rojo = zona de riesgo · Verde = ganancia real · ▲ = punto de equilibrio</p>
+            <CardTitle className="text-sm">Margen de Seguridad — 3 Escenarios</CardTitle>
+            <p className="text-xs text-muted-foreground">Rojo = riesgo · Verde = ganancia · ▲ = equilibrio</p>
           </CardHeader>
           <CardContent className="space-y-5 pt-2">
-            {yearly.map((y, i) => (
-              <MarginBar key={i} sales={y.sales || 1} breakEven={y.breakEven || 0} year={y.year} />
+            {computed.map((y, i) => (
+              <MarginBar key={i} sales={y.sales || 1} breakEven={y.breakEven || 0} year={y.label} />
             ))}
-            <div className="p-3 bg-muted/40 rounded-lg text-xs space-y-1">
-              <p className="font-semibold text-foreground">¿Cómo leer esto?</p>
-              <p className="text-muted-foreground">Un margen de seguridad <strong>&gt;20%</strong> significa que las ventas pueden caer ese porcentaje antes de perder dinero. Ideal para un restaurante nuevo.</p>
+            <div className="p-3 bg-muted/40 rounded-lg text-xs">
+              <p className="font-semibold">¿Cómo leer esto?</p>
+              <p className="text-muted-foreground mt-0.5">Margen de seguridad <strong>&gt;20%</strong> = negocio puede aguantar una caída en ventas. &lt;10% = zona de peligro.</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Simple formula breakdown */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">¿Cómo se calcula? — Fórmula paso a paso</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-center">
-              <p className="text-xs text-muted-foreground mb-1">1. Costos Fijos Anuales</p>
-              <p className="text-xl font-bold text-blue-700">${(yr.fixedCosts/1000).toFixed(0)}K</p>
-              <p className="text-xs text-muted-foreground">Renta, sueldos fijos, seguros, servicios</p>
+      {/* Cost breakdown visual */}
+      {totalFixedAnnual > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Desglose de Costos Totales — {c.label}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+              {[
+                { label: "COGS (Ingredientes)", value: c.cogs, pct: c.sales > 0 ? (c.cogs / c.sales * 100).toFixed(1) : 0, color: "bg-orange-100 text-orange-700" },
+                { label: "Labor (Payroll)", value: totalLaborAnnual, pct: c.sales > 0 ? (totalLaborAnnual / c.sales * 100).toFixed(1) : 0, color: "bg-blue-100 text-blue-700" },
+                { label: "Otros Costos Fijos", value: totalFixedAnnual - totalLaborAnnual, pct: c.sales > 0 ? ((totalFixedAnnual - totalLaborAnnual) / c.sales * 100).toFixed(1) : 0, color: "bg-purple-100 text-purple-700" },
+                { label: "Utilidad Neta", value: c.netIncome, pct: c.sales > 0 ? (c.netIncome / c.sales * 100).toFixed(1) : 0, color: c.netIncome >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700" },
+              ].map((item, i) => (
+                <div key={i} className={`p-3 rounded-lg ${item.color} text-center`}>
+                  <p className="text-xs opacity-80 mb-1">{item.label}</p>
+                  <p className="text-lg font-bold">${Math.abs(item.value || 0).toLocaleString()}</p>
+                  <p className="text-xs font-semibold">{item.pct}% de ventas</p>
+                </div>
+              ))}
             </div>
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg text-center">
-              <p className="text-xs text-muted-foreground mb-1">2. Margen de Contribución</p>
-              <p className="text-xl font-bold text-amber-700">{(contributionMargin*100).toFixed(1)}¢ por $1</p>
-              <p className="text-xs text-muted-foreground">De cada dólar vendido, esto queda para pagar fijos</p>
-            </div>
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg text-center">
-              <p className="text-xs text-muted-foreground mb-1">3. Break-Even = ① ÷ ②</p>
-              <p className="text-xl font-bold text-emerald-700">${(yr.breakEven/1000).toFixed(0)}K</p>
-              <p className="text-xs text-muted-foreground">Ventas necesarias para cubrir todo sin ganar ni perder</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* AI + ElevenLabs Section */}
+      {/* AI Section */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
-              <CardTitle className="text-sm">AI Intelligence — Análisis Personalizado</CardTitle>
+              <CardTitle className="text-sm">AI — Análisis del Negocio</CardTitle>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant="outline" onClick={handleAIAnalysis} disabled={loadingAI}>
-                {loadingAI ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                Analizar con IA
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleElevenLabs} disabled={loadingAudio || (!aiAnalysis && loadingAI)}>
-                {loadingAudio ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Volume2 className="w-3 h-3 mr-1" />}
-                🔊 Escuchar (ElevenLabs)
-              </Button>
-            </div>
+            <Button size="sm" variant="outline" onClick={handleAI} disabled={loadingAI || !c.sales}>
+              {loadingAI ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+              Analizar con IA
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {showKeyInput && (
-            <div className="flex gap-2 items-center">
-              <input
-                className="flex-1 h-8 px-3 text-xs rounded-md border border-input bg-background"
-                placeholder="Pega tu ElevenLabs API Key aquí..."
-                value={elevenLabsKey}
-                onChange={e => setElevenLabsKey(e.target.value)}
-              />
-              <Button size="sm" onClick={() => { setShowKeyInput(false); handleElevenLabs(); }}>
-                Guardar y Escuchar
-              </Button>
-            </div>
-          )}
+        <CardContent>
           {aiAnalysis ? (
-            <div className="p-4 bg-background rounded-lg border text-sm leading-relaxed whitespace-pre-wrap">
-              {aiAnalysis}
-            </div>
+            <div className="p-4 bg-background rounded-lg border text-sm leading-relaxed whitespace-pre-wrap">{aiAnalysis}</div>
           ) : (
             <p className="text-xs text-muted-foreground italic">
-              Presiona "Analizar con IA" para obtener una interpretación en lenguaje simple del punto de equilibrio del {yr.year}. Luego puedes escucharla con ElevenLabs.
+              Ingresa tus números y presiona "Analizar con IA" para obtener un diagnóstico personalizado con recomendaciones concretas.
             </p>
           )}
-          {audioUrl && (
-            <audio controls src={audioUrl} className="w-full mt-2" />
-          )}
-          <div className="text-xs text-muted-foreground border-t pt-2">
-            💡 <strong>ElevenLabs Setup:</strong> Necesitas una API key de <a href="https://elevenlabs.io" target="_blank" className="underline text-primary">elevenlabs.io</a> (plan gratuito incluye 10K caracteres/mes). Haz click en "Escuchar" y pega tu key.
-          </div>
         </CardContent>
       </Card>
     </div>
