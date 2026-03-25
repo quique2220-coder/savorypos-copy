@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Store, Receipt, Globe, Shield, CreditCard, Check } from "lucide-react";
+import { Settings2, Store, Receipt, Globe, CreditCard, Check, Truck, MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
@@ -88,6 +88,11 @@ export default function Settings() {
       currency: "USD",
       language: "es",
       timezone: "America/Chicago",
+      delivery_enabled: false,
+      delivery_lat: "",
+      delivery_lng: "",
+      delivery_radius_miles: 5,
+      delivery_fee_percent: 40,
     };
   });
   const [saved, setSaved] = useState(false);
@@ -190,6 +195,71 @@ export default function Settings() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Settings */}
+          <Card>
+            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Truck className="w-4 h-4" />Delivery</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Activar Delivery Online</p>
+                  <p className="text-xs text-muted-foreground">Los clientes podrán seleccionar delivery en la tienda online</p>
+                </div>
+                <Switch
+                  checked={!!business.delivery_enabled}
+                  onCheckedChange={v => setBusiness({ ...business, delivery_enabled: v })}
+                />
+              </div>
+              {business.delivery_enabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />Coordenadas de tu local</Label>
+                    <p className="text-xs text-muted-foreground mb-1">Busca tu dirección en <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-primary underline">latlong.net</a> y copia las coordenadas.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Latitud</Label>
+                    <Input
+                      type="number"
+                      placeholder="ej. 29.7604"
+                      value={business.delivery_lat}
+                      onChange={e => setBusiness({ ...business, delivery_lat: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Longitud</Label>
+                    <Input
+                      type="number"
+                      placeholder="ej. -95.3698"
+                      value={business.delivery_lng}
+                      onChange={e => setBusiness({ ...business, delivery_lng: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Radio de entrega (millas)</Label>
+                    <Input
+                      type="number"
+                      value={business.delivery_radius_miles}
+                      onChange={e => setBusiness({ ...business, delivery_radius_miles: parseFloat(e.target.value) || 5 })}
+                      min={0.5}
+                      max={50}
+                      step={0.5}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Cargo extra por delivery (%)</Label>
+                    <Input
+                      type="number"
+                      value={business.delivery_fee_percent}
+                      onChange={e => setBusiness({ ...business, delivery_fee_percent: parseFloat(e.target.value) || 40 })}
+                      min={0}
+                      max={200}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Se suma al subtotal de platillos en pedidos delivery</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

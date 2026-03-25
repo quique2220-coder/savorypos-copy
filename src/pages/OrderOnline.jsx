@@ -16,6 +16,23 @@ export default function OrderOnline() {
   const [showCart, setShowCart] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [customer, setCustomer] = useState({ name: "", phone: "", email: "", opted_in_sms: false, opted_in_email: false });
+  const [orderType, setOrderType] = useState("pickup"); // "pickup" | "delivery"
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryStatus, setDeliveryStatus] = useState(null); // null | "checking" | "ok" | "out_of_range" | "disabled"
+
+  // Read delivery settings from localStorage
+  const deliverySettings = React.useMemo(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem("pos_settings") || "{}");
+      return {
+        enabled: !!s.delivery_enabled,
+        lat: parseFloat(s.delivery_lat),
+        lng: parseFloat(s.delivery_lng),
+        radius: parseFloat(s.delivery_radius_miles) || 5,
+        feePercent: parseFloat(s.delivery_fee_percent) || 40,
+      };
+    } catch { return { enabled: false, lat: null, lng: null, radius: 5, feePercent: 40 }; }
+  }, [showCart]); // re-read when cart opens
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-public"],
@@ -75,11 +92,38 @@ export default function OrderOnline() {
     );
   };
 
-  const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const cartSubtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
+  const deliveryFee = orderType === "delivery" && deliveryStatus === "ok"
+    ? Math.round(cartSubtotal * (deliverySettings.feePercent / 100) * 100) / 100
+    : 0;
+  const cartTotal = cartSubtotal + deliveryFee;
+
+  // Haversine distance in miles
+  function haversine(lat1, lng1, lat2, lng2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  const checkDeliveryDistance = () => {
+    if (!deliverySettings.enabled) { setDeliveryStatus("disabled"); return; }
+    if (!deliverySettings.lat || !deliverySettings.lng) { setDeliveryStatus("ok"); return; }
+    setDeliveryStatus("checking");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const dist = haversine(pos.coords.latitude, pos.coords.longitude, deliverySettings.lat, deliverySettings.lng);
+        setDeliveryStatus(dist <= deliverySettings.radius ? "ok" : "out_of_range");
+      },
+      () => setDeliveryStatus("ok") // allow if user denies location
+    );
+  };
 
   const handleCheckout = async () => {
     if (!cart.length) return;
+    if (orderType === "delivery" && deliveryStatus !== "ok") return;
     setIsCheckingOut(true);
     try {
       const items = cart.map((c) => ({
@@ -90,7 +134,7 @@ export default function OrderOnline() {
       // Save cart + customer so confirmation/webhook can use it
       sessionStorage.setItem("pending_cart", JSON.stringify(items));
       sessionStorage.setItem("pending_customer", JSON.stringify(customer));
-      const res = await base44.functions.invoke("create-checkout", { items, customer });
+      const res = await base44.functions.invoke("create-checkout", { items, customer, orderType, deliveryFee });
       const redirectUrl = res?.data?.redirectUrl || res?.redirectUrl;
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -263,7 +307,7 @@ export default function OrderOnline() {
             >
               <span className="bg-white/20 rounded-lg px-2 py-0.5 text-sm">{cartCount} items</span>
               <span>Ver carrito</span>
-              <span className="font-bold">${cartTotal.toFixed(2)}</span>
+              <span className="font-bold">${cartSubtotal.toFixed(2)}</span>
             </button>
           </motion.div>
         )}
@@ -361,6 +405,60 @@ export default function OrderOnline() {
               {/* Checkout footer */}
               {cart.length > 0 && (
                 <div className="px-5 pt-4 pb-6 border-t bg-white space-y-4">
+                  {/* Order type */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Tipo de pedido</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => { setOrderType("pickup"); setDeliveryStatus(null); }}
+                        className={cn(
+                          "py-2.5 rounded-xl text-sm font-semibold border transition-all",
+                          orderType === "pickup"
+                            ? "bg-primary text-white border-primary shadow-md"
+                            : "bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80"
+                        )}
+                      >
+                        🛍️ Recoger en local
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!deliverySettings.enabled) { setOrderType("delivery"); setDeliveryStatus("disabled"); return; }
+                          setOrderType("delivery");
+                          checkDeliveryDistance();
+                        }}
+                        className={cn(
+                          "py-2.5 rounded-xl text-sm font-semibold border transition-all",
+                          orderType === "delivery"
+                            ? "bg-primary text-white border-primary shadow-md"
+                            : "bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80"
+                        )}
+                      >
+                        🚗 Delivery
+                      </button>
+                    </div>
+                    {orderType === "delivery" && deliveryStatus === "disabled" && (
+                      <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                        ❌ Delivery no disponible en este momento.
+                      </p>
+                    )}
+                    {orderType === "delivery" && deliveryStatus === "checking" && (
+                      <p className="text-xs text-muted-foreground bg-secondary rounded-lg px-3 py-2 flex items-center gap-1.5">
+                        <span className="w-3 h-3 border-2 border-muted-foreground/40 border-t-muted-foreground rounded-full animate-spin inline-block" />
+                        Verificando tu ubicación...
+                      </p>
+                    )}
+                    {orderType === "delivery" && deliveryStatus === "out_of_range" && (
+                      <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                        ❌ Tu ubicación está fuera de la zona de entrega ({deliverySettings.radius} millas).
+                      </p>
+                    )}
+                    {orderType === "delivery" && deliveryStatus === "ok" && (
+                      <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+                        ✅ Delivery disponible en tu zona · +{deliverySettings.feePercent}% de cargo aplicado
+                      </p>
+                    )}
+                  </div>
+
                   {/* Customer Info */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -401,8 +499,14 @@ export default function OrderOnline() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Subtotal</span>
-                      <span>${cartTotal.toFixed(2)}</span>
+                      <span>${cartSubtotal.toFixed(2)}</span>
                     </div>
+                    {deliveryFee > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Cargo delivery ({deliverySettings.feePercent}%)</span>
+                        <span>+${deliveryFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-base text-foreground">
                       <span>Total</span>
                       <span className="text-primary">${cartTotal.toFixed(2)}</span>
@@ -411,7 +515,7 @@ export default function OrderOnline() {
                   <Button
                     className="w-full h-12 text-base font-bold rounded-xl shadow-lg shadow-primary/30"
                     onClick={handleCheckout}
-                    disabled={isCheckingOut}
+                    disabled={isCheckingOut || (orderType === "delivery" && deliveryStatus !== "ok")}
                   >
                     {isCheckingOut ? (
                       <span className="flex items-center gap-2">
