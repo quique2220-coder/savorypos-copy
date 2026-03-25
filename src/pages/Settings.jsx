@@ -74,11 +74,7 @@ const STORAGE_KEY = "pos_settings";
 
 export default function Settings() {
   const [business, setBusiness] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch {}
-    return {
+    const defaults = {
       name: "Mi Restaurante",
       address: "",
       phone: "",
@@ -94,6 +90,11 @@ export default function Settings() {
       delivery_radius_miles: 5,
       delivery_fee_percent: 40,
     };
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return { ...defaults, ...JSON.parse(stored) };
+    } catch {}
+    return defaults;
   });
   const [saved, setSaved] = useState(false);
 
