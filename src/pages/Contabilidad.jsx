@@ -24,7 +24,13 @@ const printStyles = `
       margin: 0.5in;
       size: letter;
     }
-    body { background: white; }
+    @page :header { display: none; }
+    @page :footer { display: none; }
+    body { 
+      background: white; 
+      margin: 0 !important;
+      padding: 0 !important;
+    }
     aside { display: none !important; }
     [class*="sidebar"] { display: none !important; }
     .print-hidden { display: none !important; }
