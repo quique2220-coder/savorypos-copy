@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
   Monitor, UtensilsCrossed, Package, BarChart3, 
   ClipboardList, ChevronLeft, ChevronRight, Flame,
-  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat, Globe
+  BookOpen, TrendingUp, Users, Settings2, FlaskConical, ChefHat, Globe, Mic
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ const navItems = [
   { path: "/Contabilidad", label: "Contabilidad", icon: BookOpen, group: "finance" },
   { path: "/Ingredients", label: "Ingredientes", icon: FlaskConical, group: "costing" },
   { path: "/Recipes", label: "Platillos", icon: ChefHat, group: "costing" },
+  { path: "/VoiceAssistant", label: "🤖 Asistente IA", icon: Mic, group: "costing" },
   { path: "/CRM", label: "CRM + Marketing", icon: Users, group: "crm" },
   { path: "/Settings", label: "Settings", icon: Settings2, group: "crm" },
   { path: "/OrderOnline", label: "Menú Online", icon: Globe, group: "online", external: true },
