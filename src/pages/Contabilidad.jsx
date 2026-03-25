@@ -17,22 +17,27 @@ const CHART_OF_ACCOUNTS = [
   { code: "1100", name_en: "Cash", name_es: "Caja / Efectivo", nature: "Asset", category: "Current Assets" },
   { code: "1110", name_en: "Bank Account", name_es: "Banco", nature: "Asset", category: "Current Assets" },
   { code: "1120", name_en: "Accounts Receivable", name_es: "Cuentas por Cobrar", nature: "Asset", category: "Current Assets" },
-  { code: "1130", name_en: "Inventory", name_es: "Inventario", nature: "Asset", category: "Current Assets" },
+  { code: "1130", name_en: "Food Inventory", name_es: "Inventario de Alimentos", nature: "Asset", category: "Current Assets" },
+  { code: "1131", name_en: "Beverage Inventory", name_es: "Inventario de Bebidas", nature: "Asset", category: "Current Assets" },
+  { code: "1132", name_en: "Packaging Inventory", name_es: "Inventario de Empaque", nature: "Asset", category: "Current Assets" },
   { code: "1200", name_en: "Equipment", name_es: "Equipos de Cocina", nature: "Asset", category: "Fixed Assets" },
   { code: "1210", name_en: "Vehicles", name_es: "Vehículos", nature: "Asset", category: "Fixed Assets" },
   // Liabilities
   { code: "2100", name_en: "Accounts Payable", name_es: "Cuentas por Pagar", nature: "Liability", category: "Current Liabilities" },
   { code: "2110", name_en: "Credit Card", name_es: "Tarjeta de Crédito", nature: "Liability", category: "Current Liabilities" },
+  { code: "2120", name_en: "Sales Tax Payable", name_es: "Impuesto sobre Ventas por Pagar", nature: "Liability", category: "Current Liabilities" },
   { code: "2200", name_en: "Business Loan", name_es: "Préstamo Negocio", nature: "Liability", category: "Long-term Liabilities" },
   // Equity
   { code: "3100", name_en: "Owner's Equity", name_es: "Capital del Dueño", nature: "Equity", category: "Equity" },
   { code: "3200", name_en: "Retained Earnings", name_es: "Utilidades Retenidas", nature: "Equity", category: "Equity" },
+  { code: "3300", name_en: "Owner Draw / Distributions", name_es: "Retiros del Dueño", nature: "Equity", category: "Equity" },
   // Revenue
   { code: "4100", name_en: "Food Sales", name_es: "Ventas de Alimentos", nature: "Income", category: "Revenue" },
   { code: "4110", name_en: "Beverage Sales", name_es: "Ventas de Bebidas", nature: "Income", category: "Revenue" },
-  { code: "4120", name_en: "Doordash / Ubereats / Grubhub", name_es: "Ingresos Apps Delivery", nature: "Income", category: "Revenue" },
+  { code: "4120", name_en: "Delivery Sales", name_es: "Ventas por Delivery", nature: "Income", category: "Revenue" },
   { code: "4130", name_en: "Catering Income", name_es: "Ingresos Catering", nature: "Income", category: "Revenue" },
-  { code: "4150", name_en: "Sales Returns & Allowances", name_es: "Devoluciones y Descuentos", nature: "Contra-Income", category: "Revenue" },
+  { code: "4150", name_en: "Sales Returns & Allowances", name_es: "Devoluciones y Descuentos", nature: "Income", category: "Revenue", type: "contra" },
+  { code: "4200", name_en: "Other Income", name_es: "Otros Ingresos", nature: "Income", category: "Revenue" },
   // COGS
   { code: "5100", name_en: "Food Cost", name_es: "Costo de Alimentos", nature: "Expense", category: "Cost of Sales" },
   { code: "5110", name_en: "Beverage Cost", name_es: "Costo de Bebidas", nature: "Expense", category: "Cost of Sales" },
@@ -40,7 +45,8 @@ const CHART_OF_ACCOUNTS = [
   // Expenses
   { code: "6100", name_en: "Rent", name_es: "Renta Local", nature: "Expense", category: "Operating Expenses" },
   { code: "6110", name_en: "Utilities", name_es: "Servicios (Luz, Gas, Agua)", nature: "Expense", category: "Operating Expenses" },
-  { code: "6120", name_en: "Labor / Wages", name_es: "Sueldos y Salarios", nature: "Expense", category: "Operating Expenses" },
+  { code: "6120", name_en: "Direct Labor (Kitchen)", name_es: "Labor Directo (Cocina)", nature: "Expense", category: "Operating Expenses" },
+  { code: "6121", name_en: "Indirect Labor (Admin/Cashier)", name_es: "Labor Indirecto (Admin/Caja)", nature: "Expense", category: "Operating Expenses" },
   { code: "6130", name_en: "Payroll Taxes", name_es: "Impuestos sobre Nómina", nature: "Expense", category: "Operating Expenses" },
   { code: "6140", name_en: "Marketing / Advertising", name_es: "Marketing y Publicidad", nature: "Expense", category: "Operating Expenses" },
   { code: "6150", name_en: "Insurance", name_es: "Seguros", nature: "Expense", category: "Operating Expenses" },
@@ -51,7 +57,8 @@ const CHART_OF_ACCOUNTS = [
   { code: "6200", name_en: "Interest Expense", name_es: "Gastos Financieros", nature: "Expense", category: "Operating Expenses" },
 ];
 
-const natColor = { Income: "bg-emerald-100 text-emerald-700", "Contra-Income": "bg-lime-100 text-lime-700", Expense: "bg-red-100 text-red-700", Asset: "bg-blue-100 text-blue-700", Liability: "bg-orange-100 text-orange-700", Equity: "bg-purple-100 text-purple-700" };
+const natColor = { Income: "bg-emerald-100 text-emerald-700", Expense: "bg-red-100 text-red-700", Asset: "bg-blue-100 text-blue-700", Liability: "bg-orange-100 text-orange-700", Equity: "bg-purple-100 text-purple-700" };
+const typeColor = { contra: "bg-amber-100 text-amber-700" };
 
 export default function Contabilidad() {
   const [formOpen, setFormOpen] = useState(false);
@@ -191,6 +198,7 @@ export default function Contabilidad() {
                     <TableHead>English</TableHead>
                     <TableHead>Español</TableHead>
                     <TableHead>Naturaleza</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Categoría</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -201,6 +209,7 @@ export default function Contabilidad() {
                       <TableCell className="font-medium">{a.name_en}</TableCell>
                       <TableCell className="text-muted-foreground">{a.name_es}</TableCell>
                       <TableCell><Badge className={natColor[a.nature] || ""}>{a.nature}</Badge></TableCell>
+                      <TableCell>{a.type && <Badge className={typeColor[a.type] || ""}>{a.type}</Badge>}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{a.category}</TableCell>
                     </TableRow>
                   ))}
