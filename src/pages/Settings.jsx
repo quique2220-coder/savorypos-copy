@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -149,47 +149,40 @@ export default function Settings() {
   const [business, setBusiness] = useState(DEFAULTS);
   const [settingsId, setSettingsId] = useState(null);
   const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
   const qc = useQueryClient();
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const list = await base44.entities.AppSettings.filter({ key: "business" });
-        if (list && list.length > 0) {
-          const s = list[0];
-          setSettingsId(s.id);
-          setBusiness({
-            name: s.business_name || DEFAULTS.name,
-            address: s.address || "",
-            phone: s.phone || "",
-            email: s.email || "",
-            tax_rate: s.tax_rate || DEFAULTS.tax_rate,
-            state_code: s.state_code || "none",
-            currency: s.currency || "USD",
-            language: s.language || "es",
-            timezone: s.timezone || "America/Chicago",
-            delivery_enabled: !!s.delivery_enabled,
-            delivery_lat: s.delivery_lat != null ? String(s.delivery_lat) : "",
-            delivery_lng: s.delivery_lng != null ? String(s.delivery_lng) : "",
-            delivery_radius_miles: s.delivery_radius_miles || 5,
-            delivery_fee_percent: s.delivery_fee_percent || 40,
-            current_plan: s.current_plan || "growth",
-          });
-          // Also sync to localStorage for POS (same-origin)
-          localStorage.setItem("pos_settings", JSON.stringify({
-            ...s,
-            delivery_enabled: !!s.delivery_enabled,
-          }));
-        }
-      } catch (e) {
-        console.error("Error loading settings:", e);
-      } finally {
-        setLoading(false);
+  const { isLoading } = useQuery({
+    queryKey: ['AppSettings'],
+    queryFn: async () => {
+      const list = await base44.entities.AppSettings.filter({ key: "business" });
+      if (list && list.length > 0) {
+        const s = list[0];
+        setSettingsId(s.id);
+        setBusiness({
+          name: s.business_name || DEFAULTS.name,
+          address: s.address || "",
+          phone: s.phone || "",
+          email: s.email || "",
+          tax_rate: s.tax_rate || DEFAULTS.tax_rate,
+          state_code: s.state_code || "none",
+          currency: s.currency || "USD",
+          language: s.language || "es",
+          timezone: s.timezone || "America/Chicago",
+          delivery_enabled: !!s.delivery_enabled,
+          delivery_lat: s.delivery_lat != null ? String(s.delivery_lat) : "",
+          delivery_lng: s.delivery_lng != null ? String(s.delivery_lng) : "",
+          delivery_radius_miles: s.delivery_radius_miles || 5,
+          delivery_fee_percent: s.delivery_fee_percent || 40,
+          current_plan: s.current_plan || "growth",
+        });
+        localStorage.setItem("pos_settings", JSON.stringify({
+          ...s,
+          delivery_enabled: !!s.delivery_enabled,
+        }));
       }
-    };
-    load();
-  }, []);
+      return list;
+    }
+  });
 
   const handleStateChange = (code) => {
     const state = US_STATE_TAX.find(s => s.code === code);
@@ -238,7 +231,7 @@ export default function Settings() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6 min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-secondary border-t-primary rounded-full animate-spin" />
