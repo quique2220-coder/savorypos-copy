@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List } from "lucide-react";
 import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
 import SalesDetail from "@/components/reports/SalesDetail";
 import BalanceSheet from "@/components/reports/BalanceSheet";
@@ -374,10 +374,11 @@ export default function Reports() {
                 {typeData.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No data</p> : (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                      <Pie data={typeData} dataKey="value" nameKey="name" cx="45%" cy="50%" outerRadius={60}>
                         {typeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip formatter={(v) => v} />
+                      <Legend verticalAlign="middle" align="right" layout="vertical" />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
