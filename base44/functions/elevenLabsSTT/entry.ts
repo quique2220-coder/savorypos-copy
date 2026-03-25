@@ -4,10 +4,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Method not allowed" }, { status: 405 });
     }
 
-    const formData = await req.formData();
-    const audioFile = formData.get("audio");
+    const { audio } = await req.json();
 
-    if (!audioFile) {
+    if (!audio) {
       return Response.json({ error: "No audio file provided" }, { status: 400 });
     }
 
@@ -16,8 +15,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: "API key not configured" }, { status: 500 });
     }
 
+    // Convert base64 to binary
+    const binaryString = atob(audio);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
     const elevenLabsFormData = new FormData();
-    elevenLabsFormData.append("audio", audioFile);
+    elevenLabsFormData.append("audio", new Blob([bytes], { type: "audio/webm" }));
 
     const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
