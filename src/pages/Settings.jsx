@@ -152,7 +152,7 @@ export default function Settings() {
   const qc = useQueryClient();
 
   const { isLoading } = useQuery({
-    queryKey: ['AppSettings'],
+    queryKey: ['AppSettings', 'business'],
     queryFn: async () => {
       const list = await base44.entities.AppSettings.filter({ key: "business" });
       if (list && list.length > 0) {
@@ -222,7 +222,7 @@ export default function Settings() {
       // Also keep localStorage in sync for POS
       localStorage.setItem("pos_settings", JSON.stringify(payload));
       // Invalidate plan access cache when plan changes
-      qc.invalidateQueries({ queryKey: ['AppSettings'] });
+      qc.invalidateQueries({ queryKey: ['AppSettings', 'business'] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {

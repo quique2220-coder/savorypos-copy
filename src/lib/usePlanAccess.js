@@ -65,8 +65,8 @@ const PLAN_FEATURES = {
 
 export function usePlanAccess() {
   const { data: settings = [] } = useQuery({
-    queryKey: ['AppSettings'],
-    queryFn: () => base44.entities.AppSettings.list(),
+    queryKey: ['AppSettings', 'business'],
+    queryFn: () => base44.entities.AppSettings.filter({ key: 'business' }),
   });
 
   const currentPlan = settings[0]?.current_plan || 'growth';
