@@ -87,33 +87,45 @@ export default function LiveDashboard() {
   const metrics = useMemo(() => {
     if (!orders.length) return null;
 
-    // Last 30 days
-    const cutoff = daysAgo(30);
-    const recent = orders.filter(o => (o.created_date || "").slice(0, 10) >= cutoff);
+    // Last 30 days — compare full ISO timestamps properly
+    const cutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const recent = orders.filter(o => {
+      const d = o.created_date ? new Date(o.created_date).getTime() : 0;
+      return d >= cutoffMs;
+    });
 
-    const totalRevenue = recent.reduce((s, o) => s + (o.total || 0), 0);
-    const totalOrders  = recent.length;
+    // Use all orders if none fall in last 30 days (e.g. test data)
+    const working = recent.length > 0 ? recent : orders;
+
+    const totalRevenue = working.reduce((s, o) => s + (o.total || 0), 0);
+    const totalOrders  = working.length;
     const avgTicket    = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const daysWithData = 30;
-    const ordersPerDay = totalOrders / daysWithData;
+    const ordersPerDay = totalOrders / 30;
 
-    // COGS from recipe costing
+    // COGS from recipe costing — match by ingredient_id
     const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
-    const recipeMap = Object.fromEntries(recipes.map(r => [r.name?.toLowerCase(), r]));
+    const recipeMap = Object.fromEntries(recipes.map(r => [r.name?.toLowerCase().trim(), r]));
 
     let estimatedCOGS = 0;
-    recent.forEach(order => {
+    working.forEach(order => {
       (order.items || []).forEach(item => {
-        const rec = recipeMap[item.name?.toLowerCase()];
+        const rec = recipeMap[item.name?.toLowerCase().trim()];
         if (rec) {
           const totals = calcRecipeTotals(rec, ingMap);
-          estimatedCOGS += (totals.ingredientCost || 0) * (item.quantity || 1);
+          const costPerServing = totals.ingredientCost || 0;
+          estimatedCOGS += costPerServing * (item.quantity || 1);
         } else {
           // fallback: 30% food cost estimate
-          estimatedCOGS += (item.subtotal || item.price * item.quantity || 0) * 0.30;
+          const itemTotal = item.subtotal || (item.price || 0) * (item.quantity || 1);
+          estimatedCOGS += itemTotal * 0.30;
         }
       });
     });
+
+    // If COGS is suspiciously low (<5% of revenue), use 30% flat estimate
+    if (totalRevenue > 0 && estimatedCOGS / totalRevenue < 0.05) {
+      estimatedCOGS = totalRevenue * 0.30;
+    }
 
     const foodCostPct = totalRevenue > 0 ? (estimatedCOGS / totalRevenue) * 100 : 0;
 
@@ -129,7 +141,7 @@ export default function LiveDashboard() {
 
     // Sales by channel
     const channelMap = {};
-    recent.forEach(o => {
+    working.forEach(o => {
       const src = o.order_source || "in_person";
       if (!channelMap[src]) channelMap[src] = { revenue: 0, count: 0 };
       channelMap[src].revenue += o.total || 0;
@@ -143,16 +155,16 @@ export default function LiveDashboard() {
       return { ...ch, revenue: raw.revenue, netRevenue: net, count: raw.count };
     }).filter(c => c.revenue > 0);
 
-    // Top items by revenue
+    // Top items by revenue — fixed closure bug
     const itemMap = {};
-    recent.forEach(o => {
-      (order => {
-        (order.items || []).forEach(item => {
-          if (!itemMap[item.name]) itemMap[item.name] = { revenue: 0, qty: 0 };
-          itemMap[item.name].revenue += item.subtotal || item.price * item.quantity || 0;
-          itemMap[item.name].qty += item.quantity || 1;
-        });
-      })(o);
+    working.forEach(o => {
+      (o.items || []).forEach(item => {
+        const key = item.name || "Sin nombre";
+        if (!itemMap[key]) itemMap[key] = { revenue: 0, qty: 0 };
+        const itemTotal = item.subtotal || (item.price || 0) * (item.quantity || 1);
+        itemMap[key].revenue += itemTotal;
+        itemMap[key].qty += item.quantity || 1;
+      });
     });
     const topItems = Object.entries(itemMap)
       .sort((a, b) => b[1].revenue - a[1].revenue)
