@@ -93,16 +93,18 @@ export default function Reports() {
   });
 
   const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
-    const range = getPeriodRange(period, customStart, customEnd);
-    const allCompleted = orders.filter((o) => o.status === "completed" || o.status === "ready" || o.status === "pending" || o.status === "preparing");
-    const completed = range
-      ? allCompleted.filter((o) => {
-          if (!o.created_date) return false;
-          const d = new Date(o.created_date);
-          const end = new Date(range.end); end.setHours(23, 59, 59, 999);
-          return d >= range.start && d <= end;
-        })
-      : allCompleted;
+   const range = getPeriodRange(period, customStart, customEnd);
+   const allCompleted = orders.filter((o) => o.status === "completed" || o.status === "ready" || o.status === "pending" || o.status === "preparing");
+   const completed = range
+     ? allCompleted.filter((o) => {
+         if (!o.created_date) return false;
+         const d = new Date(o.created_date);
+         const end = new Date(range.end); end.setHours(23, 59, 59, 999);
+         const inRange = d >= range.start && d <= end;
+         if (o.order_type === "catering") console.log(`Catering order ${o.order_number}:`, {created: d, rangeStart: range.start, rangeEnd: end, inRange});
+         return inRange;
+       })
+     : allCompleted;
 
     const revenue = completed.reduce((s, o) => s + (o.total || 0), 0);
     // COGS derived from menu item costs matched to order items
