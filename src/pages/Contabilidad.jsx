@@ -381,13 +381,17 @@ export default function Contabilidad() {
 
         <div className="hidden print:block page-content">
           <div className="print-header">{businessName}</div>
-          <AccountingStatements entries={entries.filter(e => {
-            if (!statementsStartDate && !statementsEndDate) return true;
-            const entryDate = new Date(e.date);
-            const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
-            const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
-            return entryDate >= start && entryDate <= end;
-          })} />
+          <AccountingStatements 
+            entries={entries.filter(e => {
+              if (!statementsStartDate && !statementsEndDate) return true;
+              const entryDate = new Date(e.date);
+              const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
+              const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
+              return entryDate >= start && entryDate <= end;
+            })}
+            activeTab={activeStatementsTab}
+            onTabChange={setActiveStatementsTab}
+          />
         </div>
         </div>
   );
