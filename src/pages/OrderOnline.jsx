@@ -166,9 +166,9 @@ export default function OrderOnline() {
 
       {/* ── HERO ── */}
       <div className="bg-gradient-to-br from-orange-500 to-amber-500 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-2 tracking-tight">¿Qué se te antoja hoy?</h2>
-          <p className="text-orange-100 text-base mb-6">Ordena directo desde aquí y recoge listo.</p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+          <h2 className="text-2xl sm:text-4xl font-extrabold mb-1 sm:mb-2 tracking-tight">¿Qué se te antoja hoy?</h2>
+          <p className="text-orange-100 text-sm sm:text-base mb-4 sm:mb-6">Ordena directo desde aquí y recoge listo.</p>
           {/* Search – mobile */}
           <div className="sm:hidden relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -216,7 +216,7 @@ export default function OrderOnline() {
       </div>
 
       {/* ── MENU ── */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8 space-y-8 sm:space-y-10">
         {Object.keys(grouped).length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -232,7 +232,7 @@ export default function OrderOnline() {
                   {cat}
                 </h3>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
                 {items.map((item) => (
                   <MenuCard key={item.id} item={item} cart={cart} addToCart={addToCart} updateQty={updateQty} />
                 ))}
@@ -401,69 +401,73 @@ function MenuCard({ item, cart, addToCart, updateQty }) {
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col group"
+      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 group"
     >
-      {/* Image */}
-      <div className="relative h-44 bg-orange-50 overflow-hidden">
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl select-none">🍽️</div>
-        )}
-        {/* Category pill */}
-        <span className="absolute top-2.5 left-2.5 bg-black/50 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm">
-          {item.category}
-        </span>
-        {inCart && (
-          <span className="absolute top-2.5 right-2.5 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
-            {inCart.quantity} en carrito
-          </span>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-foreground leading-tight mb-1">{item.name}</h3>
-        {item.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-2 flex-1">{item.description}</p>
-        )}
-        {item.prep_time_minutes && (
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-3">
-            <Clock className="w-3 h-3" /> {item.prep_time_minutes} min
-          </p>
-        )}
-
-        <div className="flex items-center justify-between mt-auto pt-2">
-          <span className="text-xl font-extrabold text-primary">${item.price.toFixed(2)}</span>
-          {inCart ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => updateQty(item.id, -1)}
-                className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center hover:bg-destructive/10 transition-colors"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <span className="font-bold text-base w-6 text-center">{inCart.quantity}</span>
-              <button
-                onClick={() => updateQty(item.id, 1)}
-                className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
+      {/* Mobile: horizontal layout. sm+: vertical layout */}
+      <div className="flex sm:flex-col">
+        {/* Image */}
+        <div className="relative w-28 h-28 sm:w-full sm:h-44 flex-shrink-0 bg-orange-50 overflow-hidden">
+          {item.image_url ? (
+            <img
+              src={item.image_url}
+              alt={item.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
           ) : (
-            <button
-              onClick={() => addToCart(item)}
-              className="flex items-center gap-1.5 bg-primary text-white px-3.5 py-2 rounded-xl text-sm font-semibold hover:bg-primary/90 active:scale-95 transition-all shadow-md shadow-primary/20"
-            >
-              <Plus className="w-4 h-4" />
-              Agregar
-            </button>
+            <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl select-none">🍽️</div>
           )}
+          {/* Category pill — only on sm+ */}
+          <span className="hidden sm:inline-block absolute top-2.5 left-2.5 bg-black/50 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm">
+            {item.category}
+          </span>
+          {inCart && (
+            <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 bg-primary text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+              ×{inCart.quantity}
+            </span>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
+          <h3 className="font-bold text-foreground leading-tight text-sm sm:text-base mb-0.5">{item.name}</h3>
+          {item.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-1 sm:mb-2">{item.description}</p>
+          )}
+          {item.prep_time_minutes && (
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1 sm:mb-3">
+              <Clock className="w-3 h-3" /> {item.prep_time_minutes} min
+            </p>
+          )}
+
+          <div className="flex items-center justify-between mt-auto pt-1 sm:pt-2">
+            <span className="text-base sm:text-xl font-extrabold text-primary">${item.price.toFixed(2)}</span>
+            {inCart ? (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => updateQty(item.id, -1)}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-secondary flex items-center justify-center hover:bg-destructive/10 transition-colors"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="font-bold text-sm w-5 text-center">{inCart.quantity}</span>
+                <button
+                  onClick={() => updateQty(item.id, 1)}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => addToCart(item)}
+                className="flex items-center gap-1 sm:gap-1.5 bg-primary text-white px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold hover:bg-primary/90 active:scale-95 transition-all shadow-md shadow-primary/20"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Agregar</span>
+                <span className="sm:hidden">+</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
