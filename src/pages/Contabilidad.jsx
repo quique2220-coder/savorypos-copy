@@ -13,23 +13,17 @@ import IRSDeductibles from "../components/accounting/IRSDeductibles";
 import AccountingStatements from "../components/accounting/AccountingStatements";
 
 const printStyles = `
+  @page {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   @media print {
     * { margin: 0; padding: 0; }
-    html, body { 
-      margin: 0 !important;
-      padding: 0 !important;
-      height: auto !important;
-    }
-    @page {
-      margin: 0.5in;
-      size: letter;
-    }
-    @page :header { display: none; }
-    @page :footer { display: none; }
+    html { margin: 0 !important; padding: 0 !important; }
     body { 
-      background: white; 
       margin: 0 !important;
-      padding: 0 !important;
+      padding: 0.5in !important;
+      background: white; 
     }
     aside { display: none !important; }
     [class*="sidebar"] { display: none !important; }
