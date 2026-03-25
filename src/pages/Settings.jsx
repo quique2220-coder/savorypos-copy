@@ -126,6 +126,7 @@ const DEFAULTS = {
   delivery_lng: "",
   delivery_radius_miles: 5,
   delivery_fee_percent: 40,
+  current_plan: "growth",
 };
 
 export default function Settings() {
@@ -156,6 +157,7 @@ export default function Settings() {
             delivery_lng: s.delivery_lng != null ? String(s.delivery_lng) : "",
             delivery_radius_miles: s.delivery_radius_miles || 5,
             delivery_fee_percent: s.delivery_fee_percent || 40,
+            current_plan: s.current_plan || "growth",
           });
           // Also sync to localStorage for POS (same-origin)
           localStorage.setItem("pos_settings", JSON.stringify({
@@ -198,6 +200,7 @@ export default function Settings() {
       delivery_lng: business.delivery_lng ? parseFloat(business.delivery_lng) : null,
       delivery_radius_miles: parseFloat(business.delivery_radius_miles) || 5,
       delivery_fee_percent: parseFloat(business.delivery_fee_percent) || 40,
+      current_plan: business.current_plan,
     };
     try {
       if (settingsId) {
@@ -427,6 +430,11 @@ export default function Settings() {
                         ⭐ Más popular
                       </div>
                     )}
+                    {business.current_plan === plan.id && (
+                      <div className="absolute -top-3 right-4 bg-emerald-500 text-white text-xs font-semibold px-2 py-1 rounded">
+                        ✓ Actual
+                      </div>
+                    )}
                     <div className="mb-3">
                       <div className="flex items-baseline gap-2 mb-1">
                         <span className="font-bold text-lg">{plan.name}</span>
@@ -446,11 +454,12 @@ export default function Settings() {
                       ))}
                     </ul>
                     <Button
-                      variant={plan.featured ? "default" : "outline"}
+                      variant={business.current_plan === plan.id ? "default" : "outline"}
                       size="sm"
                       className="w-full"
+                      onClick={() => setBusiness({ ...business, current_plan: plan.id })}
                     >
-                      {plan.cta}
+                      {business.current_plan === plan.id ? "Plan Actual" : "Cambiar"}
                     </Button>
                   </div>
                 ))}
