@@ -288,9 +288,9 @@ export default function LiveDashboard() {
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={m.topItems} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10 }} />
+                    <XAxis type="number" tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(1)}K` : `$${v}`} tick={{ fontSize: 10 }} />
                     <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={v => `$${v.toLocaleString()}`} />
+                    <Tooltip formatter={v => `$${Number(v).toLocaleString()}`} />
                     <Bar dataKey="revenue" name="Ingresos" radius={[0, 4, 4, 0]}>
                       {m.topItems.map((_, i) => (
                         <Cell key={i} fill={`hsl(${25 + i * 30}, 85%, ${55 - i * 5}%)`} />
