@@ -95,13 +95,20 @@ export default function VoiceAssistant() {
   const sendAudioToElevenLabs = async (audioBlob) => {
     try {
       const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
+      reader.readAsArrayBuffer(audioBlob);
       reader.onload = async () => {
-        const base64Audio = reader.result.split(',')[1];
+        const uint8Array = new Uint8Array(reader.result);
+        const binaryString = Array.from(uint8Array).map(b => String.fromCharCode(b)).join('');
+        const base64Audio = btoa(binaryString);
+        
         const response = await base44.functions.invoke("elevenLabsSTT", { 
-          audio: base64Audio 
+          audio: base64Audio,
+          mimeType: audioBlob.type
         });
         setInput(response.data.transcript || "");
+      };
+      reader.onerror = () => {
+        toast.error("Error al leer el audio");
       };
     } catch (err) {
       console.error("Eleven Labs STT error:", err);

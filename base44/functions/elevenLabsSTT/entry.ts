@@ -4,14 +4,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Method not allowed" }, { status: 405 });
     }
 
-    const { audio } = await req.json();
+    const { audio, mimeType } = await req.json();
 
     if (!audio) {
+      console.error("No audio provided in request");
       return Response.json({ error: "No audio file provided" }, { status: 400 });
     }
 
     const apiKey = Deno.env.get("ELEVEN_LABS_API_KEY");
     if (!apiKey) {
+      console.error("ELEVEN_LABS_API_KEY not configured");
       return Response.json({ error: "API key not configured" }, { status: 500 });
     }
 
@@ -23,8 +25,10 @@ Deno.serve(async (req) => {
     }
 
     const elevenLabsFormData = new FormData();
-    elevenLabsFormData.append("audio", new Blob([bytes], { type: "audio/webm" }));
+    elevenLabsFormData.append("audio", new Blob([bytes], { type: mimeType || "audio/webm" }));
 
+    console.log("Sending audio to Eleven Labs, size:", bytes.length);
+    
     const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
       headers: {
@@ -35,14 +39,15 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Eleven Labs STT error:", errorData);
+      console.error("Eleven Labs STT error:", response.status, errorData);
       return Response.json(
-        { error: "STT processing failed" },
+        { error: `STT processing failed: ${errorData}` },
         { status: response.status }
       );
     }
 
     const data = await response.json();
+    console.log("STT response:", data);
     return Response.json({ transcript: data.text || "" });
   } catch (error) {
     console.error("STT function error:", error.message);
