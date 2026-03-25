@@ -215,10 +215,23 @@ export default function Settings() {
               </div>
               {business.delivery_enabled && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
-                  <div className="space-y-1 md:col-span-2">
-                    <Label className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />Coordenadas de tu local</Label>
-                    <p className="text-xs text-muted-foreground mb-1">Busca tu dirección en <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-primary underline">latlong.net</a> y copia las coordenadas.</p>
-                  </div>
+                 <div className="space-y-1 md:col-span-2">
+                   <Label className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />Coordenadas de tu local</Label>
+                   <p className="text-xs text-muted-foreground mb-1">Busca tu dirección en <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-primary underline">latlong.net</a> y copia las coordenadas, o usa el botón para detectar tu ubicación actual.</p>
+                   <button
+                     type="button"
+                     onClick={() => {
+                       if (!navigator.geolocation) return alert("Geolocalización no disponible en este navegador.");
+                       navigator.geolocation.getCurrentPosition(
+                         (pos) => setBusiness(prev => ({ ...prev, delivery_lat: pos.coords.latitude.toFixed(6), delivery_lng: pos.coords.longitude.toFixed(6) })),
+                         () => alert("No se pudo obtener la ubicación. Verifica los permisos del navegador.")
+                       );
+                     }}
+                     className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/40 bg-accent/50 hover:bg-accent px-3 py-1.5 rounded-lg transition-colors"
+                   >
+                     <MapPin className="w-3.5 h-3.5" /> Detectar mi ubicación actual
+                   </button>
+                 </div>
                   <div className="space-y-1">
                     <Label>Latitud</Label>
                     <Input
