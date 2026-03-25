@@ -170,19 +170,19 @@ export default function Reports() {
     });
     const typeLabels = {
       dine_in: "Dine In",
-      takeout: "Takeout",
+      takeout: "Para llevar",
       delivery: "Delivery",
       catering: "Catering",
     };
     const typeData = Object.entries(typeBreakdown).map(([key, value]) => ({ name: typeLabels[key] || key, value }));
 
     const SOURCE_LABELS = {
-      in_person: "In Person",
+      in_person: "En local",
       uber_eats: "Uber Eats",
       doordash: "DoorDash",
       rappi: "Rappi",
       online: "Online",
-      phone: "Phone",
+      phone: "Teléfono",
     };
     const sourceBreakdown = {};
     completed.forEach((o) => {
