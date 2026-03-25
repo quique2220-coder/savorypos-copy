@@ -151,20 +151,24 @@ export default function Reports() {
 
     const financials = { revenue, cogs, grossProfit, grossMargin, opExpenses, operatingIncome, taxes, netIncome, netMargin };
 
-    // Daily for last 7 days starting from Monday — uses `completed` so it respects the period filter
+    // Generate daily breakdown based on period selected
     const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const mondayOfWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
     const dailyRevenue = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(mondayOfWeek);
-      day.setDate(mondayOfWeek.getDate() + i);
-      const dayStr = format(day, "yyyy-MM-dd");
-      const dayOrders = completed.filter((o) => o.created_date && format(new Date(o.created_date), "yyyy-MM-dd") === dayStr);
-      dailyRevenue.push({
-        day: DAY_NAMES[day.getDay()],
-        revenue: dayOrders.reduce((s, o) => s + (o.total || 0), 0),
-        orders: dayOrders.length,
-      });
+    
+    if (range) {
+      const currentDate = new Date(range.start);
+      const endDate = new Date(range.end);
+      
+      while (currentDate <= endDate) {
+        const dayStr = format(currentDate, "yyyy-MM-dd");
+        const dayOrders = completed.filter((o) => o.created_date && format(new Date(o.created_date), "yyyy-MM-dd") === dayStr);
+        dailyRevenue.push({
+          day: format(currentDate, "MMM dd"),
+          revenue: dayOrders.reduce((s, o) => s + (o.total || 0), 0),
+          orders: dayOrders.length,
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
     }
 
     // Top selling items
@@ -286,7 +290,7 @@ export default function Reports() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base">Revenue (Last 7 Days)</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Revenue ({periodLabel})</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dailyRevenue}>
@@ -300,7 +304,7 @@ export default function Reports() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base">Orders (Last 7 Days)</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Orders ({periodLabel})</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={dailyRevenue}>
