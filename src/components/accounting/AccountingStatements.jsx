@@ -46,14 +46,14 @@ export default function AccountingStatements({ entries }) {
 
   return (
     <Tabs defaultValue="income">
-      <TabsList className="mb-4">
+      <TabsList className="mb-4 print:hidden">
         <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
         <TabsTrigger value="balance">Balance General</TabsTrigger>
         <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="income">
-        <div className="max-w-lg bg-card border rounded-xl p-4">
+      <TabsContent value="income" className="print:block">
+        <div className="max-w-lg bg-card border rounded-xl p-4 print:border-none print:rounded-none print:bg-transparent print:p-0 print:mb-8">
           <h3 className="font-bold text-center mb-4 text-base">Estado de Resultados (P&L)</h3>
           <SectionHeader title="INGRESOS / REVENUE" color="bg-emerald-100 text-emerald-800" />
           <LineItem label="Ventas Totales" value={data.income} indent />
@@ -76,8 +76,8 @@ export default function AccountingStatements({ entries }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="balance">
-        <div className="max-w-lg bg-card border rounded-xl p-4">
+      <TabsContent value="balance" className="print:block">
+        <div className="max-w-lg bg-card border rounded-xl p-4 print:border-none print:rounded-none print:bg-transparent print:p-0 print:mb-8">
           <h3 className="font-bold text-center mb-4 text-base">Balance General</h3>
           <SectionHeader title="ACTIVOS / ASSETS" color="bg-blue-100 text-blue-800" />
           <LineItem label="Activos Corrientes (Cash, Bank, AR, Inventario)" value={data.assets} indent />
@@ -97,8 +97,8 @@ export default function AccountingStatements({ entries }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="cashflow">
-        <div className="max-w-lg bg-card border rounded-xl p-4">
+      <TabsContent value="cashflow" className="print:block">
+        <div className="max-w-lg bg-card border rounded-xl p-4 print:border-none print:rounded-none print:bg-transparent print:p-0 print:mb-8">
           <h3 className="font-bold text-center mb-4 text-base">Flujo de Caja</h3>
           <SectionHeader title="ACTIVIDADES OPERATIVAS" color="bg-emerald-100 text-emerald-800" />
           <LineItem label="Cobros de Clientes" value={data.cashIn} indent />
