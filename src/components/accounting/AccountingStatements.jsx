@@ -52,7 +52,7 @@ export default function AccountingStatements({ entries }) {
         <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="income" className="print:block">
+      <TabsContent value="income" className="data-[state=inactive]:print:block">
         <div className="max-w-lg bg-card border rounded-xl p-4 print:border-none print:rounded-none print:bg-transparent print:p-0 print:mb-8">
           <h3 className="font-bold text-center mb-4 text-base">Estado de Resultados (P&L)</h3>
           <SectionHeader title="INGRESOS / REVENUE" color="bg-emerald-100 text-emerald-800" />
@@ -76,7 +76,7 @@ export default function AccountingStatements({ entries }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="balance" className="print:block">
+      <TabsContent value="balance" className="data-[state=inactive]:print:block">
         <div className="max-w-lg bg-card border rounded-xl p-4 print:border-none print:rounded-none print:bg-transparent print:p-0 print:mb-8">
           <h3 className="font-bold text-center mb-4 text-base">Balance General</h3>
           <SectionHeader title="ACTIVOS / ASSETS" color="bg-blue-100 text-blue-800" />
@@ -97,7 +97,7 @@ export default function AccountingStatements({ entries }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="cashflow" className="print:block">
+      <TabsContent value="cashflow" className="data-[state=inactive]:print:block">
         <div className="max-w-lg bg-card border rounded-xl p-4 print:border-none print:rounded-none print:bg-transparent print:p-0 print:mb-8">
           <h3 className="font-bold text-center mb-4 text-base">Flujo de Caja</h3>
           <SectionHeader title="ACTIVIDADES OPERATIVAS" color="bg-emerald-100 text-emerald-800" />
