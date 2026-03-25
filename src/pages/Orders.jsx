@@ -146,12 +146,12 @@ export default function Orders() {
 
       {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Order {selectedOrder?.order_number}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Customer:</span> <span className="font-medium ml-1">{selectedOrder.customer_name || "Walk-in"}</span></div>
                 <div><span className="text-muted-foreground">Type:</span> <span className="font-medium ml-1 capitalize">{selectedOrder.order_type?.replace("_", " ")}</span></div>
