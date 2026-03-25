@@ -72,9 +72,23 @@ export function usePlanAccess() {
   const currentPlan = settings[0]?.current_plan || 'growth';
   const features = PLAN_FEATURES[currentPlan] || PLAN_FEATURES.growth;
 
+  // Map group names to feature checks
+  const canAccess = (group) => {
+    const groupMap = {
+      'ops': ['POS', 'Orders', 'Menu', 'Inventory', 'Ingredients', 'Recipes'],
+      'finance': ['Reports', 'Contabilidad', 'Proyecciones'],
+      'costing': ['Ingredients', 'Recipes'],
+      'crm': ['CRM'],
+      'online': ['OrderOnline', 'OrderConfirmation'],
+    };
+
+    const modules = groupMap[group] || [group];
+    return modules.some(mod => features[mod] === true);
+  };
+
   return {
     currentPlan,
-    canAccess: (group) => features[group] === true,
-    hasFeature: (group) => features[group] === true,
+    canAccess,
+    hasFeature: (module) => features[module] === true,
   };
 }
