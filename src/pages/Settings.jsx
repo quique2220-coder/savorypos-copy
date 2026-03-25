@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,9 +149,10 @@ export default function Settings() {
   const [business, setBusiness] = useState(DEFAULTS);
   const [settingsId, setSettingsId] = useState(null);
   const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
   const qc = useQueryClient();
 
-  const { isLoading } = useQuery({
+  const { isLoading: settingsLoading } = useQuery({
     queryKey: ['AppSettings', 'business'],
     queryFn: async () => {
       const list = await base44.entities.AppSettings.filter({ key: "business" });
@@ -179,6 +181,29 @@ export default function Settings() {
         }));
       }
       return list;
+    }
+  });
+
+  const { data: account } = useQuery({
+    queryKey: ['Account', user?.email],
+    queryFn: () => base44.entities.Account.filter({ email: user?.email }),
+    enabled: !!user?.email,
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: async (newPlan) => {
+      if (!account || account.length === 0) throw new Error('Account no encontrada');
+      await base44.entities.Account.update(account[0].id, { current_plan: newPlan });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['Account', user?.email] });
+      qc.invalidateQueries({ queryKey: ['AppSettings'] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (e) => {
+      console.error("Error updating plan:", e);
+      alert("Error al cambiar el plan. Intenta de nuevo.");
     }
   });
 
@@ -228,7 +253,7 @@ export default function Settings() {
     }
   };
 
-  if (isLoading) {
+  if (settingsLoading) {
     return (
       <div className="p-6 min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-secondary border-t-primary rounded-full animate-spin" />
@@ -417,16 +442,89 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Membership Plans - View Only */}
+          {/* Membership Plans */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Plan de Membresía</CardTitle>
-              <p className="text-xs text-muted-foreground mt-2">Cambiar tu plan requiere pago. Ve a tu cuenta para upgradearte.</p>
+              <p className="text-xs text-muted-foreground mt-2">Elige el plan que mejor se adapte a tu negocio</p>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                La gestión de planes se maneja desde la cuenta. Contáctate con soporte para cambiar tu plan actual.
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {PLANS.map(plan => (
+                  <div
+                    key={plan.id}
+                    className={`p-4 rounded-xl border-2 transition-all relative ${
+                      plan.featured
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-border"
+                    }`}
+                  >
+                    {plan.featured && (
+                      <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded">
+                        ⭐ Más popular
+                      </div>
+                    )}
+                    {account && account[0]?.current_plan === plan.id && (
+                      <div className="absolute -top-3 right-4 bg-emerald-500 text-white text-xs font-semibold px-2 py-1 rounded">
+                        ✓ Actual
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="font-bold text-lg">{plan.name}</span>
+                        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                          {plan.subtitle}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">{plan.tagline}</p>
+                    </div>
+                    <p className="text-2xl font-bold text-primary mb-3">{plan.price}</p>
+                    {plan.message && (
+                      <p className="text-xs font-semibold text-primary/80 bg-primary/10 rounded px-2 py-1 mb-3">
+                        👉 {plan.message}
+                      </p>
+                    )}
+                    {plan.messages && (
+                      <div className="space-y-1.5 mb-3">
+                        {plan.messages.map((msg, idx) => (
+                          <p key={idx} className="text-xs font-semibold text-primary/80 bg-primary/10 rounded px-2 py-1">
+                            👉 {msg}
+                          </p>
+                        ))}
+                        {plan.example && (
+                          <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5 border border-amber-200 italic">
+                            💡 {plan.example}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <ul className="space-y-2 mb-4">
+                      {plan.features.map(f => (
+                        <li key={f} className="flex items-start gap-2 text-xs leading-relaxed">
+                          <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-muted-foreground">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {plan.restrictions && (
+                      <ul className="space-y-1 mb-4 border-t pt-3">
+                        {plan.restrictions.map(r => (
+                          <li key={r} className="text-xs text-red-600">{r}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <Button
+                      variant={account && account[0]?.current_plan === plan.id ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                      disabled={updatePlanMutation.isPending || account && account[0]?.current_plan === plan.id}
+                      onClick={() => updatePlanMutation.mutate(plan.id)}
+                    >
+                      {updatePlanMutation.isPending ? "Cambiando..." : account && account[0]?.current_plan === plan.id ? "Plan Actual" : "Cambiar"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
