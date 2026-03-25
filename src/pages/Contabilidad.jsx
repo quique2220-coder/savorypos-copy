@@ -12,6 +12,15 @@ import TrialBalance from "../components/accounting/TrialBalance";
 import IRSDeductibles from "../components/accounting/IRSDeductibles";
 import AccountingStatements from "../components/accounting/AccountingStatements";
 
+const printStyles = `
+  @media print {
+    body { margin: 0; padding: 0; }
+    .print-hidden { display: none !important; }
+    .print-only { display: block !important; }
+    .page-content { margin: 0; padding: 20px; }
+  }
+`;
+
 const CHART_OF_ACCOUNTS = [
   // Assets
   { code: "1100", name_en: "Cash", name_es: "Caja / Efectivo", nature: "Asset", category: "Current Assets" },
@@ -107,13 +116,15 @@ export default function Contabilidad() {
 
   return (
     <div className="p-6 min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto">
+      <style>{printStyles}</style>
+      <div className="max-w-7xl mx-auto print-hidden">
         <div className="mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2"><BookOpen className="w-6 h-6 text-primary" />Contabilidad</h1>
           <p className="text-muted-foreground text-sm mt-1">Mini QuickBooks — Diario Contable Bilingüe con IRS</p>
         </div>
-
-        <Tabs defaultValue="journal">
+      </div>
+      <div className="max-w-7xl mx-auto">
+        <Tabs defaultValue="journal" className="print-hidden">
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
             <TabsTrigger value="journal" className="gap-1"><FileText className="w-4 h-4" />Diario</TabsTrigger>
             <TabsTrigger value="accounts" className="gap-1"><BookOpen className="w-4 h-4" />Plan de Cuentas</TabsTrigger>
@@ -322,13 +333,23 @@ export default function Contabilidad() {
         </Tabs>
 
         <JournalForm
-          entry={editing}
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          onSave={handleSave}
-          saving={createMutation.isPending || updateMutation.isPending}
-        />
-      </div>
-    </div>
+           entry={editing}
+           open={formOpen}
+           onOpenChange={setFormOpen}
+           onSave={handleSave}
+           saving={createMutation.isPending || updateMutation.isPending}
+         />
+        </div>
+
+        <div className="hidden print:block page-content">
+        <AccountingStatements entries={entries.filter(e => {
+          if (!statementsStartDate && !statementsEndDate) return true;
+          const entryDate = new Date(e.date);
+          const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
+          const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
+          return entryDate >= start && entryDate <= end;
+        })} />
+        </div>
+        </div>
   );
 }
