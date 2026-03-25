@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, BookOpen, BarChart3, Scale, CheckSquare, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, BookOpen, BarChart3, Scale, CheckSquare, FileText, Undo2 } from "lucide-react";
 import JournalForm from "../components/accounting/JournalForm";
 import TrialBalance from "../components/accounting/TrialBalance";
 import IRSDeductibles from "../components/accounting/IRSDeductibles";
@@ -32,6 +32,7 @@ const CHART_OF_ACCOUNTS = [
   { code: "4110", name_en: "Beverage Sales", name_es: "Ventas de Bebidas", nature: "Income", category: "Revenue" },
   { code: "4120", name_en: "Doordash / Ubereats / Grubhub", name_es: "Ingresos Apps Delivery", nature: "Income", category: "Revenue" },
   { code: "4130", name_en: "Catering Income", name_es: "Ingresos Catering", nature: "Income", category: "Revenue" },
+  { code: "4150", name_en: "Sales Returns & Allowances", name_es: "Devoluciones y Descuentos", nature: "Income", category: "Revenue" },
   // COGS
   { code: "5100", name_en: "Food Cost", name_es: "Costo de Alimentos", nature: "Expense", category: "Cost of Sales" },
   { code: "5110", name_en: "Beverage Cost", name_es: "Costo de Bebidas", nature: "Expense", category: "Cost of Sales" },
@@ -61,6 +62,11 @@ export default function Contabilidad() {
   const { data: entries = [] } = useQuery({
     queryKey: ["JournalEntry"],
     queryFn: () => base44.entities.JournalEntry.list("-date", 500),
+  });
+
+  const { data: refunds = [] } = useQuery({
+    queryKey: ["Refund"],
+    queryFn: () => base44.entities.Refund.list("-created_date", 500),
   });
 
   const createMutation = useMutation({
@@ -104,6 +110,7 @@ export default function Contabilidad() {
             <TabsTrigger value="accounts" className="gap-1"><BookOpen className="w-4 h-4" />Plan de Cuentas</TabsTrigger>
             <TabsTrigger value="statements" className="gap-1"><BarChart3 className="w-4 h-4" />Estados Financieros</TabsTrigger>
             <TabsTrigger value="trial" className="gap-1"><Scale className="w-4 h-4" />Balanza Comprobación</TabsTrigger>
+            <TabsTrigger value="refunds" className="gap-1"><Undo2 className="w-4 h-4" />Devoluciones</TabsTrigger>
             <TabsTrigger value="irs" className="gap-1"><CheckSquare className="w-4 h-4" />IRS Deducibles</TabsTrigger>
           </TabsList>
 
@@ -210,6 +217,67 @@ export default function Contabilidad() {
           {/* BALANZA DE COMPROBACIÓN */}
           <TabsContent value="trial">
             <TrialBalance entries={entries} />
+          </TabsContent>
+
+          {/* DEVOLUCIONES Y DESCUENTOS */}
+          <TabsContent value="refunds">
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Orden</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Razón</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Monto</TableHead>
+                    <TableHead>Método</TableHead>
+                    <TableHead>Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {refunds.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">No hay devoluciones registradas</TableCell></TableRow>
+                  )}
+                  {refunds.map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-sm whitespace-nowrap">{r.created_date?.split('T')[0]}</TableCell>
+                      <TableCell className="font-mono font-semibold">{r.order_number}</TableCell>
+                      <TableCell className="text-sm">{r.customer_name || "—"}</TableCell>
+                      <TableCell className="text-sm capitalize">{r.reason?.replace(/_/g, " ")}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs capitalize">{r.refund_type}</Badge></TableCell>
+                      <TableCell className="font-semibold text-red-600">${r.amount?.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm capitalize">{r.refund_method}</TableCell>
+                      <TableCell>
+                        <Badge className={r.status === "processed" ? "bg-emerald-100 text-emerald-700" : r.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}>
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {refunds.length > 0 && (
+              <div className="mt-4 grid grid-cols-4 gap-3">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-red-600 font-medium">Total Devoluciones</p>
+                  <p className="text-xl font-bold text-red-700">${refunds.reduce((s, r) => s + (r.amount || 0), 0).toFixed(2)}</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-blue-600 font-medium">Procesadas</p>
+                  <p className="text-xl font-bold text-blue-700">{refunds.filter(r => r.status === "processed").length}</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-amber-600 font-medium">Aprobadas</p>
+                  <p className="text-xl font-bold text-amber-700">{refunds.filter(r => r.status === "approved").length}</p>
+                </div>
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-orange-600 font-medium">Pendientes</p>
+                  <p className="text-xl font-bold text-orange-700">{refunds.filter(r => r.status === "pending").length}</p>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* IRS DEDUCIBLES */}
