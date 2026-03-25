@@ -66,9 +66,49 @@ const US_STATE_TAX = [
 ];
 
 const PLANS = [
-  { id: "starter", name: "Starter", price: "$29/mo", features: ["POS", "Menu", "Inventory", "5 usuarios"] },
-  { id: "growth", name: "Growth", price: "$59/mo", features: ["Todo Starter", "CRM + Marketing", "Contabilidad", "Reportes avanzados"] },
-  { id: "scale", name: "Scale", price: "$99/mo", features: ["Todo Growth", "Voice AI", "Proyecciones", "Usuarios ilimitados"] },
+  {
+    id: "starter",
+    name: "Starter",
+    subtitle: "Operar",
+    price: "$29/mo",
+    tagline: "Empieza a vender sin complicaciones",
+    features: ["POS completo", "Menú de platillos", "Inventario simple", "5 usuarios"],
+    cta: "Cambiar"
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    subtitle: "Controlar",
+    price: "$59/mo",
+    tagline: "Sabe cuánto ganas sin ser contador",
+    features: [
+      "Todo Starter",
+      "Costeo automático de platillos",
+      "Dashboard de ganancias",
+      "El sistema calcula tus ganancias automáticamente",
+      "CRM + Marketing",
+      "Control de gastos",
+      "Alertas inteligentes"
+    ],
+    cta: "Plan Actual",
+    featured: true
+  },
+  {
+    id: "scale",
+    name: "Scale",
+    subtitle: "Crecer",
+    price: "$99/mo",
+    tagline: "Toma decisiones como un experto",
+    features: [
+      "Todo Growth",
+      "Tu asistente inteligente te dice cómo mejorar",
+      "Proyecciones financieras",
+      "Recomendaciones automáticas",
+      "Pricing inteligente",
+      "Usuarios ilimitados"
+    ],
+    cta: "Cambiar"
+  }
 ];
 
 const DEFAULTS = {
@@ -367,25 +407,50 @@ export default function Settings() {
 
           {/* Membership Plans */}
           <Card>
-            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Plan de Membresía</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Plan de Membresía</CardTitle>
+              <p className="text-xs text-muted-foreground mt-2">Maneja tu restaurante sin complicaciones y sin ser contador</p>
+            </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {PLANS.map(plan => (
-                  <div key={plan.id} className={`p-4 rounded-xl border-2 transition-all ${plan.id === "growth" ? "border-primary bg-accent/30" : "border-border"}`}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-semibold">{plan.name}</span>
-                      {plan.id === "growth" && <Badge className="text-xs">Actual</Badge>}
+                  <div
+                    key={plan.id}
+                    className={`p-4 rounded-xl border-2 transition-all relative ${
+                      plan.featured
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-border"
+                    }`}
+                  >
+                    {plan.featured && (
+                      <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded">
+                        ⭐ Más popular
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="font-bold text-lg">{plan.name}</span>
+                        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                          {plan.subtitle}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">{plan.tagline}</p>
                     </div>
-                    <p className="text-xl font-bold text-primary mb-3">{plan.price}</p>
-                    <ul className="space-y-1">
+                    <p className="text-2xl font-bold text-primary mb-3">{plan.price}</p>
+                    <ul className="space-y-2 mb-4">
                       {plan.features.map(f => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Check className="w-3 h-3 text-emerald-500" />{f}
+                        <li key={f} className="flex items-start gap-2 text-xs leading-relaxed">
+                          <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-muted-foreground">{f}</span>
                         </li>
                       ))}
                     </ul>
-                    <Button variant={plan.id === "growth" ? "default" : "outline"} size="sm" className="w-full mt-3">
-                      {plan.id === "growth" ? "Plan Actual" : "Cambiar"}
+                    <Button
+                      variant={plan.featured ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {plan.cta}
                     </Button>
                   </div>
                 ))}
