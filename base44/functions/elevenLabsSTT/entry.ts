@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const elevenLabsFormData = new FormData();
     elevenLabsFormData.append("audio", new Blob([bytes], { type: mimeType || "audio/webm" }));
-    elevenLabsFormData.append("model_id", "eleven_multilingual_v2");
+    elevenLabsFormData.append("model_id", "scribe_v2");
 
     console.log("Sending audio to Eleven Labs, size:", bytes.length);
     
