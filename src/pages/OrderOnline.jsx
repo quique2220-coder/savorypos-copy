@@ -19,6 +19,7 @@ export default function OrderOnline() {
   const [orderType, setOrderType] = useState("pickup"); // "pickup" | "delivery"
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryStatus, setDeliveryStatus] = useState(null); // null | "checking" | "ok" | "out_of_range" | "disabled"
+  const [deliveryDistanceMiles, setDeliveryDistanceMiles] = useState(null);
 
   // Read delivery settings from localStorage
   const deliverySettings = React.useMemo(() => {
@@ -108,17 +109,35 @@ export default function OrderOnline() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
-  const checkDeliveryDistance = () => {
+  const checkDeliveryAddress = async (address) => {
     if (!deliverySettings.enabled) { setDeliveryStatus("disabled"); return; }
-    if (!deliverySettings.lat || !deliverySettings.lng) { setDeliveryStatus("ok"); return; }
+    if (!address.trim()) return;
+    // If store coords not configured, allow delivery
+    if (!deliverySettings.lat || !deliverySettings.lng || isNaN(deliverySettings.lat) || isNaN(deliverySettings.lng)) {
+      setDeliveryStatus("ok");
+      return;
+    }
     setDeliveryStatus("checking");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const dist = haversine(pos.coords.latitude, pos.coords.longitude, deliverySettings.lat, deliverySettings.lng);
-        setDeliveryStatus(dist <= deliverySettings.radius ? "ok" : "out_of_range");
-      },
-      () => setDeliveryStatus("ok") // allow if user denies location
-    );
+    setDeliveryDistanceMiles(null);
+    try {
+      const encoded = encodeURIComponent(address);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`, {
+        headers: { "Accept-Language": "es", "User-Agent": "POS-App/1.0" }
+      });
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        setDeliveryStatus("address_not_found");
+        return;
+      }
+      const clientLat = parseFloat(data[0].lat);
+      const clientLng = parseFloat(data[0].lon);
+      const dist = haversine(clientLat, clientLng, deliverySettings.lat, deliverySettings.lng);
+      setDeliveryDistanceMiles(dist);
+      setDeliveryStatus(dist <= deliverySettings.radius ? "ok" : "out_of_range");
+    } catch {
+      // On network error, allow delivery
+      setDeliveryStatus("ok");
+    }
   };
 
   const handleCheckout = async () => {
@@ -134,7 +153,7 @@ export default function OrderOnline() {
       // Save cart + customer so confirmation/webhook can use it
       sessionStorage.setItem("pending_cart", JSON.stringify(items));
       sessionStorage.setItem("pending_customer", JSON.stringify(customer));
-      const res = await base44.functions.invoke("create-checkout", { items, customer, orderType, deliveryFee });
+      const res = await base44.functions.invoke("create-checkout", { items, customer, orderType, deliveryFee, deliveryAddress });
       const redirectUrl = res?.data?.redirectUrl || res?.redirectUrl;
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -424,7 +443,8 @@ export default function OrderOnline() {
                         onClick={() => {
                           if (!deliverySettings.enabled) { setOrderType("delivery"); setDeliveryStatus("disabled"); return; }
                           setOrderType("delivery");
-                          checkDeliveryDistance();
+                          setDeliveryStatus(null);
+                          setDeliveryDistanceMiles(null);
                         }}
                         className={cn(
                           "py-2.5 rounded-xl text-sm font-semibold border transition-all",
@@ -436,25 +456,61 @@ export default function OrderOnline() {
                         🚗 Delivery
                       </button>
                     </div>
+
+                    {/* Delivery address input */}
+                    {orderType === "delivery" && deliveryStatus !== "disabled" && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Ingresa tu dirección completa..."
+                            value={deliveryAddress}
+                            onChange={(e) => {
+                              setDeliveryAddress(e.target.value);
+                              setDeliveryStatus(null);
+                              setDeliveryDistanceMiles(null);
+                            }}
+                            className="h-9 text-sm flex-1"
+                          />
+                          <button
+                            onClick={() => checkDeliveryAddress(deliveryAddress)}
+                            disabled={!deliveryAddress.trim() || deliveryStatus === "checking"}
+                            className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors flex-shrink-0"
+                          >
+                            {deliveryStatus === "checking" ? (
+                              <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+                            ) : "Verificar"}
+                          </button>
+                        </div>
+                        {deliveryStatus === "checking" && (
+                          <p className="text-xs text-muted-foreground bg-secondary rounded-lg px-3 py-2 flex items-center gap-1.5">
+                            <span className="w-3 h-3 border-2 border-muted-foreground/40 border-t-muted-foreground rounded-full animate-spin inline-block" />
+                            Verificando dirección...
+                          </p>
+                        )}
+                        {deliveryStatus === "address_not_found" && (
+                          <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                            ❌ No se encontró la dirección. Intenta ser más específico.
+                          </p>
+                        )}
+                        {deliveryStatus === "out_of_range" && (
+                          <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                            ❌ Tu dirección está fuera de la zona de entrega ({deliverySettings.radius} millas).
+                            {deliveryDistanceMiles && ` Distancia: ${deliveryDistanceMiles.toFixed(1)} mi.`}
+                          </p>
+                        )}
+                        {deliveryStatus === "ok" && (
+                          <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+                            ✅ Dirección dentro del área de entrega
+                            {deliveryDistanceMiles && ` (${deliveryDistanceMiles.toFixed(1)} mi)`}
+                            {` · +${deliverySettings.feePercent}% cargo`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {orderType === "delivery" && deliveryStatus === "disabled" && (
                       <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
                         ❌ Delivery no disponible en este momento.
-                      </p>
-                    )}
-                    {orderType === "delivery" && deliveryStatus === "checking" && (
-                      <p className="text-xs text-muted-foreground bg-secondary rounded-lg px-3 py-2 flex items-center gap-1.5">
-                        <span className="w-3 h-3 border-2 border-muted-foreground/40 border-t-muted-foreground rounded-full animate-spin inline-block" />
-                        Verificando tu ubicación...
-                      </p>
-                    )}
-                    {orderType === "delivery" && deliveryStatus === "out_of_range" && (
-                      <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-                        ❌ Tu ubicación está fuera de la zona de entrega ({deliverySettings.radius} millas).
-                      </p>
-                    )}
-                    {orderType === "delivery" && deliveryStatus === "ok" && (
-                      <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
-                        ✅ Delivery disponible en tu zona · +{deliverySettings.feePercent}% de cargo aplicado
                       </p>
                     )}
                   </div>
