@@ -19,7 +19,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create default settings for new user with "growth" plan
+    // Create default settings for new user with "growth" plan as default
+    // Users can change to "starter" or "scale" from Settings
     const newSettings = await base44.entities.AppSettings.create({
       key: "business",
       business_name: "Mi Restaurante",
