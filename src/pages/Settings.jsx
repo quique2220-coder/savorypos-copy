@@ -54,7 +54,7 @@ const US_STATE_TAX = [
   { code: "SD", name: "South Dakota", rate: "4.2" },
   { code: "TN", name: "Tennessee", rate: "7" },
   { code: "TX", name: "Texas", rate: "6.25" },
-  { code: "UT", name: "Utah", rate: "4.85" },
+  { code: "UT", name: "Utah", rate: "7.25" },
   { code: "VT", name: "Vermont", rate: "6" },
   { code: "VA", name: "Virginia", rate: "5.3" },
   { code: "WA", name: "Washington", rate: "6.5" },
