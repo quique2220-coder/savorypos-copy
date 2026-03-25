@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,33 +71,66 @@ const PLANS = [
   { id: "scale", name: "Scale", price: "$99/mo", features: ["Todo Growth", "Voice AI", "Proyecciones", "Usuarios ilimitados"] },
 ];
 
-const STORAGE_KEY = "pos_settings";
+const DEFAULTS = {
+  name: "Mi Restaurante",
+  address: "",
+  phone: "",
+  email: "",
+  tax_rate: "8.25",
+  state_code: "none",
+  currency: "USD",
+  language: "es",
+  timezone: "America/Chicago",
+  delivery_enabled: false,
+  delivery_lat: "",
+  delivery_lng: "",
+  delivery_radius_miles: 5,
+  delivery_fee_percent: 40,
+};
 
 export default function Settings() {
-  const [business, setBusiness] = useState(() => {
-    const defaults = {
-      name: "Mi Restaurante",
-      address: "",
-      phone: "",
-      email: "",
-      tax_rate: "8.25",
-      state_code: "none",
-      currency: "USD",
-      language: "es",
-      timezone: "America/Chicago",
-      delivery_enabled: false,
-      delivery_lat: "",
-      delivery_lng: "",
-      delivery_radius_miles: 5,
-      delivery_fee_percent: 40,
-    };
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return { ...defaults, ...JSON.parse(stored) };
-    } catch {}
-    return defaults;
-  });
+  const [business, setBusiness] = useState(DEFAULTS);
+  const [settingsId, setSettingsId] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const list = await base44.entities.AppSettings.filter({ key: "business" });
+        if (list && list.length > 0) {
+          const s = list[0];
+          setSettingsId(s.id);
+          setBusiness({
+            name: s.business_name || DEFAULTS.name,
+            address: s.address || "",
+            phone: s.phone || "",
+            email: s.email || "",
+            tax_rate: s.tax_rate || DEFAULTS.tax_rate,
+            state_code: s.state_code || "none",
+            currency: s.currency || "USD",
+            language: s.language || "es",
+            timezone: s.timezone || "America/Chicago",
+            delivery_enabled: !!s.delivery_enabled,
+            delivery_lat: s.delivery_lat != null ? String(s.delivery_lat) : "",
+            delivery_lng: s.delivery_lng != null ? String(s.delivery_lng) : "",
+            delivery_radius_miles: s.delivery_radius_miles || 5,
+            delivery_fee_percent: s.delivery_fee_percent || 40,
+          });
+          // Also sync to localStorage for POS (same-origin)
+          localStorage.setItem("pos_settings", JSON.stringify({
+            ...s,
+            delivery_enabled: !!s.delivery_enabled,
+          }));
+        }
+      } catch (e) {
+        console.error("Error loading settings:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const handleStateChange = (code) => {
     const state = US_STATE_TAX.find(s => s.code === code);
@@ -107,11 +141,48 @@ export default function Settings() {
     }));
   };
 
-  const handleSave = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(business));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    const payload = {
+      key: "business",
+      business_name: business.name,
+      address: business.address,
+      phone: business.phone,
+      email: business.email,
+      tax_rate: business.tax_rate,
+      state_code: business.state_code,
+      currency: business.currency,
+      language: business.language,
+      timezone: business.timezone,
+      delivery_enabled: !!business.delivery_enabled,
+      delivery_lat: business.delivery_lat ? parseFloat(business.delivery_lat) : null,
+      delivery_lng: business.delivery_lng ? parseFloat(business.delivery_lng) : null,
+      delivery_radius_miles: parseFloat(business.delivery_radius_miles) || 5,
+      delivery_fee_percent: parseFloat(business.delivery_fee_percent) || 40,
+    };
+    try {
+      if (settingsId) {
+        await base44.entities.AppSettings.update(settingsId, payload);
+      } else {
+        const created = await base44.entities.AppSettings.create(payload);
+        setSettingsId(created.id);
+      }
+      // Also keep localStorage in sync for POS
+      localStorage.setItem("pos_settings", JSON.stringify(payload));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      console.error("Error saving settings:", e);
+      alert("Error al guardar. Intenta de nuevo.");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-secondary border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 min-h-screen bg-background">

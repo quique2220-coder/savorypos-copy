@@ -21,33 +21,22 @@ export default function OrderOnline() {
   const [deliveryStatus, setDeliveryStatus] = useState(null); // null | "checking" | "ok" | "out_of_range" | "disabled"
   const [deliveryDistanceMiles, setDeliveryDistanceMiles] = useState(null);
 
-  // Always read fresh from localStorage - never stale state
-  const getDeliverySettings = () => {
-    try {
-      const raw = localStorage.getItem("pos_settings");
-      console.log("[delivery] pos_settings raw:", raw);
-      const s = JSON.parse(raw || "{}");
-      console.log("[delivery] delivery_enabled value:", s.delivery_enabled, typeof s.delivery_enabled);
-      const result = {
-        enabled: s.delivery_enabled === true || s.delivery_enabled === "true" || s.delivery_enabled === 1,
-        lat: parseFloat(s.delivery_lat) || null,
-        lng: parseFloat(s.delivery_lng) || null,
-        radius: parseFloat(s.delivery_radius_miles) || 5,
-        feePercent: parseFloat(s.delivery_fee_percent) || 40,
-      };
-      console.log("[delivery] parsed enabled:", result.enabled);
-      return result;
-    } catch (e) {
-      console.error("[delivery] error parsing settings:", e);
-      return { enabled: false, lat: null, lng: null, radius: 5, feePercent: 40 };
-    }
-  };
-
-  const [deliverySettings, setDeliverySettings] = React.useState(getDeliverySettings);
+  const [deliverySettings, setDeliverySettings] = React.useState({ enabled: false, lat: null, lng: null, radius: 5, feePercent: 40 });
 
   React.useEffect(() => {
-    setDeliverySettings(getDeliverySettings());
-  }, [showCart]);
+    base44.entities.AppSettings.filter({ key: "business" }).then(list => {
+      if (list && list.length > 0) {
+        const s = list[0];
+        setDeliverySettings({
+          enabled: !!s.delivery_enabled,
+          lat: s.delivery_lat || null,
+          lng: s.delivery_lng || null,
+          radius: s.delivery_radius_miles || 5,
+          feePercent: s.delivery_fee_percent || 40,
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-public"],
@@ -455,10 +444,8 @@ export default function OrderOnline() {
                       </button>
                       <button
                         onClick={() => {
-                          const fresh = getDeliverySettings();
-                          setDeliverySettings(fresh);
                           setOrderType("delivery");
-                          if (!fresh.enabled) { setDeliveryStatus("disabled"); return; }
+                          if (!deliverySettings.enabled) { setDeliveryStatus("disabled"); return; }
                           setDeliveryStatus(null);
                           setDeliveryDistanceMiles(null);
                         }}
