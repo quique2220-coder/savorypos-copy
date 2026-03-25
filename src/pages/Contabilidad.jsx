@@ -32,7 +32,7 @@ const CHART_OF_ACCOUNTS = [
   { code: "4110", name_en: "Beverage Sales", name_es: "Ventas de Bebidas", nature: "Income", category: "Revenue" },
   { code: "4120", name_en: "Doordash / Ubereats / Grubhub", name_es: "Ingresos Apps Delivery", nature: "Income", category: "Revenue" },
   { code: "4130", name_en: "Catering Income", name_es: "Ingresos Catering", nature: "Income", category: "Revenue" },
-  { code: "4150", name_en: "Sales Returns & Allowances", name_es: "Devoluciones y Descuentos", nature: "Income", category: "Revenue" },
+  { code: "4150", name_en: "Sales Returns & Allowances", name_es: "Devoluciones y Descuentos", nature: "Contra-Income", category: "Revenue" },
   // COGS
   { code: "5100", name_en: "Food Cost", name_es: "Costo de Alimentos", nature: "Expense", category: "Cost of Sales" },
   { code: "5110", name_en: "Beverage Cost", name_es: "Costo de Bebidas", nature: "Expense", category: "Cost of Sales" },
@@ -51,7 +51,7 @@ const CHART_OF_ACCOUNTS = [
   { code: "6200", name_en: "Interest Expense", name_es: "Gastos Financieros", nature: "Expense", category: "Operating Expenses" },
 ];
 
-const natColor = { Income: "bg-emerald-100 text-emerald-700", Expense: "bg-red-100 text-red-700", Asset: "bg-blue-100 text-blue-700", Liability: "bg-orange-100 text-orange-700", Equity: "bg-purple-100 text-purple-700" };
+const natColor = { Income: "bg-emerald-100 text-emerald-700", "Contra-Income": "bg-lime-100 text-lime-700", Expense: "bg-red-100 text-red-700", Asset: "bg-blue-100 text-blue-700", Liability: "bg-orange-100 text-orange-700", Equity: "bg-purple-100 text-purple-700" };
 
 export default function Contabilidad() {
   const [formOpen, setFormOpen] = useState(false);
