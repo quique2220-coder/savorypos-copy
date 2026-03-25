@@ -40,7 +40,7 @@ function Section({ title, icon: Icon, iconColor, children }) {
   );
 }
 
-export default function CashFlow({ financials, dailyRevenue, period }) {
+export default function CashFlow({ financials, dailyRevenue, period, contentRef }) {
   const { revenue, cogs, opExpenses, taxes, netIncome } = financials;
 
   // Operating Activities
@@ -73,7 +73,7 @@ export default function CashFlow({ financials, dailyRevenue, period }) {
   }));
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" ref={contentRef}>
       <div className="flex items-center justify-between mb-4 px-1">
         <div>
           <h2 className="text-lg font-bold">Cash Flow Statement</h2>

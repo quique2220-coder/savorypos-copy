@@ -12,6 +12,8 @@ import ProfitLoss from "@/components/reports/ProfitLoss";
 import SalesDetail from "@/components/reports/SalesDetail";
 import BalanceSheet from "@/components/reports/BalanceSheet";
 import CashFlow from "@/components/reports/CashFlow";
+import PrintButton from "@/components/reports/PrintButton";
+import { useRef } from "react";
 
 const COLORS = ["hsl(25, 95%, 53%)", "hsl(160, 60%, 45%)", "hsl(220, 70%, 50%)", "hsl(280, 65%, 60%)", "hsl(340, 75%, 55%)"];
 
@@ -65,6 +67,13 @@ export default function Reports() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const queryClient = useQueryClient();
+  
+  const pnlRef = useRef(null);
+  const balanceRef = useRef(null);
+  const cashflowRef = useRef(null);
+  const { ref: pnlPrintRef, button: pnlPrintBtn } = PrintButton({ filename: "profit-loss" });
+  const { ref: balancePrintRef, button: balancePrintBtn } = PrintButton({ filename: "balance-sheet" });
+  const { ref: cashflowPrintRef, button: cashflowPrintBtn } = PrintButton({ filename: "cash-flow" });
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
@@ -398,22 +407,31 @@ export default function Reports() {
 
         {/* ── P&L ── */}
         <TabsContent value="pnl">
+          <div className="flex justify-end mb-3">
+            {pnlPrintBtn}
+          </div>
           <Card><CardContent className="p-6">
-            <ProfitLoss financials={financials} period={periodLabel} />
+            <ProfitLoss contentRef={pnlPrintRef} financials={financials} period={periodLabel} />
           </CardContent></Card>
         </TabsContent>
 
         {/* ── BALANCE SHEET ── */}
         <TabsContent value="balance">
+          <div className="flex justify-end mb-3">
+            {balancePrintBtn}
+          </div>
           <Card><CardContent className="p-6">
-            <BalanceSheet financials={financials} inventory={inventory} period={periodLabel} />
+            <BalanceSheet contentRef={balancePrintRef} financials={financials} inventory={inventory} period={periodLabel} />
           </CardContent></Card>
         </TabsContent>
 
         {/* ── CASH FLOW ── */}
         <TabsContent value="cashflow">
+          <div className="flex justify-end mb-3">
+            {cashflowPrintBtn}
+          </div>
           <Card><CardContent className="p-6">
-            <CashFlow financials={financials} dailyRevenue={dailyRevenue} period={periodLabel} />
+            <CashFlow contentRef={cashflowPrintRef} financials={financials} dailyRevenue={dailyRevenue} period={periodLabel} />
           </CardContent></Card>
         </TabsContent>
       </Tabs>

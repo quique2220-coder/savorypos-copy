@@ -29,7 +29,7 @@ function Section({ title, color, children }) {
   );
 }
 
-export default function BalanceSheet({ financials, inventory, period }) {
+export default function BalanceSheet({ financials, inventory, period, contentRef }) {
   const { revenue, netIncome, cogs } = financials;
 
   // Assets
@@ -62,7 +62,7 @@ export default function BalanceSheet({ financials, inventory, period }) {
   const balanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 1;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" ref={contentRef}>
       <div className="flex items-center justify-between mb-4 px-1">
         <div>
           <h2 className="text-lg font-bold">Balance Sheet</h2>

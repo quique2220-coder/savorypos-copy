@@ -37,11 +37,11 @@ function Section({ title, children }) {
   );
 }
 
-export default function ProfitLoss({ financials, period }) {
+export default function ProfitLoss({ financials, period, contentRef }) {
   const { revenue, cogs, grossProfit, grossMargin, opExpenses, operatingIncome, taxes, netIncome, netMargin } = financials;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" ref={contentRef}>
       <div className="flex items-center justify-between mb-4 px-1">
         <div>
           <h2 className="text-lg font-bold">Profit & Loss Statement</h2>
