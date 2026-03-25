@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 import POS from './pages/POS';
 import Menu from './pages/Menu';
 import Orders from './pages/Orders';
@@ -45,17 +46,17 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<Navigate to="/POS" replace />} />
       <Route element={<Layout />}>
-        <Route path="/POS" element={<POS />} />
-        <Route path="/Menu" element={<Menu />} />
-        <Route path="/Orders" element={<Orders />} />
-        <Route path="/Inventory" element={<Inventory />} />
-        <Route path="/Reports" element={<Reports />} />
-        <Route path="/Proyecciones" element={<Proyecciones />} />
-        <Route path="/Contabilidad" element={<Contabilidad />} />
-        <Route path="/CRM" element={<CRM />} />
+        <Route path="/POS" element={<ProtectedRoute requiredGroup="ops"><POS /></ProtectedRoute>} />
+        <Route path="/Menu" element={<ProtectedRoute requiredGroup="ops"><Menu /></ProtectedRoute>} />
+        <Route path="/Orders" element={<ProtectedRoute requiredGroup="ops"><Orders /></ProtectedRoute>} />
+        <Route path="/Inventory" element={<ProtectedRoute requiredGroup="ops"><Inventory /></ProtectedRoute>} />
+        <Route path="/Reports" element={<ProtectedRoute requiredGroup="finance"><Reports /></ProtectedRoute>} />
+        <Route path="/Proyecciones" element={<ProtectedRoute requiredGroup="finance"><Proyecciones /></ProtectedRoute>} />
+        <Route path="/Contabilidad" element={<ProtectedRoute requiredGroup="finance"><Contabilidad /></ProtectedRoute>} />
+        <Route path="/CRM" element={<ProtectedRoute requiredGroup="crm"><CRM /></ProtectedRoute>} />
         <Route path="/Settings" element={<Settings />} />
-        <Route path="/Ingredients" element={<Ingredients />} />
-        <Route path="/Recipes" element={<Recipes />} />
+        <Route path="/Ingredients" element={<ProtectedRoute requiredGroup="costing"><Ingredients /></ProtectedRoute>} />
+        <Route path="/Recipes" element={<ProtectedRoute requiredGroup="costing"><Recipes /></ProtectedRoute>} />
       </Route>
       {/* Public pages - outside Layout */}
       <Route path="/OrderOnline" element={<OrderOnline />} />
