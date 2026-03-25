@@ -15,16 +15,32 @@ import AccountingStatements from "../components/accounting/AccountingStatements"
 const printStyles = `
   @media print {
     * { margin: 0; padding: 0; }
+    html, body { 
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+    }
+    @page {
+      margin: 0.5in;
+      size: letter;
+    }
     body { background: white; }
     aside { display: none !important; }
     [class*="sidebar"] { display: none !important; }
     .print-hidden { display: none !important; }
     .page-content { 
       display: block !important; 
-      margin: 0; 
-      padding: 40px 20px; 
-      width: 100%;
-      max-width: 100%;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    .print-header {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: bold;
     }
   }
 `;
@@ -84,6 +100,12 @@ export default function Contabilidad() {
   const [statementsStartDate, setStatementsStartDate] = useState("");
   const [statementsEndDate, setStatementsEndDate] = useState("");
   const qc = useQueryClient();
+
+  const { data: settings = [] } = useQuery({
+    queryKey: ["AppSettings"],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+  const businessName = settings[0]?.business_name || "Mi Negocio";
 
   const { data: entries = [] } = useQuery({
     queryKey: ["JournalEntry"],
@@ -350,13 +372,14 @@ export default function Contabilidad() {
         </div>
 
         <div className="hidden print:block page-content">
-        <AccountingStatements entries={entries.filter(e => {
-          if (!statementsStartDate && !statementsEndDate) return true;
-          const entryDate = new Date(e.date);
-          const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
-          const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
-          return entryDate >= start && entryDate <= end;
-        })} />
+          <div className="print-header">{businessName}</div>
+          <AccountingStatements entries={entries.filter(e => {
+            if (!statementsStartDate && !statementsEndDate) return true;
+            const entryDate = new Date(e.date);
+            const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
+            const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
+            return entryDate >= start && entryDate <= end;
+          })} />
         </div>
         </div>
   );
