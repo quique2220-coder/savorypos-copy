@@ -55,7 +55,7 @@ export async function handler(req) {
     const subtotal = parseFloat(order.priceSummary?.subtotal?.amount || 0);
     const contact = order.billingInfo?.contactDetails || {};
 
-    await base44.entities.Order.create({
+    const createdOrder = await base44.entities.Order.create({
       order_number: orderNumber,
       items,
       subtotal,
@@ -63,14 +63,14 @@ export async function handler(req) {
       tip: 0,
       total,
       payment_method: "card",
-      status: "completed",
-      order_type: "delivery",
+      status: "pending",
+      order_type: "takeout",
       order_source: "online",
       customer_name: `${contact.firstName || ""} ${contact.lastName || ""}`.trim() || order.buyerInfo?.email || "Online Customer",
       notes: `Wix Order #${order.number} | ${order.buyerInfo?.email || ""}`,
     });
 
-    console.log("Order created in DB:", orderNumber);
+    console.log("Order created in DB:", orderNumber, "id:", createdOrder?.id);
 
     return new Response("OK", { status: 200 });
   } catch (err) {

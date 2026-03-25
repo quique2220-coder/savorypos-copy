@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import OnlineOrderAlert from "@/components/pos/OnlineOrderAlert";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,12 @@ export default function POS() {
   const { data: coupons = [] } = useQuery({
     queryKey: ["coupons"],
     queryFn: () => base44.entities.Coupon.list(),
+  });
+
+  const { data: pendingOrders = [], refetch: refetchOrders } = useQuery({
+    queryKey: ["orders-pending-online"],
+    queryFn: () => base44.entities.Order.filter({ status: "pending", order_source: "online" }),
+    refetchInterval: 15000,
   });
 
   const { data: ingredients = [] } = useQuery({
@@ -253,6 +260,7 @@ Total: $${total?.toFixed(2)}${checkoutData.pointsToEarn ? `\n\n🎯 ¡Ganaste ${
 
   return (
     <div className="flex h-screen">
+      <OnlineOrderAlert orders={pendingOrders} onAccepted={refetchOrders} />
       {/* Left: Menu */}
       <div className="flex-1 flex flex-col p-5 overflow-hidden">
         {/* Search */}

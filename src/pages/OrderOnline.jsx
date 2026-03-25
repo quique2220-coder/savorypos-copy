@@ -85,9 +85,12 @@ export default function OrderOnline() {
         quantity: c.quantity,
         price: c.price.toFixed(2),
       }));
+      // Save cart snapshot so confirmation page can find the order
+      sessionStorage.setItem("pending_cart", JSON.stringify(items));
       const res = await base44.functions.invoke("create-checkout", { items });
-      if (res?.redirectUrl) {
-        window.location.href = res.redirectUrl;
+      const redirectUrl = res?.data?.redirectUrl || res?.redirectUrl;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
       } else {
         alert("Error al iniciar el pago. Intenta de nuevo.");
       }
