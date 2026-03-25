@@ -302,7 +302,7 @@ export default function LiveDashboard() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" domain={[0, 'dataMax']} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(1)}K` : `$${v}`} tick={{ fontSize: 10 }} />
                     <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={(v, name) => [`$${Number(v).toLocaleString()}`, "Ingresos"]} />
+                    <Tooltip formatter={(v, name) => [`$${Number(v).toFixed(2)}`, "Ingresos"]} />
                     <Bar dataKey="revenue" name="Ingresos" radius={[0, 4, 4, 0]} isAnimationActive={false} background={false}>
                       {m.topItems.map((_, i) => (
                         <Cell key={i} fill={`hsl(${25 + i * 30}, 85%, ${55 - i * 5}%)`} />
