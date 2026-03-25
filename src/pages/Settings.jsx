@@ -99,7 +99,7 @@ const PLANS = [
       "📲 Pedidos online (pickup)"
     ],
     message: "Empieza a vender también en línea sin comisiones",
-    cta: "Cambiar",
+    cta: "Plan Actual",
     featured: true
   },
   {
@@ -135,7 +135,7 @@ const DEFAULTS = {
   state_code: "none",
   currency: "USD",
   language: "es",
-  timezone: "America/Chicago",
+  timezone: "America/Denver",
   delivery_enabled: false,
   delivery_lat: "",
   delivery_lng: "",
