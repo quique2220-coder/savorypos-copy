@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Mic, MicOff, Loader2, MessageCircle, X } from "lucide-react";
+import { Send, Mic, MicOff, Loader2, MessageCircle, X, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VoiceAssistant() {
@@ -12,9 +12,13 @@ export default function VoiceAssistant() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const messagesEndRef = useRef(null);
-  const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
 
   // Inicializar conversación
   useEffect(() => {
@@ -55,32 +59,71 @@ export default function VoiceAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Speech Recognition
-  useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+  // Eleven Labs Speech-to-Text
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
 
-    recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.lang = "es-ES";
-    recognitionRef.current.continuous = false;
-    recognitionRef.current.interimResults = false;
+      mediaRecorder.ondataavailable = (e) => {
+        chunksRef.current.push(e.data);
+      };
 
-    recognitionRef.current.onstart = () => setIsListening(true);
-    recognitionRef.current.onend = () => setIsListening(false);
-    recognitionRef.current.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript)
-        .join("");
-      setInput(transcript);
-    };
-    recognitionRef.current.onerror = (event) => {
-      console.error("Speech error:", event.error);
-      toast.error("Error en micrófono");
-    };
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        await sendAudioToElevenLabs(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
 
-    return () => recognitionRef.current?.abort();
-  }, []);
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (err) {
+      console.error("Mic error:", err);
+      toast.error("No se puede acceder al micrófono");
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsListening(false);
+  };
+
+  const sendAudioToElevenLabs = async (audioBlob) => {
+    try {
+      const formData = new FormData();
+      formData.append("audio", audioBlob);
+
+      const response = await base44.functions.invoke("elevenLabsSTT", { audio: audioBlob });
+      setInput(response.data.transcript || "");
+    } catch (err) {
+      console.error("Eleven Labs STT error:", err);
+      toast.error("Error en transcripción de voz");
+    }
+  };
+
+  // Eleven Labs Text-to-Speech
+  const speakMessage = async (text) => {
+    if (!text.trim()) return;
+    
+    try {
+      setIsSpeaking(true);
+      const response = await base44.functions.invoke("elevenLabsTTS", { text });
+      
+      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      
+      audio.onended = () => setIsSpeaking(false);
+      audio.play();
+    } catch (err) {
+      console.error("Eleven Labs TTS error:", err);
+      toast.error("Error en síntesis de voz");
+      setIsSpeaking(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId || isLoading) return;
@@ -103,10 +146,9 @@ export default function VoiceAssistant() {
 
   const toggleMic = () => {
     if (isListening) {
-      recognitionRef.current?.abort();
-      setIsListening(false);
+      stopRecording();
     } else {
-      recognitionRef.current?.start();
+      startRecording();
     }
   };
 
@@ -196,9 +238,22 @@ export default function VoiceAssistant() {
                       : "bg-card border border-border rounded-bl-none"
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {msg.content}
-                  </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap flex-1">
+                      {msg.content}
+                    </p>
+                    {msg.role === "assistant" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0 -mt-0.5"
+                        onClick={() => speakMessage(msg.content)}
+                        disabled={isSpeaking}
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Tool Calls Display */}
                   {msg.tool_calls && msg.tool_calls.length > 0 && (
