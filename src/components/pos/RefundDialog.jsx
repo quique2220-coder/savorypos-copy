@@ -35,10 +35,32 @@ export default function RefundDialog({ order, onClose, onSuccess }) {
   const queryClient = useQueryClient();
 
   const createRefund = useMutation({
-    mutationFn: (data) => base44.entities.Refund.create(data),
+    mutationFn: async (data) => {
+      // Create refund record
+      const refund = await base44.entities.Refund.create(data);
+      
+      // Automatically create journal entry for accounting (Sales Returns account 4150)
+      await base44.entities.JournalEntry.create({
+        date: new Date().toISOString().split('T')[0],
+        description: `Refund for Order ${data.order_number} - ${data.reason?.replace(/_/g, " ")}`,
+        account_dr: "4150", // Sales Returns & Allowances
+        account_cr: data.refund_method === "cash" ? "1100" : "1110", // Cash or Bank
+        amount_dr: data.amount,
+        amount_cr: data.amount,
+        account_dr_type: "Income",
+        account_cr_type: "Asset",
+        category: "Revenue",
+        reference: data.order_number,
+        payment_method: data.refund_method.charAt(0).toUpperCase() + data.refund_method.slice(1),
+        notes: `Refund: ${data.notes}`,
+      });
+      
+      return refund;
+    },
     onSuccess: () => {
-      toast.success("Refund created successfully");
+      toast.success("Refund created and accounting entry recorded");
       queryClient.invalidateQueries({ queryKey: ["refunds"] });
+      queryClient.invalidateQueries({ queryKey: ["JournalEntry"] });
       onSuccess?.();
     },
     onError: (error) => {
