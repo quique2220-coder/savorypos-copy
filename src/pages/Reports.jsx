@@ -72,10 +72,10 @@ export default function Reports() {
 
   // Real-time subscription to order changes
   useEffect(() => {
-    const unsubscribe = base44.entities.Order.subscribe((event) => {
+    const unsubscribe = base44.entities.Order.subscribe(() => {
       refetch();
     });
-    return unsubscribe;
+    return () => unsubscribe();
   }, [refetch]);
 
   const { data: menuItems = [] } = useQuery({
