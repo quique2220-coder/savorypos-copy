@@ -97,8 +97,17 @@ export default function VoiceAssistant() {
       const formData = new FormData();
       formData.append("audio", audioBlob);
 
-      const response = await base44.functions.invoke("elevenLabsSTT", { audio: audioBlob });
-      setInput(response.data.transcript || "");
+      const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+        method: "POST",
+        headers: {
+          "xi-api-key": Deno.env.get("ELEVEN_LABS_API_KEY") || "",
+        },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("STT failed");
+      const data = await response.json();
+      setInput(data.text || "");
     } catch (err) {
       console.error("Eleven Labs STT error:", err);
       toast.error("Error en transcripción de voz");
@@ -111,9 +120,29 @@ export default function VoiceAssistant() {
     
     try {
       setIsSpeaking(true);
-      const response = await base44.functions.invoke("elevenLabsTTS", { text });
+      const voiceId = "9BWtsMINqrJLrRacOk9x";
       
-      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": Deno.env.get("ELEVEN_LABS_API_KEY") || "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_monolingual_v1",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("TTS failed");
+      const audioBlob = await response.blob();
       const audio = new Audio(URL.createObjectURL(audioBlob));
       
       audio.onended = () => setIsSpeaking(false);
