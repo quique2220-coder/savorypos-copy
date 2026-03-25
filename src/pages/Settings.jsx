@@ -68,45 +68,60 @@ const US_STATE_TAX = [
 const PLANS = [
   {
     id: "starter",
-    name: "Starter",
-    subtitle: "Operar",
-    price: "$29/mo",
-    tagline: "Empieza a vender sin complicaciones",
-    features: ["POS completo", "Menú de platillos", "Inventario simple", "5 usuarios"],
+    name: "🟢 Starter",
+    subtitle: "Opera",
+    price: "$29/mes",
+    tagline: "Para empezar",
+    features: [
+      "POS",
+      "Órdenes",
+      "Menú básico",
+      "Inventario simple",
+      "5 usuarios"
+    ],
+    restrictions: ["❌ SIN venta online", "❌ SIN delivery"],
     cta: "Cambiar"
   },
   {
     id: "growth",
-    name: "Growth",
-    subtitle: "Controlar",
-    price: "$59/mo",
-    tagline: "Sabe cuánto ganas sin ser contador",
+    name: "🟡 Growth",
+    subtitle: "Controla",
+    price: "$59/mes",
+    tagline: "Aquí empieza lo bueno",
     features: [
-      "Todo Starter",
-      "Costeo automático de platillos",
+      "Todo Starter +",
+      "Costeo automático",
       "Dashboard de ganancias",
-      "El sistema calcula tus ganancias automáticamente",
+      "Contabilidad automática",
       "CRM + Marketing",
-      "Control de gastos",
-      "Alertas inteligentes"
+      "Reportes",
+      "🌐 Menú online (link para clientes)",
+      "📲 Pedidos online (pickup)"
     ],
-    cta: "Plan Actual",
+    message: "Empieza a vender también en línea sin comisiones",
+    cta: "Cambiar",
     featured: true
   },
   {
     id: "scale",
-    name: "Scale",
-    subtitle: "Crecer",
-    price: "$99/mo",
-    tagline: "Toma decisiones como un experto",
+    name: "🔴 Scale",
+    subtitle: "Crece",
+    price: "$99/mes",
+    tagline: "Aquí entra tu diferenciador fuerte",
     features: [
-      "Todo Growth",
-      "Tu asistente inteligente te dice cómo mejorar",
-      "Proyecciones financieras",
-      "Recomendaciones automáticas",
-      "Pricing inteligente",
-      "Usuarios ilimitados"
+      "Todo Growth +",
+      "🚗 Delivery propio (hasta 5 millas)",
+      "📍 Configuración de zona de entrega",
+      "💵 Control de tarifas de envío",
+      "🤖 AI Voice (mentor)",
+      "📊 Proyecciones",
+      "👥 Usuarios ilimitados"
     ],
+    messages: [
+      "Vende online y entrega sin pagar 30% a apps",
+      "Deja de pagar comisiones a UberEats"
+    ],
+    example: "Si vendes $10,000 en UberEats, pierdes $3,000 en comisiones. Con nuestra plataforma, ese dinero se queda en tu negocio.",
     cta: "Cambiar"
   }
 ];
@@ -445,6 +460,25 @@ export default function Settings() {
                       <p className="text-xs text-muted-foreground italic">{plan.tagline}</p>
                     </div>
                     <p className="text-2xl font-bold text-primary mb-3">{plan.price}</p>
+                    {plan.message && (
+                      <p className="text-xs font-semibold text-primary/80 bg-primary/10 rounded px-2 py-1 mb-3">
+                        👉 {plan.message}
+                      </p>
+                    )}
+                    {plan.messages && (
+                      <div className="space-y-1.5 mb-3">
+                        {plan.messages.map((msg, idx) => (
+                          <p key={idx} className="text-xs font-semibold text-primary/80 bg-primary/10 rounded px-2 py-1">
+                            👉 {msg}
+                          </p>
+                        ))}
+                        {plan.example && (
+                          <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5 border border-amber-200 italic">
+                            💡 {plan.example}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <ul className="space-y-2 mb-4">
                       {plan.features.map(f => (
                         <li key={f} className="flex items-start gap-2 text-xs leading-relaxed">
@@ -453,6 +487,13 @@ export default function Settings() {
                         </li>
                       ))}
                     </ul>
+                    {plan.restrictions && (
+                      <ul className="space-y-1 mb-4 border-t pt-3">
+                        {plan.restrictions.map(r => (
+                          <li key={r} className="text-xs text-red-600">{r}</li>
+                        ))}
+                      </ul>
+                    )}
                     <Button
                       variant={business.current_plan === plan.id ? "default" : "outline"}
                       size="sm"
