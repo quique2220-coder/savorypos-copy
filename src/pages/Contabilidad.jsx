@@ -102,6 +102,7 @@ export default function Contabilidad() {
   const [search, setSearch] = useState("");
   const [statementsStartDate, setStatementsStartDate] = useState("");
   const [statementsEndDate, setStatementsEndDate] = useState("");
+  const [activeStatementsTab, setActiveStatementsTab] = useState("income");
   const qc = useQueryClient();
 
   const { data: settings = [] } = useQuery({
@@ -283,13 +284,17 @@ export default function Contabilidad() {
                   <Printer className="w-4 h-4" />Imprimir
                 </Button>
               </div>
-              <AccountingStatements entries={entries.filter(e => {
-                if (!statementsStartDate && !statementsEndDate) return true;
-                const entryDate = new Date(e.date);
-                const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
-                const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
-                return entryDate >= start && entryDate <= end;
-              })} />
+              <AccountingStatements 
+                entries={entries.filter(e => {
+                  if (!statementsStartDate && !statementsEndDate) return true;
+                  const entryDate = new Date(e.date);
+                  const start = statementsStartDate ? new Date(statementsStartDate) : new Date("1900-01-01");
+                  const end = statementsEndDate ? new Date(statementsEndDate) : new Date("2100-12-31");
+                  return entryDate >= start && entryDate <= end;
+                })}
+                activeTab={activeStatementsTab}
+                onTabChange={setActiveStatementsTab}
+              />
             </div>
           </TabsContent>
 

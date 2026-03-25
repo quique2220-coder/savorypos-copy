@@ -14,7 +14,7 @@ function SectionHeader({ title, color = "bg-muted" }) {
   return <div className={`${color} px-3 py-2 font-semibold text-sm rounded mt-3 mb-1`}>{title}</div>;
 }
 
-export default function AccountingStatements({ entries }) {
+export default function AccountingStatements({ entries, activeTab, onTabChange }) {
   const data = useMemo(() => {
     const income = entries.filter(e => e.account_cr_type === "Income").reduce((s, e) => s + (e.amount_cr || 0), 0);
     const cogs = entries.filter(e => e.category === "Cost of Sales").reduce((s, e) => s + (e.amount_dr || 0), 0);
@@ -45,7 +45,7 @@ export default function AccountingStatements({ entries }) {
   }, [entries]);
 
   return (
-    <Tabs defaultValue="income">
+    <Tabs value={activeTab || "income"} onValueChange={onTabChange}>
       <TabsList className="mb-4 print:hidden">
         <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
         <TabsTrigger value="balance">Balance General</TabsTrigger>
