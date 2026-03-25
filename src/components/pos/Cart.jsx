@@ -6,8 +6,19 @@ import { Minus, Plus, Trash2, ShoppingBag, CreditCard, Banknote, Smartphone, Tag
 import { cn } from "@/lib/utils";
 import CustomerLookup from "./CustomerLookup";
 
-const TAX_RATE = 0.08;
 const POINTS_PER_DOLLAR = 1;
+
+function getTaxRate() {
+  try {
+    const stored = localStorage.getItem("pos_settings");
+    if (stored) {
+      const settings = JSON.parse(stored);
+      const rate = parseFloat(settings.tax_rate);
+      if (!isNaN(rate)) return rate / 100;
+    }
+  } catch {}
+  return 0.0825; // default
+}
 
 const ORDER_SOURCES = [
   { value: "in_person", label: "En local" },
@@ -29,6 +40,7 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
   const [tipPercent, setTipPercent] = useState(0);
   const [customTip, setCustomTip] = useState("");
 
+  const TAX_RATE = getTaxRate();
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   // Coupon discount
@@ -239,7 +251,7 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
               </div>
             )}
             <div className="flex justify-between text-muted-foreground">
-              <span>Tax (8%)</span>
+              <span>Tax ({(TAX_RATE * 100).toFixed(2).replace(/\.?0+$/, "")}%)</span>
               <span>${tax.toFixed(2)}</span>
             </div>
             {tipAmount > 0 && (

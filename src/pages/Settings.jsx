@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,26 +8,101 @@ import { Settings2, Store, Receipt, Globe, Shield, CreditCard, Check } from "luc
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
+// Sales tax by US state (%)
+const US_STATE_TAX = [
+  { code: "none", name: "— Sin estado —", rate: "" },
+  { code: "AL", name: "Alabama", rate: "4" },
+  { code: "AK", name: "Alaska", rate: "0" },
+  { code: "AZ", name: "Arizona", rate: "5.6" },
+  { code: "AR", name: "Arkansas", rate: "6.5" },
+  { code: "CA", name: "California", rate: "7.25" },
+  { code: "CO", name: "Colorado", rate: "2.9" },
+  { code: "CT", name: "Connecticut", rate: "6.35" },
+  { code: "DE", name: "Delaware", rate: "0" },
+  { code: "FL", name: "Florida", rate: "6" },
+  { code: "GA", name: "Georgia", rate: "4" },
+  { code: "HI", name: "Hawaii", rate: "4" },
+  { code: "ID", name: "Idaho", rate: "6" },
+  { code: "IL", name: "Illinois", rate: "6.25" },
+  { code: "IN", name: "Indiana", rate: "7" },
+  { code: "IA", name: "Iowa", rate: "6" },
+  { code: "KS", name: "Kansas", rate: "6.5" },
+  { code: "KY", name: "Kentucky", rate: "6" },
+  { code: "LA", name: "Louisiana", rate: "4.45" },
+  { code: "ME", name: "Maine", rate: "5.5" },
+  { code: "MD", name: "Maryland", rate: "6" },
+  { code: "MA", name: "Massachusetts", rate: "6.25" },
+  { code: "MI", name: "Michigan", rate: "6" },
+  { code: "MN", name: "Minnesota", rate: "6.875" },
+  { code: "MS", name: "Mississippi", rate: "7" },
+  { code: "MO", name: "Missouri", rate: "4.225" },
+  { code: "MT", name: "Montana", rate: "0" },
+  { code: "NE", name: "Nebraska", rate: "5.5" },
+  { code: "NV", name: "Nevada", rate: "6.85" },
+  { code: "NH", name: "New Hampshire", rate: "0" },
+  { code: "NJ", name: "New Jersey", rate: "6.625" },
+  { code: "NM", name: "New Mexico", rate: "5" },
+  { code: "NY", name: "New York", rate: "4" },
+  { code: "NC", name: "North Carolina", rate: "4.75" },
+  { code: "ND", name: "North Dakota", rate: "5" },
+  { code: "OH", name: "Ohio", rate: "5.75" },
+  { code: "OK", name: "Oklahoma", rate: "4.5" },
+  { code: "OR", name: "Oregon", rate: "0" },
+  { code: "PA", name: "Pennsylvania", rate: "6" },
+  { code: "RI", name: "Rhode Island", rate: "7" },
+  { code: "SC", name: "South Carolina", rate: "6" },
+  { code: "SD", name: "South Dakota", rate: "4.2" },
+  { code: "TN", name: "Tennessee", rate: "7" },
+  { code: "TX", name: "Texas", rate: "6.25" },
+  { code: "UT", name: "Utah", rate: "4.85" },
+  { code: "VT", name: "Vermont", rate: "6" },
+  { code: "VA", name: "Virginia", rate: "5.3" },
+  { code: "WA", name: "Washington", rate: "6.5" },
+  { code: "WV", name: "West Virginia", rate: "6" },
+  { code: "WI", name: "Wisconsin", rate: "5" },
+  { code: "WY", name: "Wyoming", rate: "4" },
+  { code: "DC", name: "Washington D.C.", rate: "6" },
+];
+
 const PLANS = [
   { id: "starter", name: "Starter", price: "$29/mo", features: ["POS", "Menu", "Inventory", "5 usuarios"] },
   { id: "growth", name: "Growth", price: "$59/mo", features: ["Todo Starter", "CRM + Marketing", "Contabilidad", "Reportes avanzados"] },
   { id: "scale", name: "Scale", price: "$99/mo", features: ["Todo Growth", "Voice AI", "Proyecciones", "Usuarios ilimitados"] },
 ];
 
+const STORAGE_KEY = "pos_settings";
+
 export default function Settings() {
-  const [business, setBusiness] = useState({
-    name: "Mi Restaurante",
-    address: "",
-    phone: "",
-    email: "",
-    tax_rate: "8.25",
-    currency: "USD",
-    language: "es",
-    timezone: "America/Chicago",
+  const [business, setBusiness] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {
+      name: "Mi Restaurante",
+      address: "",
+      phone: "",
+      email: "",
+      tax_rate: "8.25",
+      state_code: "none",
+      currency: "USD",
+      language: "es",
+      timezone: "America/Chicago",
+    };
   });
   const [saved, setSaved] = useState(false);
 
+  const handleStateChange = (code) => {
+    const state = US_STATE_TAX.find(s => s.code === code);
+    setBusiness(prev => ({
+      ...prev,
+      state_code: code,
+      tax_rate: state?.rate !== "" ? state.rate : prev.tax_rate,
+    }));
+  };
+
   const handleSave = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(business));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -69,10 +144,29 @@ export default function Settings() {
           {/* Tax & POS */}
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt className="w-4 h-4" />POS & Impuestos</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <Label>Estado (EE.UU.)</Label>
+                <Select value={business.state_code || "none"} onValueChange={handleStateChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {US_STATE_TAX.map(s => (
+                      <SelectItem key={s.code} value={s.code}>
+                        {s.name}{s.rate !== "" ? ` — ${s.rate}%` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1">
                 <Label>Sales Tax (%)</Label>
-                <Input type="number" value={business.tax_rate} onChange={e => setBusiness({ ...business, tax_rate: e.target.value })} />
+                <Input
+                  type="number"
+                  value={business.tax_rate}
+                  onChange={e => setBusiness({ ...business, tax_rate: e.target.value, state_code: "none" })}
+                  placeholder="e.g. 8.25"
+                />
+                <p className="text-[11px] text-muted-foreground">Seleccionar estado llena este campo automáticamente</p>
               </div>
               <div className="space-y-1">
                 <Label>Moneda</Label>
