@@ -101,7 +101,7 @@ export default function Reports() {
          const d = new Date(o.created_date);
          const end = new Date(range.end); end.setHours(23, 59, 59, 999);
          const inRange = d >= range.start && d <= end;
-         if (o.order_type === "catering") console.log(`Catering order ${o.order_number}:`, {created: d, rangeStart: range.start, rangeEnd: end, inRange});
+         if (o.order_type === "catering") console.log(`Catering ${o.order_number} - created_date: ${o.created_date}, d: ${d}, range: ${range.start} to ${range.end}, inRange: ${inRange}`);
          return inRange;
        })
      : allCompleted;
