@@ -31,14 +31,14 @@ export async function postSaleEntry({ orderNumber, total, tax, subtotal, payment
     notes: `Subtotal $${subAmt.toFixed(2)}`,
   });
 
-  // Asiento 1b: Sales Tax  Dr: Caja  |  Cr: 2200 Sales Tax por Pagar
+  // Asiento 1b: Sales Tax  Dr: Caja  |  Cr: 2120 Sales Tax Payable
   if (taxAmt > 0) {
     await base44.entities.JournalEntry.create({
       date: today,
       description: `Sales Tax POS — ${orderNumber}`,
       account_dr: drAccount,
       account_dr_type: drType,
-      account_cr: "2200 Sales Tax por Pagar",
+      account_cr: "2120 Sales Tax Payable",
       account_cr_type: "Liability",
       amount_dr: taxAmt,
       amount_cr: taxAmt,
@@ -69,19 +69,85 @@ export async function postSaleEntry({ orderNumber, total, tax, subtotal, payment
   }
 
   // Asiento 2: Costo de ventas (solo si hay costo calculado)
+  // Debit desglosado por tipo de inventario
   if (costOfGoods > 0) {
     await base44.entities.JournalEntry.create({
       date: today,
       description: `COGS POS — ${orderNumber}`,
       account_dr: "5100 Costo de Alimentos",
       account_dr_type: "Expense",
-      account_cr: "1130 Inventario",
+      account_cr: "1130 Food Inventory",
       account_cr_type: "Asset",
       amount_dr: costOfGoods,
       amount_cr: costOfGoods,
       category: "Cost of Sales",
       reference: orderNumber,
       payment_method: "Cash",
+    });
+  }
+}
+
+/**
+ * Crea asientos para gastos operativos (utilities, rent, etc.)
+ * Dr: 6xxx (Expense)  |  Cr: 1100 Caja o 2100 Cuentas por Pagar
+ */
+export async function postOperatingExpenseEntry({ description, accountCode, accountName, amount, payWithCash = true, reference = "" }) {
+  const today = new Date().toISOString().split("T")[0];
+
+  await base44.entities.JournalEntry.create({
+    date: today,
+    description: `${accountName} — ${description}`,
+    account_dr: `${accountCode} ${accountName}`,
+    account_dr_type: "Expense",
+    account_cr: payWithCash ? "1100 Caja / Efectivo" : "2100 Cuentas por Pagar",
+    account_cr_type: payWithCash ? "Asset" : "Liability",
+    amount_dr: amount,
+    amount_cr: amount,
+    category: "Operating Expense",
+    reference,
+    payment_method: payWithCash ? "Cash" : "Other",
+    is_irs_deductible: true,
+  });
+}
+
+/**
+ * Crea asientos de nómina
+ * Dr: 6120 (Direct Labor) + 6121 (Indirect Labor)  |  Cr: 2100 (A/P) o 1100 (Caja)
+ */
+export async function postPayrollEntry({ employeeName, directLaborAmount = 0, indirectLaborAmount = 0, payWithCash = true, reference = "" }) {
+  const today = new Date().toISOString().split("T")[0];
+
+  if (directLaborAmount > 0) {
+    await base44.entities.JournalEntry.create({
+      date: today,
+      description: `Direct Labor — ${employeeName}`,
+      account_dr: "6120 Direct Labor (Kitchen)",
+      account_dr_type: "Expense",
+      account_cr: payWithCash ? "1100 Caja / Efectivo" : "2100 Cuentas por Pagar",
+      account_cr_type: payWithCash ? "Asset" : "Liability",
+      amount_dr: directLaborAmount,
+      amount_cr: directLaborAmount,
+      category: "Operating Expense",
+      reference,
+      payment_method: payWithCash ? "Cash" : "Other",
+      is_irs_deductible: true,
+    });
+  }
+
+  if (indirectLaborAmount > 0) {
+    await base44.entities.JournalEntry.create({
+      date: today,
+      description: `Indirect Labor — ${employeeName}`,
+      account_dr: "6121 Indirect Labor (Admin/Cashier)",
+      account_dr_type: "Expense",
+      account_cr: payWithCash ? "1100 Caja / Efectivo" : "2100 Cuentas por Pagar",
+      account_cr_type: payWithCash ? "Asset" : "Liability",
+      amount_dr: indirectLaborAmount,
+      amount_cr: indirectLaborAmount,
+      category: "Operating Expense",
+      reference,
+      payment_method: payWithCash ? "Cash" : "Other",
+      is_irs_deductible: true,
     });
   }
 }
