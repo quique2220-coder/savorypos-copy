@@ -73,7 +73,8 @@ export default function Reports() {
 
   // Real-time subscription to order changes
   useEffect(() => {
-    const unsubscribe = base44.entities.Order.subscribe(() => {
+    const unsubscribe = base44.entities.Order.subscribe((event) => {
+      // Invalidate on any order change (create, update, delete)
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     });
     return () => unsubscribe();
