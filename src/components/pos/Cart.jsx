@@ -55,8 +55,8 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
   }
 
   const discountedSubtotal = subtotal - discountAmount;
-  const tax = discountedSubtotal * TAX_RATE;
-  const tipAmount = customTip !== "" ? parseFloat(customTip) || 0 : (discountedSubtotal + tax) * (tipPercent / 100);
+  const tax = Math.round(discountedSubtotal * TAX_RATE * 100) / 100;
+  const tipAmount = customTip !== "" ? parseFloat(customTip) || 0 : Math.round((discountedSubtotal + tax) * (tipPercent / 100) * 100) / 100;
   const total = discountedSubtotal + tax + tipAmount;
   const pointsToEarn = Math.floor(total * POINTS_PER_DOLLAR);
 
