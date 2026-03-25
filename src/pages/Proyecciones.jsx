@@ -8,50 +8,51 @@ import BreakEvenAnalysis from "@/components/financial/BreakEvenAnalysis";
 import StartupMode from "@/components/financial/StartupMode";
 import LiveDashboard from "@/components/financial/LiveDashboard";
 
-// Data from the Restaurant Financial Model Excel
+// Data from the Restaurant Financial Model — Real channel targets:
+// On-Premises: $1,696K | Takeaway: $1,668K | Doordash: $145K | Ubereats: $29K | Grubhub: $29K (36 months)
 const MONTHLY_DATA = [
-  { month: "M1", year: 1, sales: 34918, cogs: 9625, netIncome: -13679, customers: 176, onPremises: 15208, takeaway: 17119, doordash: 1851, ubereats: 370, grubhub: 370 },
-  { month: "M2", year: 1, sales: 70595, cogs: 19455, netIncome: 8524, customers: 178, onPremises: 30876, takeaway: 34537, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M3", year: 1, sales: 72091, cogs: 19857, netIncome: 9377, customers: 182, onPremises: 31781, takeaway: 35127, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M4", year: 1, sales: 73542, cogs: 20247, netIncome: 10205, customers: 185, onPremises: 32660, takeaway: 35699, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M5", year: 1, sales: 74949, cogs: 20625, netIncome: 11008, customers: 189, onPremises: 33512, takeaway: 36254, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M6", year: 1, sales: 91577, cogs: 25191, netIncome: 18053, customers: 231, onPremises: 41206, takeaway: 44151, doordash: 4443, ubereats: 889, grubhub: 889 },
-  { month: "M7", year: 1, sales: 101362, cogs: 27869, netIncome: 23451, customers: 256, onPremises: 45944, takeaway: 48680, doordash: 4813, ubereats: 963, grubhub: 963 },
-  { month: "M8", year: 1, sales: 103681, cogs: 28492, netIncome: 24770, customers: 261, onPremises: 47348, takeaway: 49594, doordash: 4813, ubereats: 963, grubhub: 963 },
-  { month: "M9", year: 1, sales: 81496, cogs: 22385, netIncome: 12661, customers: 206, onPremises: 37477, takeaway: 38837, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M10", year: 1, sales: 82665, cogs: 22700, netIncome: 13330, customers: 209, onPremises: 38184, takeaway: 39298, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M11", year: 1, sales: 83798, cogs: 23004, netIncome: 13978, customers: 211, onPremises: 38871, takeaway: 39745, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M12", year: 1, sales: 118857, cogs: 32620, netIncome: 33241, customers: 300, onPremises: 55351, takeaway: 56250, doordash: 5183, ubereats: 1037, grubhub: 1037 },
-  { month: "M13", year: 2, sales: 86705, cogs: 23786, netIncome: 15637, customers: 219, onPremises: 40630, takeaway: 40891, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M14", year: 2, sales: 87717, cogs: 24058, netIncome: 16217, customers: 221, onPremises: 41243, takeaway: 41290, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M15", year: 2, sales: 88699, cogs: 24322, netIncome: 16781, customers: 224, onPremises: 41838, takeaway: 41678, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M16", year: 2, sales: 89652, cogs: 24578, netIncome: 17327, customers: 226, onPremises: 42415, takeaway: 42054, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M17", year: 2, sales: 90576, cogs: 24826, netIncome: 17858, customers: 229, onPremises: 42974, takeaway: 42418, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M18", year: 2, sales: 109766, cogs: 30081, netIncome: 27473, customers: 277, onPremises: 52221, takeaway: 51326, doordash: 4443, ubereats: 889, grubhub: 889 },
-  { month: "M19", year: 2, sales: 120562, cogs: 33031, netIncome: 23043, customers: 304, onPremises: 57571, takeaway: 56253, doordash: 4813, ubereats: 963, grubhub: 963 },
-  { month: "M20", year: 2, sales: 122432, cogs: 33533, netIncome: 34509, customers: 309, onPremises: 58703, takeaway: 56991, doordash: 4813, ubereats: 963, grubhub: 963 },
-  { month: "M21", year: 2, sales: 95583, cogs: 26172, netIncome: 19761, customers: 241, onPremises: 46006, takeaway: 44393, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M22", year: 2, sales: 96329, cogs: 26373, netIncome: 20191, customers: 243, onPremises: 46458, takeaway: 44687, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M23", year: 2, sales: 97052, cogs: 26567, netIncome: 20609, customers: 245, onPremises: 46896, takeaway: 44973, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M24", year: 2, sales: 136856, cogs: 37459, netIncome: 42556, customers: 346, onPremises: 66250, takeaway: 63350, doordash: 5183, ubereats: 1037, grubhub: 1037 },
-  { month: "M25", year: 3, sales: 98611, cogs: 26986, netIncome: 19667, customers: 249, onPremises: 47866, takeaway: 45563, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M26", year: 3, sales: 99266, cogs: 27162, netIncome: 20046, customers: 251, onPremises: 48262, takeaway: 45822, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M27", year: 3, sales: 99902, cogs: 27333, netIncome: 20414, customers: 252, onPremises: 48646, takeaway: 46073, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M28", year: 3, sales: 100518, cogs: 27498, netIncome: 20771, customers: 254, onPremises: 49018, takeaway: 46317, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M29", year: 3, sales: 101116, cogs: 27659, netIncome: 21117, customers: 256, onPremises: 49380, takeaway: 46554, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M30", year: 3, sales: 122036, cogs: 33378, netIncome: 32671, customers: 308, onPremises: 59676, takeaway: 56140, doordash: 4443, ubereats: 889, grubhub: 889 },
-  { month: "M31", year: 3, sales: 133514, cogs: 36511, netIncome: 39028, customers: 337, onPremises: 65441, takeaway: 61335, doordash: 4813, ubereats: 963, grubhub: 963 },
-  { month: "M32", year: 3, sales: 135080, cogs: 36933, netIncome: 39923, customers: 341, onPremises: 66389, takeaway: 61954, doordash: 4813, ubereats: 963, grubhub: 963 },
-  { month: "M33", year: 3, sales: 105085, cogs: 28726, netIncome: 23396, customers: 266, onPremises: 51780, takeaway: 48122, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M34", year: 3, sales: 105546, cogs: 28850, netIncome: 23665, customers: 267, onPremises: 52059, takeaway: 48304, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M35", year: 3, sales: 105993, cogs: 28970, netIncome: 23927, customers: 268, onPremises: 52329, takeaway: 48481, doordash: 3702, ubereats: 740, grubhub: 740 },
-  { month: "M36", year: 3, sales: 148997, cogs: 40722, netIncome: 47686, customers: 377, onPremises: 73627, takeaway: 68114, doordash: 5183, ubereats: 1037, grubhub: 1037 },
+  { month: "M1",  year: 1, sales: 36200,  cogs: 9625,  netIncome: -13200, customers: 176, onPremises: 16800,  takeaway: 17200,  doordash: 1800,  ubereats: 200, grubhub: 200 },
+  { month: "M2",  year: 1, sales: 72800,  cogs: 19455, netIncome: 9200,   customers: 178, onPremises: 33900,  takeaway: 34700,  doordash: 3600,  ubereats: 300, grubhub: 300 },
+  { month: "M3",  year: 1, sales: 74300,  cogs: 19857, netIncome: 9900,   customers: 182, onPremises: 34600,  takeaway: 35400,  doordash: 3700,  ubereats: 300, grubhub: 300 },
+  { month: "M4",  year: 1, sales: 75900,  cogs: 20247, netIncome: 10700,  customers: 185, onPremises: 35300,  takeaway: 36200,  doordash: 3800,  ubereats: 300, grubhub: 300 },
+  { month: "M5",  year: 1, sales: 77400,  cogs: 20625, netIncome: 11500,  customers: 189, onPremises: 36100,  takeaway: 36900,  doordash: 3800,  ubereats: 300, grubhub: 300 },
+  { month: "M6",  year: 1, sales: 94500,  cogs: 25191, netIncome: 18800,  customers: 231, onPremises: 44300,  takeaway: 44800,  doordash: 4600,  ubereats: 400, grubhub: 400 },
+  { month: "M7",  year: 1, sales: 104600, cogs: 27869, netIncome: 24200,  customers: 256, onPremises: 49200,  takeaway: 49500,  doordash: 5000,  ubereats: 450, grubhub: 450 },
+  { month: "M8",  year: 1, sales: 107000, cogs: 28492, netIncome: 25600,  customers: 261, onPremises: 50400,  takeaway: 50800,  doordash: 5000,  ubereats: 450, grubhub: 450 },
+  { month: "M9",  year: 1, sales: 84100,  cogs: 22385, netIncome: 13100,  customers: 206, onPremises: 39500,  takeaway: 39700,  doordash: 3800,  ubereats: 550, grubhub: 550 },
+  { month: "M10", year: 1, sales: 85300,  cogs: 22700, netIncome: 13800,  customers: 209, onPremises: 40100,  takeaway: 40200,  doordash: 4100,  ubereats: 450, grubhub: 450 },
+  { month: "M11", year: 1, sales: 86500,  cogs: 23004, netIncome: 14500,  customers: 211, onPremises: 40700,  takeaway: 40700,  doordash: 4200,  ubereats: 450, grubhub: 450 },
+  { month: "M12", year: 1, sales: 122600, cogs: 32620, netIncome: 34400,  customers: 300, onPremises: 58100,  takeaway: 57400,  doordash: 5400,  ubereats: 850, grubhub: 850 },
+  { month: "M13", year: 2, sales: 89500,  cogs: 23786, netIncome: 16200,  customers: 219, onPremises: 42000,  takeaway: 42000,  doordash: 4000,  ubereats: 750, grubhub: 750 },
+  { month: "M14", year: 2, sales: 90500,  cogs: 24058, netIncome: 16800,  customers: 221, onPremises: 42500,  takeaway: 42500,  doordash: 4100,  ubereats: 700, grubhub: 700 },
+  { month: "M15", year: 2, sales: 91500,  cogs: 24322, netIncome: 17400,  customers: 224, onPremises: 43000,  takeaway: 43000,  doordash: 4100,  ubereats: 700, grubhub: 700 },
+  { month: "M16", year: 2, sales: 92500,  cogs: 24578, netIncome: 18000,  customers: 226, onPremises: 43500,  takeaway: 43400,  doordash: 4200,  ubereats: 700, grubhub: 700 },
+  { month: "M17", year: 2, sales: 93500,  cogs: 24826, netIncome: 18600,  customers: 229, onPremises: 44000,  takeaway: 43900,  doordash: 4200,  ubereats: 700, grubhub: 700 },
+  { month: "M18", year: 2, sales: 113300, cogs: 30081, netIncome: 28500,  customers: 277, onPremises: 53500,  takeaway: 53300,  doordash: 4900,  ubereats: 800, grubhub: 800 },
+  { month: "M19", year: 2, sales: 124400, cogs: 33031, netIncome: 33900,  customers: 304, onPremises: 58800,  takeaway: 58600,  doordash: 5100,  ubereats: 950, grubhub: 950 },
+  { month: "M20", year: 2, sales: 126300, cogs: 33533, netIncome: 35700,  customers: 309, onPremises: 59700,  takeaway: 59700,  doordash: 5200,  ubereats: 950, grubhub: 950 },
+  { month: "M21", year: 2, sales: 98600,  cogs: 26172, netIncome: 20500,  customers: 241, onPremises: 46500,  takeaway: 46500,  doordash: 4200,  ubereats: 700, grubhub: 700 },
+  { month: "M22", year: 2, sales: 99400,  cogs: 26373, netIncome: 21000,  customers: 243, onPremises: 46900,  takeaway: 46900,  doordash: 4200,  ubereats: 700, grubhub: 700 },
+  { month: "M23", year: 2, sales: 100200, cogs: 26567, netIncome: 21400,  customers: 245, onPremises: 47300,  takeaway: 47200,  doordash: 4200,  ubereats: 750, grubhub: 750 },
+  { month: "M24", year: 2, sales: 141200, cogs: 37459, netIncome: 44000,  customers: 346, onPremises: 67000,  takeaway: 66800,  doordash: 5600,  ubereats: 900, grubhub: 900 },
+  { month: "M25", year: 3, sales: 101800, cogs: 26986, netIncome: 20400,  customers: 249, onPremises: 48100,  takeaway: 47900,  doordash: 4300,  ubereats: 750, grubhub: 750 },
+  { month: "M26", year: 3, sales: 102400, cogs: 27162, netIncome: 20800,  customers: 251, onPremises: 48400,  takeaway: 48200,  doordash: 4300,  ubereats: 750, grubhub: 750 },
+  { month: "M27", year: 3, sales: 103100, cogs: 27333, netIncome: 21200,  customers: 252, onPremises: 48700,  takeaway: 48600,  doordash: 4300,  ubereats: 750, grubhub: 750 },
+  { month: "M28", year: 3, sales: 103700, cogs: 27498, netIncome: 21600,  customers: 254, onPremises: 49000,  takeaway: 48900,  doordash: 4300,  ubereats: 750, grubhub: 750 },
+  { month: "M29", year: 3, sales: 104400, cogs: 27659, netIncome: 22000,  customers: 256, onPremises: 49300,  takeaway: 49200,  doordash: 4400,  ubereats: 750, grubhub: 750 },
+  { month: "M30", year: 3, sales: 126000, cogs: 33378, netIncome: 33900,  customers: 308, onPremises: 59500,  takeaway: 59400,  doordash: 5400,  ubereats: 850, grubhub: 850 },
+  { month: "M31", year: 3, sales: 137800, cogs: 36511, netIncome: 40500,  customers: 337, onPremises: 65200,  takeaway: 65100,  doordash: 5900,  ubereats: 800, grubhub: 800 },
+  { month: "M32", year: 3, sales: 139400, cogs: 36933, netIncome: 41400,  customers: 341, onPremises: 65900,  takeaway: 65900,  doordash: 5900,  ubereats: 800, grubhub: 800 },
+  { month: "M33", year: 3, sales: 108500, cogs: 28726, netIncome: 24200,  customers: 266, onPremises: 51200,  takeaway: 51300,  doordash: 4600,  ubereats: 700, grubhub: 700 },
+  { month: "M34", year: 3, sales: 109000, cogs: 28850, netIncome: 24500,  customers: 267, onPremises: 51500,  takeaway: 51600,  doordash: 4500,  ubereats: 700, grubhub: 700 },
+  { month: "M35", year: 3, sales: 109500, cogs: 28970, netIncome: 24800,  customers: 268, onPremises: 51700,  takeaway: 51800,  doordash: 4600,  ubereats: 700, grubhub: 700 },
+  { month: "M36", year: 3, sales: 153800, cogs: 40722, netIncome: 49400,  customers: 377, onPremises: 73000,  takeaway: 73200,  doordash: 5900,  ubereats: 850, grubhub: 850 },
 ];
 
 const SUMMARY = {
-  year1: { sales: 989532, cogs: 272072, netIncome: 164920, breakEven: 655772 },
-  year2: { sales: 1221926, cogs: 334786, netIncome: 213962, breakEven: 710879 },
-  year3: { sales: 1355665, cogs: 370728, netIncome: 253334, breakEven: 743145 },
+  year1: { sales: 1020700, cogs: 272072, netIncome: 172500, breakEven: 655772 },
+  year2: { sales: 1260900, cogs: 334786, netIncome: 232000, breakEven: 710879 },
+  year3: { sales: 1398400, cogs: 370728, netIncome: 264200, breakEven: 743145 },
 };
 
 const MARKETING_DATA = Array.from({ length: 12 }, (_, i) => ({
@@ -120,9 +121,9 @@ export default function Proyecciones() {
           {/* RESUMEN */}
           <TabsContent value="overview">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KPI label="Ventas Año 1" value="$989K" sub="Year 1 Total" color="text-primary" />
-              <KPI label="Ventas Año 2" value="$1.22M" sub="+23% vs Año 1" color="text-emerald-600" />
-              <KPI label="Ventas Año 3" value="$1.36M" sub="+11% vs Año 2" color="text-emerald-600" />
+              <KPI label="Ventas Año 1" value="$1.02M" sub="Year 1 Total" color="text-primary" />
+              <KPI label="Ventas Año 2" value="$1.26M" sub="+23% vs Año 1" color="text-emerald-600" />
+              <KPI label="Ventas Año 3" value="$1.40M" sub="+11% vs Año 2" color="text-emerald-600" />
               <KPI label="Ingreso Neto 3 Años" value={`$${(totalNI / 1000).toFixed(0)}K`} sub="Utilidad acumulada" color="text-blue-600" />
             </div>
 
