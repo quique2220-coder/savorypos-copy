@@ -149,6 +149,7 @@ export default function Settings() {
   const [settingsId, setSettingsId] = useState(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
 
   useEffect(() => {
     const load = async () => {
@@ -226,6 +227,8 @@ export default function Settings() {
       }
       // Also keep localStorage in sync for POS
       localStorage.setItem("pos_settings", JSON.stringify(payload));
+      // Invalidate plan access cache when plan changes
+      qc.invalidateQueries({ queryKey: ['AppSettings'] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
