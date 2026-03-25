@@ -93,16 +93,33 @@ export default function Reports() {
   });
 
   const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
-   const range = getPeriodRange(period, customStart, customEnd);
+   // Always recalculate range with current date to include today's orders
+   const now = new Date();
+   let range;
+   switch (period) {
+     case "7d": range = { start: subDays(now, 7), end: now }; break;
+     case "30d": range = { start: subDays(now, 30), end: now }; break;
+     case "thisMonth": range = { start: startOfMonth(now), end: now }; break;
+     case "lastMonth": 
+       const prev = subMonths(now, 1);
+       range = { start: startOfMonth(prev), end: endOfMonth(prev) };
+       break;
+     case "3m": range = { start: subMonths(now, 3), end: now }; break;
+     case "custom":
+       range = (customStart && customEnd) ? { start: parseISO(customStart), end: parseISO(customEnd) } : null;
+       break;
+     default: range = null;
+   }
    const allCompleted = orders.filter((o) => o.status === "completed" || o.status === "ready" || o.status === "pending" || o.status === "preparing");
    const completed = range
      ? allCompleted.filter((o) => {
          if (!o.created_date) return false;
          const d = new Date(o.created_date);
-         const end = new Date(range.end); end.setHours(23, 59, 59, 999);
-         const inRange = d >= range.start && d <= end;
-         if (o.order_type === "catering") console.log(`Catering ${o.order_number} - created_date: ${o.created_date}, d: ${d}, range: ${range.start} to ${range.end}, inRange: ${inRange}`);
-         return inRange;
+         const end = new Date(range.end); 
+         end.setHours(23, 59, 59, 999);
+         const start = new Date(range.start);
+         start.setHours(0, 0, 0, 0);
+         return d >= start && d <= end;
        })
      : allCompleted;
 
