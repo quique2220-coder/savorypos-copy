@@ -16,7 +16,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function RecipesVoiceAssistant({ conversationId, onConversationCreated }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +125,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform z-50"
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform z-[9999]"
         >
           <Bot className="w-6 h-6" />
         </button>
@@ -133,7 +133,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-6 right-6 w-80 bg-card border border-border rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden" style={{ height: 440 }}>
+        <div className="fixed bottom-6 right-6 w-80 bg-card border border-border rounded-2xl shadow-2xl flex flex-col z-[9999] overflow-hidden" style={{ height: 440 }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground shrink-0">
             <div className="flex items-center gap-2">
