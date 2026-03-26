@@ -8,7 +8,7 @@ import { Send, Loader2, Mic, MicOff, Plus, Volume2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function RecipeConsultant({ conversationId: sharedConversationId, messages: sharedMessages }) {
+export default function RecipeConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio }) {
   const [conversationId, setConversationId] = useState(sharedConversationId);
   const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
@@ -69,8 +69,10 @@ export default function RecipeConsultant({ conversationId: sharedConversationId,
       setIsSpeaking(true);
       const res = await base44.functions.invoke("elevenLabsTTS", { text: text.substring(0, 3000) });
       if (res.data?.audio) {
+        stopAllAudio?.();
         const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
         audioRef.current = audio;
+        setCurrentAudio?.(audio);
         audio.onended = () => setIsSpeaking(false);
         audio.onerror = () => setIsSpeaking(false);
         audio.play();

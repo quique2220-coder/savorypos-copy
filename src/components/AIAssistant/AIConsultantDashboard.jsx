@@ -14,6 +14,16 @@ export default function AIConsultantDashboard() {
   const [activeTab, setActiveTab] = useState("sales");
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [currentAudio, setCurrentAudio] = useState(null);
+
+  // Detener audio global
+  const stopAllAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+  };
 
   // Crear conversación única al montar
   useEffect(() => {
@@ -40,7 +50,10 @@ export default function AIConsultantDashboard() {
     let unsubscribe;
     initConversation().then(unsub => { unsubscribe = unsub; });
     
-    return () => unsubscribe?.();
+    return () => {
+      unsubscribe?.();
+      stopAllAudio();
+    };
   }, []);
 
   const handleVoiceInput = (text) => {
@@ -127,7 +140,7 @@ export default function AIConsultantDashboard() {
 
             <div className="flex-1 overflow-auto rounded-lg border border-border bg-card">
               {tabs.map((tab) => {
-                const ComponentWithProps = React.cloneElement(tab.component, { conversationId, messages });
+                const ComponentWithProps = React.cloneElement(tab.component, { conversationId, messages, stopAllAudio, setCurrentAudio });
                 return (
                   <TabsContent key={tab.id} value={tab.id} className="h-full p-0">
                     <div className="h-full overflow-auto">
