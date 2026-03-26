@@ -57,24 +57,15 @@ export default function RecipeConsultant() {
   const playResponse = async (text) => {
     try {
       setIsSpeaking(true);
-      const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?optimize_streaming_latency=0", {
-        method: "POST",
-        headers: {
-          "xi-api-key": localStorage.getItem("elevenLabsKey") || "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: text.substring(0, 3000),
-          model_id: "eleven_monolingual_v1",
-          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-        }),
-      });
-      if (response.ok) {
-        const audioBlob = await response.blob();
-        const url = URL.createObjectURL(audioBlob);
-        audioRef.current = new Audio(url);
-        audioRef.current.play();
-        audioRef.current.onended = () => setIsSpeaking(false);
+      const res = await base44.functions.invoke("elevenLabsTTS", { text: text.substring(0, 3000) });
+      if (res.data?.audio) {
+        const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
+        audioRef.current = audio;
+        audio.onended = () => setIsSpeaking(false);
+        audio.onerror = () => setIsSpeaking(false);
+        audio.play();
+      } else {
+        setIsSpeaking(false);
       }
     } catch (err) {
       console.error("TTS error:", err);
