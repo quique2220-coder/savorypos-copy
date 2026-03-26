@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Send, Loader2, Bot, ChevronDown, Calculator, TrendingUp, DollarSign, BarChart2, HelpCircle, PlusCircle } from "lucide-react";
+import { Mic, MicOff, Send, Loader2, Bot, ChevronDown, Calculator, TrendingUp, DollarSign, BarChart2, HelpCircle, PlusCircle, Volume2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -49,6 +49,10 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       if (last?.role === "assistant") {
         setIsLoading(false);
         isLoadingRef.current = false;
+        // Speak assistant message
+        if (last.content) {
+          speakMessage(last.content);
+        }
         // Invalidate TODAS las queries después de CUALQUIER acción del AI
         setTimeout(() => {
           qc.invalidateQueries({ queryKey: ["orders"] });
@@ -110,65 +114,77 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     const rec = new SR();
     rec.lang = "es-MX";
     rec.interimResults = true;
-    rec.continuous = true;
-    rec.maxAlternatives = 3;
+    rec.continuous = false;
+    rec.maxAlternatives = 5;
     let final = "";
+
+    rec.onstart = () => {
+      setIsListening(true);
+      toast.info("🎤 Escuchando...");
+    };
 
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript;
         if (e.results[i].isFinal) {
-          const alternatives = e.results[i];
-          let bestTranscript = alternatives[0].transcript;
-          for (let j = 1; j < alternatives.length; j++) {
-            if (alternatives[j].confidence > alternatives[0].confidence) {
-              bestTranscript = alternatives[j].transcript;
-            }
-          }
-          final += bestTranscript + " ";
+          final += transcript + " ";
         } else {
-          interim = e.results[i][0].transcript;
+          interim += transcript;
         }
       }
-      setInput(final.trim());
+      setInput(final.trim() || interim.trim());
       setInterimText(interim);
     };
+
     rec.onerror = (e) => {
-      console.error("Speech recognition error:", e.error);
+      console.error("Speech error:", e.error);
+      setIsListening(false);
       if (e.error === "no-speech") {
-        toast.error("No se detectó voz. Intenta de nuevo.");
+        toast.error("Sin voz. Intenta de nuevo");
+      } else if (e.error === "network") {
+        toast.error("Error de conexión");
       } else if (e.error === "not-allowed") {
-        toast.error("Permiso de micrófono denegado");
+        toast.error("Permiso denegado");
       }
     };
+
     rec.onend = () => {
       setIsListening(false);
       setInterimText("");
       if (final.trim()) {
-        // Limpieza agresiva de transcripción antes de mostrar
         const cleaned = final.trim()
           .replace(/\b(cabo|cava|cava de)\b/gi, "acabo de")
-          .replace(/\b(ventaos|ventao|venta o|ventaos)\b/gi, "una venta")
-          .replace(/\b(Montessori|mentos|mento|mento de|mentos de)\b/gi, "monto de")
-          .replace(/\b(love you|llevó|llegó|llevo)\b/gi, "")
-          .replace(/\b(come over here|come over|cover)\b/gi, "")
+          .replace(/\b(ventaos|ventao|venta o)\b/gi, "venta")
+          .replace(/\b(Montessori|mentos|mento|menton)\b/gi, "monto")
+          .replace(/\b(love you|llevó|llegó|llevo|cover)\b/gi, "")
           .replace(/\s+/g, " ")
           .trim();
         setInput(cleaned);
-        toast.success("Voz captada. Revisa y presiona enviar.");
+        if (cleaned) toast.success("✓ Voz capturada");
       }
     };
+
     recognitionRef.current = rec;
     final = "";
-    setInput("");
     rec.start();
-    setIsListening(true);
-    toast.info("Escuchando... habla claramente");
   };
 
   const stopListening = () => {
     recognitionRef.current?.stop();
     setIsListening(false);
+  };
+
+  const speakMessage = async (text) => {
+    try {
+      const res = await base44.functions.invoke("elevenLabsTTS", { text });
+      if (res.data?.audio) {
+        const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
+        audio.play();
+      }
+    } catch (err) {
+      console.error("TTS Error:", err);
+    }
   };
 
   return (
@@ -235,12 +251,11 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
             )}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-muted border border-border rounded-xl rounded-bl-sm px-3 py-2">
-                  <div className="flex gap-1 items-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce delay-100" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce delay-200" />
-                  </div>
+                <div className="bg-muted border border-border rounded-xl rounded-bl-sm px-3 py-2 flex gap-2 items-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce delay-100" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce delay-200" />
+                  <span className="text-xs text-muted-foreground ml-1">Pensando...</span>
                 </div>
               </div>
             )}
@@ -265,7 +280,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
           {/* Input */}
           <div className="shrink-0 p-3 border-t border-border space-y-1.5">
             {isListening && (
-              <p className="text-xs text-primary text-center animate-pulse">
+              <p className="text-xs text-primary text-center animate-pulse font-medium">
                 🎤 {interimText || "Escuchando..."}
               </p>
             )}
@@ -276,6 +291,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
                 className="h-8 w-8 shrink-0"
                 onClick={isListening ? stopListening : startListening}
                 disabled={isLoading}
+                title={isListening ? "Detener micrófono" : "Iniciar micrófono"}
               >
                 {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
               </Button>
@@ -284,14 +300,21 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
                 placeholder="Escribe o habla..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-                disabled={isLoading}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    sendMessage(input);
+                  }
+                }}
+                disabled={isLoading || isListening}
+                autoFocus
               />
               <Button
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || isLoading}
+                title="Enviar mensaje"
               >
                 {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
