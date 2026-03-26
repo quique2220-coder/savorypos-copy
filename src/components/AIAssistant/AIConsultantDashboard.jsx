@@ -16,6 +16,7 @@ export default function AIConsultantDashboard() {
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentAudio, setCurrentAudio] = useState(null);
+  const [lastPlayedMessageId, setLastPlayedMessageId] = useState(null);
   const initializingRef = useRef(false);
 
   // Detener audio global
@@ -66,9 +67,10 @@ export default function AIConsultantDashboard() {
         // Suscribirse a actualizaciones
         unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
           setMessages(data.messages || []);
-          // Reproducir audio del último mensaje del asistente
+          // Reproducir audio del último mensaje del asistente (solo si es nuevo)
           const lastMsg = data.messages?.[data.messages.length - 1];
-          if (lastMsg?.role === "assistant" && lastMsg?.content) {
+          if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedMessageId) {
+            setLastPlayedMessageId(lastMsg.id);
             playAudio(lastMsg.content);
           }
         });
