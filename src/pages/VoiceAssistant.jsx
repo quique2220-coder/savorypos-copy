@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Mic, MicOff, Loader2, MessageCircle, X, Volume2, TrendingUp, DollarSign, Package, ChefHat } from "lucide-react";
 import { toast } from "sonner";
+import MarginAnalysisVisual from "@/components/costing/MarginAnalysisVisual";
+import { useQuery } from "@tanstack/react-query";
 
 const QUICK_ACTIONS = [
   { label: "¿Cómo voy hoy?", icon: TrendingUp, color: "text-green-600 bg-green-50 border-green-200 hover:bg-green-100" },
@@ -22,6 +24,7 @@ export default function VoiceAssistant() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [interimText, setInterimText] = useState("");
+  const [showMarginAnalysis, setShowMarginAnalysis] = useState(false);
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -29,6 +32,12 @@ export default function VoiceAssistant() {
   const speakTimerRef = useRef(null);
   const conversationIdRef = useRef(null);
   const isLoadingRef = useRef(false);
+
+  // Fetch recipes para el análisis visual de márgenes
+  const { data: recipes = [] } = useQuery({
+    queryKey: ["recipes"],
+    queryFn: () => base44.entities.Recipe.list(),
+  });
 
   useEffect(() => {
     const initConversation = async () => {
@@ -59,6 +68,11 @@ export default function VoiceAssistant() {
       if (lastMsg?.role === "assistant" && lastMsg?.content) {
         setIsLoading(false);
         isLoadingRef.current = false;
+        // Detectar si es análisis de márgenes
+        const isMarginAnalysis = lastMsg.content.toLowerCase().includes("margen") || 
+                                  lastMsg.content.toLowerCase().includes("platillo") ||
+                                  lastMsg.content.toLowerCase().includes("rentable");
+        setShowMarginAnalysis(isMarginAnalysis);
         if (lastMsg.id !== lastSpokenIdRef.current) {
           clearTimeout(speakTimerRef.current);
           speakTimerRef.current = setTimeout(() => {
@@ -232,6 +246,11 @@ export default function VoiceAssistant() {
 
         {/* Messages */}
         <div className="flex-1 overflow-auto space-y-3 pr-1">
+          {showMarginAnalysis && recipes.length > 0 && (
+            <div className="mb-4">
+              <MarginAnalysisVisual recipes={recipes} />
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center gap-6 pb-8">
               <div className="space-y-2">
