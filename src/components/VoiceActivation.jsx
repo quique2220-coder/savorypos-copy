@@ -108,22 +108,27 @@ export default function VoiceActivation({ activeTab = "sales" }) {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Button
-        onClick={startListening}
-        size="lg"
-        className={`rounded-full shadow-2xl transition-all ${
-          isListening
-            ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-            : 'bg-primary hover:bg-primary/90'
-        }`}
-        title={isListening ? 'Escuchando... Haz clic para detener' : 'Haz clic o di "hey" para hablar'}
-      >
-        {isListening ? (
-          <MicOff className="w-6 h-6" />
-        ) : (
-          <Mic className="w-6 h-6" />
+      <div className="flex flex-col items-center gap-2">
+        <Button
+          onClick={startListening}
+          size="lg"
+          className={`rounded-full shadow-2xl transition-all ${
+            isListening
+              ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+              : 'bg-primary hover:bg-primary/90'
+          }`}
+          title={isListening ? 'Escuchando... Haz clic para detener' : 'Presiona para activar voz'}
+        >
+          {isListening ? (
+            <MicOff className="w-6 h-6" />
+          ) : (
+            <Mic className="w-6 h-6" />
+          )}
+        </Button>
+        {!isListening && (
+          <span className="text-xs text-muted-foreground font-medium">Presiona para hablar</span>
         )}
-      </Button>
+      </div>
     </div>
   );
 }
