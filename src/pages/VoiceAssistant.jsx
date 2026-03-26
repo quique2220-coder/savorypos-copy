@@ -63,6 +63,25 @@ export default function VoiceAssistant() {
   }, [messages]);
 
   const [interimText, setInterimText] = useState("");
+  const conversationIdRef = useRef(null);
+
+  // Keep ref in sync so onend closure can access it
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
+
+  const sendMessageDirectly = async (text) => {
+    if (!text.trim() || !conversationIdRef.current || isLoading) return;
+    setInput("");
+    setIsLoading(true);
+    try {
+      await base44.agents.addMessage({ id: conversationIdRef.current }, { role: "user", content: text.trim() });
+    } catch (err) {
+      console.error("Error sending message:", err);
+      toast.error("Error al enviar mensaje");
+      setIsLoading(false);
+    }
+  };
 
   const startRecording = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -87,11 +106,10 @@ export default function VoiceAssistant() {
           interim = e.results[i][0].transcript;
         }
       }
-      // Only update input with confirmed final text; show interim separately
       setInput(finalTranscript.trim());
       setInterimText(interim);
 
-      // Reset silence timer — auto-stop after 2s of silence
+      // Auto-stop after 2s of silence
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         recognition.stop();
@@ -108,8 +126,9 @@ export default function VoiceAssistant() {
       clearTimeout(silenceTimer);
       setIsListening(false);
       setInterimText("");
+      // Auto-send when speech ends
       if (finalTranscript.trim()) {
-        setInput(finalTranscript.trim());
+        sendMessageDirectly(finalTranscript.trim());
       }
     };
 
