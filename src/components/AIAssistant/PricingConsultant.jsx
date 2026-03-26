@@ -7,7 +7,7 @@ import { Send, Loader2, Mic, MicOff, TrendingUp, TrendingDown, Volume2 } from "l
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function PricingConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio }) {
+export default function PricingConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio, isActive = false }) {
   const [conversationId, setConversationId] = useState(sharedConversationId);
   const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
@@ -44,11 +44,11 @@ export default function PricingConsultant({ conversationId: sharedConversationId
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !isActive) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       setMessages(data.messages || []);
       const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant") {
+      if (lastMsg?.role === "assistant" && isActive) {
         setIsLoading(false);
         playResponse(lastMsg.content);
       }
@@ -73,7 +73,7 @@ export default function PricingConsultant({ conversationId: sharedConversationId
       unsubscribe();
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
-  }, [conversationId]);
+  }, [conversationId, isActive]);
 
   const playResponse = async (text) => {
     try {

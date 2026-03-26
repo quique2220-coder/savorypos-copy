@@ -8,7 +8,7 @@ import { Send, Loader2, Mic, MicOff, AlertTriangle, Volume2 } from "lucide-react
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function InventoryConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio }) {
+export default function InventoryConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio, isActive = false }) {
   const [conversationId, setConversationId] = useState(sharedConversationId);
   const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
@@ -35,15 +35,15 @@ export default function InventoryConsultant({ conversationId: sharedConversation
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-   if (!conversationId) return;
-   const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-     setMessages(data.messages || []);
-     const lastMsg = data.messages?.[data.messages.length - 1];
-     if (lastMsg?.role === "assistant") {
-       setIsLoading(false);
-       playResponse(lastMsg.content);
-     }
-   });
+    if (!conversationId || !isActive) return;
+    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
+      setMessages(data.messages || []);
+      const lastMsg = data.messages?.[data.messages.length - 1];
+      if (lastMsg?.role === "assistant" && isActive) {
+        setIsLoading(false);
+        playResponse(lastMsg.content);
+      }
+    });
 
    // Escuchar eventos de voz flotante solo si es tab inventory
    const handleVoiceInput = (e) => {
@@ -64,7 +64,7 @@ export default function InventoryConsultant({ conversationId: sharedConversation
      unsubscribe();
      window.removeEventListener("voiceInput", handleVoiceInput);
    };
-  }, [conversationId]);
+   }, [conversationId, isActive]);
 
   const playResponse = async (text) => {
     try {

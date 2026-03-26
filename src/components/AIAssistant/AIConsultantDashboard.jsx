@@ -140,7 +140,7 @@ export default function AIConsultantDashboard() {
 
             <div className="flex-1 overflow-auto rounded-lg border border-border bg-card">
               {tabs.map((tab) => {
-                const ComponentWithProps = React.cloneElement(tab.component, { conversationId, messages, stopAllAudio, setCurrentAudio });
+                const ComponentWithProps = React.cloneElement(tab.component, { conversationId, messages, stopAllAudio, setCurrentAudio, isActive: activeTab === tab.id });
                 return (
                   <TabsContent key={tab.id} value={tab.id} className="h-full p-0">
                     <div className="h-full overflow-auto">

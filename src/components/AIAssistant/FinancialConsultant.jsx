@@ -7,7 +7,7 @@ import { Send, Loader2, Mic, MicOff, AlertCircle, Volume2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function FinancialConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio }) {
+export default function FinancialConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio, isActive = false }) {
   const [conversationId, setConversationId] = useState(sharedConversationId);
   const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
@@ -41,11 +41,11 @@ export default function FinancialConsultant({ conversationId: sharedConversation
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !isActive) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       setMessages(data.messages || []);
       const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant") {
+      if (lastMsg?.role === "assistant" && isActive) {
         setIsLoading(false);
         playResponse(lastMsg.content);
       }
@@ -70,7 +70,7 @@ export default function FinancialConsultant({ conversationId: sharedConversation
       unsubscribe();
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
-  }, [conversationId]);
+  }, [conversationId, isActive]);
 
   const playResponse = async (text) => {
     try {

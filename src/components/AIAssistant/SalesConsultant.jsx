@@ -8,7 +8,7 @@ import { Send, Loader2, Mic, MicOff, Volume2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function SalesConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio }) {
+export default function SalesConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio, isActive = false }) {
   const [conversationId, setConversationId] = useState(sharedConversationId);
   const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
@@ -33,11 +33,11 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !isActive) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       setMessages(data.messages || []);
       const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant") {
+      if (lastMsg?.role === "assistant" && isActive) {
         setIsLoading(false);
         playResponse(lastMsg.content);
       }
@@ -60,12 +60,11 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
     };
     
     window.addEventListener("voiceInput", handleVoiceInput);
-    console.log('SalesConsultant listener registrado');
     return () => {
       unsubscribe();
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
-  }, [conversationId]);
+  }, [conversationId, isActive]);
 
   const playResponse = async (text) => {
     try {
