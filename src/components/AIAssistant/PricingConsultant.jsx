@@ -64,11 +64,12 @@ export default function PricingConsultant() {
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;
-    const text = input.trim();
+    const today = new Date().toISOString().split('T')[0];
+    const textWithContext = `Current date: ${today}\n${input.trim()}`;
     setInput("");
     setIsLoading(true);
     try {
-      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: text });
+      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
     } catch (err) {
       console.error("Error:", err);
       toast.error("Error al enviar");
