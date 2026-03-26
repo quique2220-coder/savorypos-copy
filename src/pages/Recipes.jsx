@@ -72,7 +72,7 @@ export default function Recipes() {
             <p className="text-muted-foreground text-sm mt-1">{recipes.length} recetas · cálculo automático de costos</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setAssistantOpen(v => !v)} className="gap-1">
+            <Button variant="outline" onClick={() => setAssistantOpen(v => !v)} className="gap-1 border-primary text-primary hover:bg-primary/10">
               <Bot className="w-4 h-4" /> Asistente IA
             </Button>
             <Button variant="outline" onClick={() => setShowOverhead(!showOverhead)}>
