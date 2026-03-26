@@ -51,47 +51,33 @@ export default function AIConsultantDashboard() {
     if (initializingRef.current) return;
     initializingRef.current = true;
 
+    let unsubscribe;
+
     const initConversation = async () => {
-      let retries = 0;
-      const maxRetries = 3;
-      
-      const attempt = async () => {
-        try {
-          const conv = await base44.agents.createConversation({
-            agent_name: "voiceAssistant",
-            metadata: { name: "Consultor Experto IA" },
-          });
-          setConversationId(conv.id);
-          setMessages(conv.messages || []);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Esperar un poco antes de intentar
+        const conv = await base44.agents.createConversation({
+          agent_name: "voiceAssistant",
+          metadata: { name: "Consultor Experto IA" },
+        });
+        setConversationId(conv.id);
+        setMessages(conv.messages || []);
 
-          // Suscribirse a actualizaciones
-          const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
-            setMessages(data.messages || []);
-            // Reproducir audio del último mensaje del asistente
-            const lastMsg = data.messages?.[data.messages.length - 1];
-            if (lastMsg?.role === "assistant" && lastMsg?.content) {
-              playAudio(lastMsg.content);
-            }
-          });
-
-          return unsubscribe;
-        } catch (err) {
-          if (err.status === 429 && retries < maxRetries) {
-            retries++;
-            const delay = Math.pow(2, retries) * 1000; // Exponential backoff: 2s, 4s, 8s
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return attempt();
+        // Suscribirse a actualizaciones
+        unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
+          setMessages(data.messages || []);
+          // Reproducir audio del último mensaje del asistente
+          const lastMsg = data.messages?.[data.messages.length - 1];
+          if (lastMsg?.role === "assistant" && lastMsg?.content) {
+            playAudio(lastMsg.content);
           }
-          console.error("Error iniciando conversación:", err);
-          return null;
-        }
-      };
-
-      return await attempt();
+        });
+      } catch (err) {
+        console.error("Error iniciando conversación:", err);
+      }
     };
 
-    let unsubscribe;
-    initConversation().then(unsub => { unsubscribe = unsub; });
+    initConversation();
     
     return () => {
       unsubscribe?.();
