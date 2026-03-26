@@ -15,10 +15,7 @@ export default function VoiceAssistant() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const messagesEndRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const streamRef = useRef(null);
-  const chunksRef = useRef([]);
+  const recognitionRef = useRef(null);
 
   // Inicializar conversación
   useEffect(() => {
@@ -87,13 +84,13 @@ export default function VoiceAssistant() {
       setIsListening(false);
     };
 
-    mediaRecorderRef.current = recognition;
+    recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
   };
 
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
+    recognitionRef.current?.stop();
     setIsListening(false);
   };
 
