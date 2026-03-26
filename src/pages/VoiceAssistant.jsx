@@ -94,34 +94,22 @@ export default function VoiceAssistant() {
     setIsListening(false);
   };
 
-  // Eleven Labs Text-to-Speech
-  const speakMessage = async (text) => {
+  // Text-to-Speech usando Web Speech API nativa (funciona en todos los navegadores)
+  const speakMessage = (text) => {
     if (!text.trim()) return;
-    
-    try {
-      setIsSpeaking(true);
-      const response = await base44.functions.invoke("elevenLabsTTS", { text });
-      
-      const base64Audio = response.data.audio;
-      const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
-      const audio = new Audio(URL.createObjectURL(audioBlob));
-      
-      audio.onended = () => setIsSpeaking(false);
-      audio.onerror = () => {
-        toast.error("Error al reproducir audio");
-        setIsSpeaking(false);
-      };
-      audio.play();
-    } catch (err) {
-      console.error("Eleven Labs TTS error:", err);
-      toast.error("Error en síntesis de voz");
-      setIsSpeaking(false);
+    if (!window.speechSynthesis) {
+      toast.error("Tu navegador no soporta síntesis de voz");
+      return;
     }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "es-MX";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleSendMessage = async () => {
