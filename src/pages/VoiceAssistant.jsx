@@ -78,7 +78,7 @@ export default function VoiceAssistant() {
   };
 
   const speakMessage = (text) => {
-    if (!text?.trim() || !window.speechSynthesis) return;
+    if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "es-MX";
@@ -105,7 +105,6 @@ export default function VoiceAssistant() {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-primary/5 to-accent/5 p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-4">
-        {/* Header */}
         <Card className="shrink-0">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -142,7 +141,6 @@ export default function VoiceAssistant() {
           </CardHeader>
         </Card>
 
-        {/* Messages */}
         <div className="flex-1 overflow-auto space-y-3 pr-1">
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center text-center">
@@ -211,7 +209,6 @@ export default function VoiceAssistant() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <Card className="shrink-0">
           <CardContent className="pt-4 pb-4">
             <div className="flex gap-2">
@@ -220,7 +217,7 @@ export default function VoiceAssistant() {
                 size="icon"
                 onClick={isListening ? stopRecording : startRecording}
                 disabled={isLoading}
-                className={`shrink-0 ${isListening ? "animate-pulse" : ""}`}
+                className={isListening ? "animate-pulse" : ""}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
@@ -232,7 +229,7 @@ export default function VoiceAssistant() {
                 disabled={isLoading}
                 className="flex-1"
               />
-              <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon" className="shrink-0">
+              <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon">
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
