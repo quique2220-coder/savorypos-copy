@@ -34,11 +34,26 @@ export default function VoiceAssistant() {
     initConversation();
   }, []);
 
+  const lastSpokenIdRef = useRef(null);
+
   useEffect(() => {
     if (!conversationId) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      setMessages(data.messages || []);
+      const msgs = data.messages || [];
+      setMessages(msgs);
       setIsLoading(false);
+
+      // Auto-speak the latest assistant message if it's new and complete
+      const lastMsg = msgs[msgs.length - 1];
+      if (
+        lastMsg &&
+        lastMsg.role === "assistant" &&
+        lastMsg.content &&
+        lastMsg.id !== lastSpokenIdRef.current
+      ) {
+        lastSpokenIdRef.current = lastMsg.id;
+        speakMessage(lastMsg.content);
+      }
     });
     return unsubscribe;
   }, [conversationId]);
