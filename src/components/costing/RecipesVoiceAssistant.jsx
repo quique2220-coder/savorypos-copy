@@ -36,8 +36,9 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
   const recognitionRef = useRef(null);
   const convIdRef = useRef(conversationId);
   const isLoadingRef = useRef(false);
-  const spokenMessagesRef = useRef(new Set());
+  const lastSpokenIdRef = useRef(null);
   const audioRef = useRef(null);
+  const isSpeakingRef = useRef(false);
 
   useEffect(() => { convIdRef.current = conversationId; }, [conversationId]);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
@@ -179,14 +180,17 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
   };
 
   const speakMessage = async (text, messageId) => {
-    // Prevenir reproducir el mismo mensaje dos veces
-    if (spokenMessagesRef.current.has(messageId)) return;
-    spokenMessagesRef.current.add(messageId);
+    // Evitar reproducir el mismo mensaje o reproducir múltiples a la vez
+    if (lastSpokenIdRef.current === messageId || isSpeakingRef.current) return;
+    
+    lastSpokenIdRef.current = messageId;
+    isSpeakingRef.current = true;
 
     try {
       // Detener reproducción anterior si existe
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         audioRef.current = null;
       }
 
@@ -194,10 +198,22 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       if (res.data?.audio) {
         const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
         audioRef.current = audio;
+        
+        audio.onended = () => {
+          isSpeakingRef.current = false;
+        };
+        
+        audio.onerror = () => {
+          isSpeakingRef.current = false;
+        };
+        
         audio.play();
+      } else {
+        isSpeakingRef.current = false;
       }
     } catch (err) {
       console.error("TTS Error:", err);
+      isSpeakingRef.current = false;
     }
   };
 
