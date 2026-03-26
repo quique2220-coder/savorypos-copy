@@ -12,6 +12,12 @@ import VoiceActivation from "../VoiceActivation";
 export default function AIConsultantDashboard() {
   const [activeTab, setActiveTab] = useState("sales");
 
+  const handleVoiceInput = (text) => {
+    // Solo enviar al consultant activo
+    const event = new CustomEvent("voiceInput", { detail: { text, tab: activeTab } });
+    window.dispatchEvent(event);
+  };
+
   const tabs = [
     {
       id: "sales",
@@ -100,6 +106,7 @@ export default function AIConsultantDashboard() {
           </Tabs>
         </div>
       </div>
+      <VoiceActivation activeTab={activeTab} />
     </div>
   );
 }

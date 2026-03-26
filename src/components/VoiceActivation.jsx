@@ -3,7 +3,7 @@ import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-export default function VoiceActivation({ onVoiceInput, isActive = false }) {
+export default function VoiceActivation({ activeTab = "sales" }) {
   const [isListening, setIsListening] = useState(false);
   const [micAvailable, setMicAvailable] = useState(true);
   const recognitionRef = useRef(null);
@@ -82,7 +82,8 @@ export default function VoiceActivation({ onVoiceInput, isActive = false }) {
       }
 
       if (finalTranscript.trim()) {
-        onVoiceInput(finalTranscript.trim());
+        const event = new CustomEvent("voiceInput", { detail: { text: finalTranscript.trim(), tab: activeTab } });
+        window.dispatchEvent(event);
       }
     };
 
@@ -101,7 +102,7 @@ export default function VoiceActivation({ onVoiceInput, isActive = false }) {
     recognition.start();
   };
 
-  if (!isActive || !micAvailable) {
+  if (!micAvailable) {
     return null;
   }
 

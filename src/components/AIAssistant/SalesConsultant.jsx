@@ -51,7 +51,26 @@ export default function SalesConsultant() {
         playResponse(lastMsg.content);
       }
     });
-    return () => unsubscribe();
+    
+    // Escuchar eventos de voz flotante del botón Alexa
+    const handleVoiceInput = (e) => {
+      if (e.detail.tab === "sales" && e.detail.text.trim() && conversationId) {
+        const today = new Date().toISOString().split('T')[0];
+        const textWithContext = `Current date: ${today}\n${e.detail.text}`;
+        setIsLoading(true);
+        base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
+          console.error("Error:", err);
+          toast.error("Error al enviar");
+          setIsLoading(false);
+        });
+      }
+    };
+    
+    window.addEventListener("voiceInput", handleVoiceInput);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("voiceInput", handleVoiceInput);
+    };
   }, [conversationId]);
 
   const playResponse = async (text) => {
