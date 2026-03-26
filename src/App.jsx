@@ -19,7 +19,7 @@ import CRM from './pages/CRM';
 import Settings from './pages/Settings';
 import Ingredients from './pages/Ingredients';
 import Recipes from './pages/Recipes';
-import VoiceAssistant from './pages/VoiceAssistant';
+import AIConsultantDashboard from './components/AIAssistant/AIConsultantDashboard';
 import OrderOnline from './pages/OrderOnline';
 import OrderConfirmation from './pages/OrderConfirmation';
 
@@ -58,7 +58,7 @@ const AuthenticatedApp = () => {
         <Route path="/Settings" element={<Settings />} />
         <Route path="/Ingredients" element={<ProtectedRoute requiredGroup="costing"><Ingredients /></ProtectedRoute>} />
         <Route path="/Recipes" element={<ProtectedRoute requiredGroup="costing"><Recipes /></ProtectedRoute>} />
-        <Route path="/VoiceAssistant" element={<VoiceAssistant />} />
+        <Route path="/VoiceAssistant" element={<AIConsultantDashboard />} />
       </Route>
       {/* Public pages - outside Layout */}
       <Route path="/OrderOnline" element={<OrderOnline />} />
