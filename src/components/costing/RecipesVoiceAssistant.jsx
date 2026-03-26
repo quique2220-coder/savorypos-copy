@@ -94,18 +94,26 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     isLoadingRef.current = true;
     try {
       const id = await initConversation();
-      // Agregar contexto de tiempo real
       const today = new Date().toISOString().split('T')[0];
-      const contextMsg = `[CONTEXTO ACTUAL - ${today}]\n- Fecha: ${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n- Hora: ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}\n\n[USUARIO]: ${text.trim()}`;
+      const dayOfWeek = new Date().toLocaleDateString('es-MX', { weekday: 'long' });
+      const fullDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+      const time = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      
+      const contextMsg = `[CONTEXTO ACTUAL: ${today}]\nDía: ${dayOfWeek}\nFecha: ${fullDate}\nHora: ${time}\n\n${text.trim()}`;
+      
       await base44.agents.addMessage({ id }, { role: "user", content: contextMsg });
-      // Invalidar TODAS las queries relacionadas inmediatamente
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      qc.invalidateQueries({ queryKey: ["recipes"] });
-      qc.invalidateQueries({ queryKey: ["ingredients"] });
-      qc.invalidateQueries({ queryKey: ["operating_expenses"] });
-      qc.invalidateQueries({ queryKey: ["inventory"] });
-      qc.invalidateQueries({ queryKey: ["menu_items"] });
+      
+      // Invalidar queries
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["orders"] });
+        qc.invalidateQueries({ queryKey: ["recipes"] });
+        qc.invalidateQueries({ queryKey: ["ingredients"] });
+        qc.invalidateQueries({ queryKey: ["operating_expenses"] });
+        qc.invalidateQueries({ queryKey: ["inventory"] });
+        qc.invalidateQueries({ queryKey: ["menu_items"] });
+      }, 100);
     } catch (err) {
+      console.error("Send error:", err);
       toast.error("Error al enviar");
       setIsLoading(false);
       isLoadingRef.current = false;
