@@ -39,7 +39,9 @@ export default function PricingConsultant({ conversationId: sharedConversationId
   useEffect(() => {
     if (sharedConversationId) {
       setConversationId(sharedConversationId);
-      setMessages(sharedMessages || []);
+    }
+    if (sharedMessages) {
+      setMessages(sharedMessages);
     }
   }, [sharedConversationId, sharedMessages]);
 
@@ -48,8 +50,7 @@ export default function PricingConsultant({ conversationId: sharedConversationId
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (window.activeTab === "pricing") {
-        setMessages(prev => [...prev, e.detail.message]);
+      if (window.activeTab === "pricing" && e.detail.message?.content) {
         setIsLoading(false);
         playResponse(e.detail.message.content);
       }

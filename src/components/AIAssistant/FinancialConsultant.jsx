@@ -36,7 +36,9 @@ export default function FinancialConsultant({ conversationId: sharedConversation
   useEffect(() => {
     if (sharedConversationId) {
       setConversationId(sharedConversationId);
-      setMessages(sharedMessages || []);
+    }
+    if (sharedMessages) {
+      setMessages(sharedMessages);
     }
   }, [sharedConversationId, sharedMessages]);
 
@@ -45,8 +47,7 @@ export default function FinancialConsultant({ conversationId: sharedConversation
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (window.activeTab === "financial") {
-        setMessages(prev => [...prev, e.detail.message]);
+      if (window.activeTab === "financial" && e.detail.message?.content) {
         setIsLoading(false);
         playResponse(e.detail.message.content);
       }

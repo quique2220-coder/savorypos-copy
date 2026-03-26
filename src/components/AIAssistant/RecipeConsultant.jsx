@@ -28,7 +28,9 @@ export default function RecipeConsultant({ conversationId: sharedConversationId,
   useEffect(() => {
     if (sharedConversationId) {
       setConversationId(sharedConversationId);
-      setMessages(sharedMessages || []);
+    }
+    if (sharedMessages) {
+      setMessages(sharedMessages);
     }
   }, [sharedConversationId, sharedMessages]);
 
@@ -37,8 +39,7 @@ export default function RecipeConsultant({ conversationId: sharedConversationId,
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (window.activeTab === "recipes") {
-        setMessages(prev => [...prev, e.detail.message]);
+      if (window.activeTab === "recipes" && e.detail.message?.content) {
         setIsLoading(false);
         playResponse(e.detail.message.content);
       }
