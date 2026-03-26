@@ -39,9 +39,11 @@ export default function AIConsultantDashboard() {
         // Suscribirse a actualizaciones
         const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
           setMessages(data.messages || []);
-          // Reproducir audio solo si el último mensaje es del asistente y hay un tab activo
+          // Reproducir audio solo si el último mensaje es del asistente
           const lastMsg = data.messages?.[data.messages.length - 1];
           if (lastMsg?.role === "assistant") {
+            // Pasar el activeTab actual - cada consultant filtra por su tab
+            window.currentActiveTab = activeTab;
             const event = new CustomEvent("assistantResponse", { detail: { message: lastMsg } });
             window.dispatchEvent(event);
           }
@@ -60,7 +62,7 @@ export default function AIConsultantDashboard() {
       unsubscribe?.();
       stopAllAudio();
     };
-  }, []);
+  }, [activeTab]);
 
   const handleVoiceInput = (text) => {
     // Solo enviar al consultant activo

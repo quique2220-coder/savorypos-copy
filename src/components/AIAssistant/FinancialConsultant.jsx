@@ -45,7 +45,7 @@ export default function FinancialConsultant({ conversationId: sharedConversation
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (isActive) {
+      if (window.currentActiveTab === "financial" && isActive) {
         setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
         playResponse(e.detail.message.content);

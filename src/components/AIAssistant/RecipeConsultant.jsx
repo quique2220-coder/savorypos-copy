@@ -37,7 +37,7 @@ export default function RecipeConsultant({ conversationId: sharedConversationId,
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (isActive) {
+      if (window.currentActiveTab === "recipes" && isActive) {
         setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
         playResponse(e.detail.message.content);

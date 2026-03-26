@@ -48,7 +48,7 @@ export default function PricingConsultant({ conversationId: sharedConversationId
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (isActive) {
+      if (window.currentActiveTab === "pricing" && isActive) {
         setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
         playResponse(e.detail.message.content);

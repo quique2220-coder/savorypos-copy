@@ -37,7 +37,7 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (isActive) {
+      if (window.currentActiveTab === "sales" && isActive) {
         setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
         playResponse(e.detail.message.content);
