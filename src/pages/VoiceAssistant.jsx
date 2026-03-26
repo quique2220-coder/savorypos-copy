@@ -47,6 +47,7 @@ export default function VoiceAssistant() {
       const lastMsg = msgs[msgs.length - 1];
       if (lastMsg?.role === "assistant" && lastMsg?.content) {
         setIsLoading(false);
+        isLoadingRef.current = false;
         // Debounce: wait 800ms of no new content before speaking (avoids cutting mid-stream)
         if (lastMsg.id !== lastSpokenIdRef.current) {
           clearTimeout(speakTimerRef.current);
@@ -71,22 +72,29 @@ export default function VoiceAssistant() {
 
   const [interimText, setInterimText] = useState("");
   const conversationIdRef = useRef(null);
+  const isLoadingRef = useRef(false);
 
-  // Keep ref in sync so onend closure can access it
+  // Keep refs in sync so closures can access current values
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
 
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
   const sendMessageDirectly = async (text) => {
-    if (!text.trim() || !conversationIdRef.current || isLoading) return;
+    if (!text.trim() || !conversationIdRef.current || isLoadingRef.current) return;
     setInput("");
     setIsLoading(true);
+    isLoadingRef.current = true;
     try {
       await base44.agents.addMessage({ id: conversationIdRef.current }, { role: "user", content: text.trim() });
     } catch (err) {
       console.error("Error sending message:", err);
       toast.error("Error al enviar mensaje");
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -178,16 +186,18 @@ export default function VoiceAssistant() {
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim() || !conversationId || isLoading) return;
+    if (!input.trim() || !conversationId || isLoadingRef.current) return;
     const userMessage = input.trim();
     setInput("");
     setIsLoading(true);
+    isLoadingRef.current = true;
     try {
       await base44.agents.addMessage({ id: conversationId }, { role: "user", content: userMessage });
     } catch (err) {
       console.error("Error sending message:", err);
       toast.error("Error al enviar mensaje");
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
