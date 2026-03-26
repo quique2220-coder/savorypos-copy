@@ -126,15 +126,26 @@ export default function VoiceAssistant() {
     setIsListening(false);
   };
 
-  const speakMessage = (text) => {
-    if (!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = navigator.language?.startsWith("en") ? "en-US" : "es-MX";
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+  const speakMessage = async (text) => {
+    if (!text) return;
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(true);
+    try {
+      const res = await base44.functions.invoke("elevenLabsTTS", { text });
+      const base64 = res.data?.audio;
+      if (!base64) throw new Error("No audio");
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); };
+      audio.onerror = () => setIsSpeaking(false);
+      audio.play();
+    } catch {
+      setIsSpeaking(false);
+    }
   };
 
   const handleSendMessage = async () => {

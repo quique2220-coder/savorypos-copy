@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: "API key not configured" }, { status: 500 });
     }
 
-    // Using a default voice ID (optimized_voice_id)
-    const voiceId = "9BWtsMINqrJLrRacOk9x"; // Default voice - change as needed
+    // Liam - bilingual EN/ES voice
+    const voiceId = "TX3LPaxmHKxFdv7VOQHJ";
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_monolingual_v1",
+          model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,
