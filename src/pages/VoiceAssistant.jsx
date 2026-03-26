@@ -71,7 +71,7 @@ export default function VoiceAssistant() {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = navigator.language?.startsWith("en") ? "en-US" : "es-MX";
+    recognition.lang = "es-US";
     recognition.interimResults = true;
     recognition.continuous = true;
 
