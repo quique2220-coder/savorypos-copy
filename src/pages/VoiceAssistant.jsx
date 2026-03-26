@@ -70,19 +70,46 @@ export default function VoiceAssistant() {
     }
     const recognition = new SpeechRecognition();
     recognition.lang = "es-MX";
-    recognition.interimResults = false;
-    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    let finalTranscript = "";
+    let silenceTimer = null;
+
     recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setInput(transcript);
-      setIsListening(false);
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript + " ";
+        } else {
+          interim = e.results[i][0].transcript;
+        }
+      }
+      setInput((finalTranscript + interim).trim());
+
+      // Reset silence timer — auto-stop after 2.5s of silence
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        recognition.stop();
+      }, 2500);
     };
+
     recognition.onerror = (e) => {
-      toast.error("Error al reconocer voz: " + e.error);
+      if (e.error !== "no-speech") toast.error("Error al reconocer voz: " + e.error);
       setIsListening(false);
     };
-    recognition.onend = () => setIsListening(false);
+
+    recognition.onend = () => {
+      clearTimeout(silenceTimer);
+      setIsListening(false);
+      // Auto-send if we captured something
+      if (finalTranscript.trim()) {
+        setInput(finalTranscript.trim());
+      }
+    };
+
     recognitionRef.current = recognition;
+    finalTranscript = "";
     recognition.start();
     setIsListening(true);
   };
