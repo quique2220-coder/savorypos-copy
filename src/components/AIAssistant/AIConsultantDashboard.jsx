@@ -188,11 +188,22 @@ export default function AIConsultantDashboard() {
 
             <div className="flex-1 overflow-auto rounded-lg border border-border bg-card">
               <div className="h-full overflow-auto p-6">
-                {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} />}
-                {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} />}
-                {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} />}
-                {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} />}
-                {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} />}
+                {!conversationId ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin mx-auto mb-3"></div>
+                      <p className="text-muted-foreground">Inicializando asistente...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} />}
+                    {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} />}
+                    {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} />}
+                    {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} />}
+                    {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} />}
+                  </>
+                )}
               </div>
             </div>
           </Tabs>
