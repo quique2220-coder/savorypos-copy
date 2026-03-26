@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, Mic, MicOff, Plus } from "lucide-react";
+import { Send, Loader2, Mic, MicOff, Plus, Volume2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -14,7 +14,9 @@ export default function RecipeConsultant() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef(null);
+  const audioRef = useRef(null);
 
   // Fetch recipes
   const { data: recipes = [] } = useQuery({
@@ -46,10 +48,39 @@ export default function RecipeConsultant() {
       const lastMsg = data.messages?.[data.messages.length - 1];
       if (lastMsg?.role === "assistant") {
         setIsLoading(false);
+        playResponse(lastMsg.content);
       }
     });
     return () => unsubscribe();
   }, [conversationId]);
+
+  const playResponse = async (text) => {
+    try {
+      setIsSpeaking(true);
+      const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?optimize_streaming_latency=0", {
+        method: "POST",
+        headers: {
+          "xi-api-key": localStorage.getItem("elevenLabsKey") || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: text.substring(0, 3000),
+          model_id: "eleven_monolingual_v1",
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        }),
+      });
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const url = URL.createObjectURL(audioBlob);
+        audioRef.current = new Audio(url);
+        audioRef.current.play();
+        audioRef.current.onended = () => setIsSpeaking(false);
+      }
+    } catch (err) {
+      console.error("TTS error:", err);
+      setIsSpeaking(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;
@@ -72,25 +103,43 @@ export default function RecipeConsultant() {
       toast.error("Navegador no soporta voz. Usa Chrome.");
       return;
     }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-US";
-    recognition.continuous = false;
+    recognition.lang = "es-ES";
+    recognition.continuous = true;
+    recognition.interimResults = true;
     let finalTranscript = "";
 
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
     recognition.onresult = (e) => {
+      let interimTranscript = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + " ";
+        const transcript = e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interimTranscript += transcript;
+        }
       }
-      setInput(finalTranscript.trim());
+      if (finalTranscript) setInput(finalTranscript.trim());
     };
 
     recognition.onend = () => {
       setIsListening(false);
-      if (finalTranscript.trim() && !isLoading) {
+      if (finalTranscript.trim() && !isLoading && conversationId) {
         const today = new Date().toISOString().split('T')[0];
         const textWithContext = `Current date: ${today}\n${finalTranscript.trim()}`;
-        setInput("");
         setIsLoading(true);
+        setInput("");
         base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
           console.error("Error:", err);
           toast.error("Error al enviar");
@@ -100,13 +149,12 @@ export default function RecipeConsultant() {
     };
 
     recognition.onerror = (e) => {
+      console.error("Recognition error:", e.error);
       setIsListening(false);
-      if (e.error !== "no-speech") toast.error("Error: " + e.error);
     };
 
     recognitionRef.current = recognition;
     recognition.start();
-    setIsListening(true);
   };
 
   const quickQuestions = [
@@ -191,21 +239,27 @@ export default function RecipeConsultant() {
         <Button
           variant="outline"
           size="icon"
-          onClick={isListening ? () => recognitionRef.current?.stop() : startRecording}
+          onClick={startRecording}
           className={isListening ? "bg-destructive/10 border-destructive/20" : ""}
+          title="Habla para dictar"
         >
-          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          {isListening ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4" />}
         </Button>
         <Input
           placeholder="¿Qué platillo necesitas?"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          disabled={isLoading}
+          disabled={isLoading || isListening}
         />
         <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon">
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
+        {isSpeaking && (
+          <Button variant="ghost" size="icon" disabled>
+            <Volume2 className="w-4 h-4 animate-pulse" />
+          </Button>
+        )}
       </div>
     </div>
   );
