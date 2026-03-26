@@ -2,15 +2,17 @@ import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Send, X, Loader2, Bot, ChevronDown } from "lucide-react";
+import { Mic, MicOff, Send, Loader2, Bot, ChevronDown, Calculator, TrendingUp, DollarSign, BarChart2, HelpCircle, PlusCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-const SUGGESTIONS = [
-  "Agrega un gasto de renta $1200",
-  "Add ingredient: chicken breast $3.50/lb",
-  "Registra electricidad $200 mensual",
-  "Agrega ingrediente tomate $0.80/lb",
+const QUICK_ACTIONS = [
+  { label: "Explicar overhead", icon: HelpCircle, msg: "¿Cómo calculas el overhead por platillo y qué significa?" },
+  { label: "Costear receta", icon: Calculator, msg: "Quiero costear una receta. ¿Qué información necesitas?" },
+  { label: "Sugerir precio", icon: DollarSign, msg: "¿Cuál debería ser el precio de venta de mi platillo considerando overhead e ingredientes?" },
+  { label: "Simular ventas", icon: TrendingUp, msg: "¿Qué pasa con mi overhead si cambio el volumen de platillos vendidos al mes?" },
+  { label: "Analizar margen", icon: BarChart2, msg: "¿Cuál de mis platillos tiene mejor margen y cuál deja menos utilidad?" },
+  { label: "Agregar gasto", icon: PlusCircle, msg: "Quiero agregar un gasto operativo mensual." },
 ];
 
 export default function RecipesVoiceAssistant({ conversationId, onConversationCreated }) {
@@ -135,8 +137,11 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground shrink-0">
             <div className="flex items-center gap-2">
-              <Bot className="w-4 h-4" />
-              <span className="text-sm font-semibold">Asistente de Recetas</span>
+              <Calculator className="w-4 h-4" />
+              <div>
+                <p className="text-sm font-semibold leading-none">Asistente de Costeo</p>
+                <p className="text-[10px] opacity-75 mt-0.5">Precios · Overhead · Márgenes</p>
+              </div>
             </div>
             <button onClick={() => setOpen(false)} className="opacity-80 hover:opacity-100">
               <ChevronDown className="w-4 h-4" />
@@ -146,17 +151,20 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
           {/* Messages */}
           <div className="flex-1 overflow-auto p-3 space-y-2">
             {messages.length === 0 ? (
-              <div className="space-y-2 pt-2">
-                <p className="text-xs text-muted-foreground text-center">Puedo agregar ingredientes, recetas y gastos operativos. Prueba:</p>
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => sendMessage(s)}
-                    className="w-full text-left text-xs px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors border border-border"
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div className="space-y-2 pt-1">
+                <p className="text-xs text-muted-foreground text-center px-2">Soy tu asesor de costeo. Puedo calcular precios, simular escenarios y explicar el overhead.</p>
+                <div className="grid grid-cols-2 gap-1.5 pt-1">
+                  {QUICK_ACTIONS.map((a) => (
+                    <button
+                      key={a.label}
+                      onClick={() => sendMessage(a.msg)}
+                      className="flex items-center gap-1.5 text-left text-xs px-2.5 py-2 rounded-lg bg-accent/60 hover:bg-accent border border-accent-foreground/10 transition-colors"
+                    >
+                      <a.icon className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span className="leading-tight">{a.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               messages.map((msg, i) => (
@@ -180,6 +188,21 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
                     <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce delay-200" />
                   </div>
                 </div>
+              </div>
+            )}
+            {/* Quick actions below messages */}
+            {messages.length > 0 && !isLoading && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {QUICK_ACTIONS.map((a) => (
+                  <button
+                    key={a.label}
+                    onClick={() => sendMessage(a.msg)}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/60 hover:bg-accent border border-accent-foreground/10 transition-colors"
+                  >
+                    <a.icon className="w-3 h-3 text-primary" />
+                    {a.label}
+                  </button>
+                ))}
               </div>
             )}
             <div ref={messagesEndRef} />
