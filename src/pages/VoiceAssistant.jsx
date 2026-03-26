@@ -62,6 +62,8 @@ export default function VoiceAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const [interimText, setInterimText] = useState("");
+
   const startRecording = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -85,24 +87,27 @@ export default function VoiceAssistant() {
           interim = e.results[i][0].transcript;
         }
       }
-      setInput((finalTranscript + interim).trim());
+      // Only update input with confirmed final text; show interim separately
+      setInput(finalTranscript.trim());
+      setInterimText(interim);
 
-      // Reset silence timer — auto-stop after 2.5s of silence
+      // Reset silence timer — auto-stop after 2s of silence
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         recognition.stop();
-      }, 2500);
+      }, 2000);
     };
 
     recognition.onerror = (e) => {
       if (e.error !== "no-speech") toast.error("Error al reconocer voz: " + e.error);
       setIsListening(false);
+      setInterimText("");
     };
 
     recognition.onend = () => {
       clearTimeout(silenceTimer);
       setIsListening(false);
-      // Auto-send if we captured something
+      setInterimText("");
       if (finalTranscript.trim()) {
         setInput(finalTranscript.trim());
       }
@@ -110,6 +115,8 @@ export default function VoiceAssistant() {
 
     recognitionRef.current = recognition;
     finalTranscript = "";
+    setInput("");
+    setInterimText("");
     recognition.start();
     setIsListening(true);
   };
@@ -276,7 +283,12 @@ export default function VoiceAssistant() {
               </Button>
             </div>
             {isListening && (
-              <p className="text-xs text-primary mt-2 text-center animate-pulse">🎤 Escuchando... habla ahora</p>
+              <div className="mt-2 text-center space-y-1">
+                <p className="text-xs text-primary animate-pulse">🎤 Escuchando... habla ahora</p>
+                {interimText && (
+                  <p className="text-xs text-muted-foreground italic">{interimText}</p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
