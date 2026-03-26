@@ -36,6 +36,8 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
   const recognitionRef = useRef(null);
   const convIdRef = useRef(conversationId);
   const isLoadingRef = useRef(false);
+  const spokenMessagesRef = useRef(new Set());
+  const audioRef = useRef(null);
 
   useEffect(() => { convIdRef.current = conversationId; }, [conversationId]);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
@@ -49,9 +51,10 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       if (last?.role === "assistant") {
         setIsLoading(false);
         isLoadingRef.current = false;
-        // Speak assistant message
+        // Speak assistant message (con ID único para evitar duplicados)
         if (last.content) {
-          speakMessage(last.content);
+          const messageId = `${last.id || last.content}-${last.timestamp || Date.now()}`;
+          speakMessage(last.content, messageId);
         }
         // Invalidate TODAS las queries después de CUALQUIER acción del AI
         setTimeout(() => {
@@ -175,11 +178,22 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     setIsListening(false);
   };
 
-  const speakMessage = async (text) => {
+  const speakMessage = async (text, messageId) => {
+    // Prevenir reproducir el mismo mensaje dos veces
+    if (spokenMessagesRef.current.has(messageId)) return;
+    spokenMessagesRef.current.add(messageId);
+
     try {
+      // Detener reproducción anterior si existe
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
       const res = await base44.functions.invoke("elevenLabsTTS", { text });
       if (res.data?.audio) {
         const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
+        audioRef.current = audio;
         audio.play();
       }
     } catch (err) {
