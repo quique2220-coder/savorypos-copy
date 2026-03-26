@@ -29,10 +29,8 @@ export default function VoiceActivation({ activeTab = "sales" }) {
       }
     };
 
-    if (isActive) {
-      initMicrophone();
-    }
-  }, [isActive]);
+    initMicrophone();
+  }, []);
 
   const startListening = async () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
