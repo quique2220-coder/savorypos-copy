@@ -7,6 +7,7 @@ import { Send, Mic, MicOff, Loader2, MessageCircle, X, Volume2, TrendingUp, Doll
 import { toast } from "sonner";
 import MarginAnalysisVisual from "@/components/costing/MarginAnalysisVisual";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const QUICK_ACTIONS = [
   { label: "¿Cómo voy hoy?", icon: TrendingUp, color: "text-green-600 bg-green-50 border-green-200 hover:bg-green-100" },
@@ -16,6 +17,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function VoiceAssistant() {
+  const navigate = useNavigate();
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -248,7 +250,7 @@ export default function VoiceAssistant() {
         <div className="flex-1 overflow-auto space-y-3 pr-1">
           {showMarginAnalysis && recipes.length > 0 && (
             <div className="mb-4">
-              <MarginAnalysisVisual recipes={recipes} />
+              <MarginAnalysisVisual recipes={recipes} onNavigate={navigate} />
             </div>
           )}
           {messages.length === 0 ? (

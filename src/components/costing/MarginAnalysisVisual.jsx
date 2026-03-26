@@ -1,13 +1,47 @@
-import React from "react";
+import React, { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle2 } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle2, Edit2, Save, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { base44 } from "@/api/base44Client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-export default function MarginAnalysisVisual({ recipes }) {
+export default function MarginAnalysisVisual({ recipes, onNavigate }) {
+  const qc = useQueryClient();
+  const [editingId, setEditingId] = useState(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
   if (!recipes || recipes.length === 0) {
     return <div className="text-center text-muted-foreground p-8">No hay platillos para analizar</div>;
   }
+
+  const handleEditPrice = (recipe) => {
+    setEditingId(recipe.id);
+    setEditPrice(recipe.sale_price || "");
+  };
+
+  const handleSavePrice = async (recipeId) => {
+    if (!editPrice || parseFloat(editPrice) <= 0) {
+      toast.error("Ingresa un precio válido");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await base44.entities.Recipe.update(recipeId, { sale_price: parseFloat(editPrice) });
+      qc.invalidateQueries({ queryKey: ["recipes"] });
+      setEditingId(null);
+      toast.success("Precio actualizado");
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("Error al actualizar precio");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Calcular márgenes
   const analyzed = recipes
@@ -71,7 +105,18 @@ export default function MarginAnalysisVisual({ recipes }) {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Precio:</span>
-                  <span className="font-medium">${dish.sale_price?.toFixed(2) || "0.00"}</span>
+                  {editingId === dish.id ? (
+                    <Input
+                      type="number"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      className="h-6 w-20 text-xs"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  ) : (
+                    <span className="font-medium">${dish.sale_price?.toFixed(2) || "0.00"}</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Costo:</span>
@@ -81,6 +126,37 @@ export default function MarginAnalysisVisual({ recipes }) {
                   <span className="text-muted-foreground font-medium">Ganancia:</span>
                   <span className="font-bold text-green-600">${dish.profit.toFixed(2)}</span>
                 </div>
+                {editingId === dish.id ? (
+                  <div className="flex gap-1 mt-2">
+                    <Button
+                      size="sm"
+                      className="h-6 px-2 text-xs flex-1"
+                      onClick={() => handleSavePrice(dish.id)}
+                      disabled={isSaving}
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      Guardar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setEditingId(null)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs w-full mt-2"
+                    onClick={() => handleEditPrice(dish)}
+                  >
+                    <Edit2 className="w-3 h-3 mr-1" />
+                    Editar precio
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -146,7 +222,18 @@ export default function MarginAnalysisVisual({ recipes }) {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Precio:</span>
-                  <span className="font-medium">${dish.sale_price?.toFixed(2) || "0.00"}</span>
+                  {editingId === dish.id ? (
+                    <Input
+                      type="number"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      className="h-6 w-20 text-xs"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  ) : (
+                    <span className="font-medium">${dish.sale_price?.toFixed(2) || "0.00"}</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Costo:</span>
@@ -156,6 +243,37 @@ export default function MarginAnalysisVisual({ recipes }) {
                   <span className="text-muted-foreground font-medium">Ganancia:</span>
                   <span className="font-semibold text-red-600">${dish.profit.toFixed(2)}</span>
                 </div>
+                {editingId === dish.id ? (
+                  <div className="flex gap-1 mt-2">
+                    <Button
+                      size="sm"
+                      className="h-6 px-2 text-xs flex-1"
+                      onClick={() => handleSavePrice(dish.id)}
+                      disabled={isSaving}
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      Guardar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setEditingId(null)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs w-full mt-2"
+                    onClick={() => handleEditPrice(dish)}
+                  >
+                    <Edit2 className="w-3 h-3 mr-1" />
+                    Editar precio
+                  </Button>
+                )}
               </div>
               {dish.margin < 15 && (
                 <div className="flex items-center gap-1 mt-2 text-xs text-red-600">
@@ -200,6 +318,37 @@ export default function MarginAnalysisVisual({ recipes }) {
           </table>
         </CardContent>
       </Card>
+
+      {/* Links a Secciones */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Button
+          variant="outline"
+          className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          onClick={() => onNavigate?.("/Recipes")}
+        >
+          <span className="text-2xl">📋</span>
+          <span className="text-sm font-semibold">Ver Recetas</span>
+          <span className="text-xs text-muted-foreground">Editar platillos e ingredientes</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          onClick={() => onNavigate?.("/Ingredients")}
+        >
+          <span className="text-2xl">🥘</span>
+          <span className="text-sm font-semibold">Ingredientes</span>
+          <span className="text-xs text-muted-foreground">Gestionar costos de ingredientes</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          onClick={() => onNavigate?.("/Orders")}
+        >
+          <span className="text-2xl">📦</span>
+          <span className="text-sm font-semibold">Órdenes</span>
+          <span className="text-xs text-muted-foreground">Ver ventas y pedidos</span>
+        </Button>
+      </div>
 
       {/* Recomendaciones */}
       <Card className="bg-primary/5 border-primary/20">
