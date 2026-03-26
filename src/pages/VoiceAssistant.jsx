@@ -59,70 +59,42 @@ export default function VoiceAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Eleven Labs Speech-to-Text
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
-        await sendAudioToElevenLabs(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsListening(true);
-    } catch (err) {
-      console.error("Mic error:", err);
-      toast.error("No se puede acceder al micrófono");
+  // Web Speech API (native browser STT)
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Tu navegador no soporta reconocimiento de voz. Usa Chrome.");
+      return;
     }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-MX";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setInput(transcript);
+    };
+
+    recognition.onerror = (e) => {
+      console.error("Speech recognition error:", e.error);
+      toast.error("Error al reconocer voz: " + e.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    mediaRecorderRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
   };
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
     setIsListening(false);
-  };
-
-  const sendAudioToElevenLabs = async (audioBlob) => {
-    try {
-      const reader = new FileReader();
-      reader.readAsArrayBuffer(audioBlob);
-      reader.onload = async () => {
-        try {
-          const uint8Array = new Uint8Array(reader.result);
-          const binaryString = Array.from(uint8Array).map(b => String.fromCharCode(b)).join('');
-          const base64Audio = btoa(binaryString);
-          
-          const response = await base44.functions.invoke("elevenLabsSTT", { 
-            audio: base64Audio,
-            mimeType: audioBlob.type
-          });
-          setInput(response.data.transcript || "");
-        } catch (err) {
-          console.error("Eleven Labs STT error:", err);
-          if (err?.response?.status === 401) {
-            toast.error("API key de Eleven Labs sin permisos de Speech-to-Text. Verifica tu API key.");
-          } else {
-            toast.error("Error en transcripción de voz");
-          }
-        }
-      };
-      reader.onerror = () => {
-        toast.error("Error al leer el audio");
-      };
-    } catch (err) {
-      console.error("Eleven Labs STT error:", err);
-      toast.error("Error en transcripción de voz");
-    }
   };
 
   // Eleven Labs Text-to-Speech
