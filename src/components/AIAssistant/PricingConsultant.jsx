@@ -97,9 +97,22 @@ export default function PricingConsultant() {
 
     recognition.onend = () => {
       setIsListening(false);
-      if (finalTranscript.trim()) {
-        setInput(finalTranscript.trim());
+      if (finalTranscript.trim() && !isLoading) {
+        const today = new Date().toISOString().split('T')[0];
+        const textWithContext = `Current date: ${today}\n${finalTranscript.trim()}`;
+        setInput("");
+        setIsLoading(true);
+        base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
+          console.error("Error:", err);
+          toast.error("Error al enviar");
+          setIsLoading(false);
+        });
       }
+    };
+
+    recognition.onerror = (e) => {
+      setIsListening(false);
+      if (e.error !== "no-speech") toast.error("Error: " + e.error);
     };
 
     recognitionRef.current = recognition;
