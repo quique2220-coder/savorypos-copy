@@ -133,10 +133,20 @@ export default function VoiceAssistant() {
       setIsSpeaking(true);
       const response = await base44.functions.invoke("elevenLabsTTS", { text });
       
-      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+      const base64Audio = response.data.audio;
+      const binaryString = atob(base64Audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const audioBlob = new Blob([bytes], { type: "audio/mpeg" });
       const audio = new Audio(URL.createObjectURL(audioBlob));
       
       audio.onended = () => setIsSpeaking(false);
+      audio.onerror = () => {
+        toast.error("Error al reproducir audio");
+        setIsSpeaking(false);
+      };
       audio.play();
     } catch (err) {
       console.error("Eleven Labs TTS error:", err);

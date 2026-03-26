@@ -47,12 +47,13 @@ Deno.serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    return new Response(audioBuffer, {
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Length": audioBuffer.byteLength,
-      },
-    });
+    const uint8Array = new Uint8Array(audioBuffer);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    const base64Audio = btoa(binaryString);
+    return Response.json({ audio: base64Audio });
   } catch (error) {
     console.error("TTS function error:", error.message);
     return Response.json({ error: error.message }, { status: 500 });
