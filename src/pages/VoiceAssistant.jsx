@@ -71,7 +71,7 @@ export default function VoiceAssistant() {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-US";
+    recognition.lang = "en-US";
     recognition.interimResults = true;
     recognition.continuous = true;
 
