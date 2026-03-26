@@ -7,6 +7,7 @@ import InventoryConsultant from "./InventoryConsultant";
 import RecipeConsultant from "./RecipeConsultant";
 import FinancialConsultant from "./FinancialConsultant";
 import PricingConsultant from "./PricingConsultant";
+import VoiceActivation from "../VoiceActivation";
 
 export default function AIConsultantDashboard() {
   const [activeTab, setActiveTab] = useState("sales");
