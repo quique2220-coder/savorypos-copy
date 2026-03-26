@@ -3,8 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Mic, MicOff, Loader2, MessageCircle, X, Volume2 } from "lucide-react";
+import { Send, Mic, MicOff, Loader2, MessageCircle, X, Volume2, TrendingUp, DollarSign, Package, ChefHat } from "lucide-react";
 import { toast } from "sonner";
+
+const QUICK_ACTIONS = [
+  { label: "¿Cómo voy hoy?", icon: TrendingUp, color: "text-green-600 bg-green-50 border-green-200 hover:bg-green-100" },
+  { label: "Registrar gasto", icon: DollarSign, color: "text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100" },
+  { label: "Ver inventario", icon: Package, color: "text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100" },
+  { label: "Analizar platillo", icon: ChefHat, color: "text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100" },
+];
 
 export default function VoiceAssistant() {
   const [conversationId, setConversationId] = useState(null);
@@ -14,8 +21,14 @@ export default function VoiceAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
+  const [interimText, setInterimText] = useState("");
+
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const lastSpokenIdRef = useRef(null);
+  const speakTimerRef = useRef(null);
+  const conversationIdRef = useRef(null);
+  const isLoadingRef = useRef(false);
 
   useEffect(() => {
     const initConversation = async () => {
@@ -34,21 +47,18 @@ export default function VoiceAssistant() {
     initConversation();
   }, []);
 
-  const lastSpokenIdRef = useRef(null);
-
-  const speakTimerRef = useRef(null);
+  useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
 
   useEffect(() => {
     if (!conversationId) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const msgs = data.messages || [];
       setMessages(msgs);
-
       const lastMsg = msgs[msgs.length - 1];
       if (lastMsg?.role === "assistant" && lastMsg?.content) {
         setIsLoading(false);
         isLoadingRef.current = false;
-        // Debounce: wait 800ms of no new content before speaking (avoids cutting mid-stream)
         if (lastMsg.id !== lastSpokenIdRef.current) {
           clearTimeout(speakTimerRef.current);
           speakTimerRef.current = setTimeout(() => {
@@ -60,28 +70,12 @@ export default function VoiceAssistant() {
         setIsLoading(true);
       }
     });
-    return () => {
-      unsubscribe();
-      clearTimeout(speakTimerRef.current);
-    };
+    return () => { unsubscribe(); clearTimeout(speakTimerRef.current); };
   }, [conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const [interimText, setInterimText] = useState("");
-  const conversationIdRef = useRef(null);
-  const isLoadingRef = useRef(false);
-
-  // Keep refs in sync so closures can access current values
-  useEffect(() => {
-    conversationIdRef.current = conversationId;
-  }, [conversationId]);
-
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-  }, [isLoading]);
 
   const sendMessageDirectly = async (text) => {
     if (!text.trim() || !conversationIdRef.current || isLoadingRef.current) return;
@@ -90,6 +84,22 @@ export default function VoiceAssistant() {
     isLoadingRef.current = true;
     try {
       await base44.agents.addMessage({ id: conversationIdRef.current }, { role: "user", content: text.trim() });
+    } catch (err) {
+      console.error("Error sending message:", err);
+      toast.error("Error al enviar mensaje");
+      setIsLoading(false);
+      isLoadingRef.current = false;
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || !conversationId || isLoadingRef.current) return;
+    const userMessage = input.trim();
+    setInput("");
+    setIsLoading(true);
+    isLoadingRef.current = true;
+    try {
+      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: userMessage });
     } catch (err) {
       console.error("Error sending message:", err);
       toast.error("Error al enviar mensaje");
@@ -111,25 +121,18 @@ export default function VoiceAssistant() {
 
     let finalTranscript = "";
     let silenceTimer = null;
-    let hasSent = false; // prevent double-send
+    let hasSent = false;
 
     recognition.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalTranscript += e.results[i][0].transcript + " ";
-        } else {
-          interim = e.results[i][0].transcript;
-        }
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + " ";
+        else interim = e.results[i][0].transcript;
       }
       setInput(finalTranscript.trim());
       setInterimText(interim);
-
-      // Auto-stop after 2s of silence
       clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => {
-        recognition.stop();
-      }, 2000);
+      silenceTimer = setTimeout(() => recognition.stop(), 2000);
     };
 
     recognition.onerror = (e) => {
@@ -143,7 +146,6 @@ export default function VoiceAssistant() {
       clearTimeout(silenceTimer);
       setIsListening(false);
       setInterimText("");
-      // Guard: only send once per recording session
       if (!hasSent && finalTranscript.trim()) {
         hasSent = true;
         sendMessageDirectly(finalTranscript.trim());
@@ -185,39 +187,27 @@ export default function VoiceAssistant() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || !conversationId || isLoadingRef.current) return;
-    const userMessage = input.trim();
-    setInput("");
-    setIsLoading(true);
-    isLoadingRef.current = true;
-    try {
-      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: userMessage });
-    } catch (err) {
-      console.error("Error sending message:", err);
-      toast.error("Error al enviar mensaje");
-      setIsLoading(false);
-      isLoadingRef.current = false;
-    }
-  };
-
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-primary/5 to-accent/5 p-4">
-      <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-4">
+      <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-3">
+
+        {/* Header */}
         <Card className="shrink-0">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 pt-4 px-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Mic className="w-5 h-5 text-primary" />
-                Asistente de Voz
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mic className="w-4 h-4 text-primary" />
+                </div>
+                Asistente de Negocio
               </CardTitle>
               <Button variant="outline" size="sm" onClick={() => setShowWhatsApp(!showWhatsApp)}>
-                <MessageCircle className="w-4 h-4 mr-2" />
+                <MessageCircle className="w-4 h-4 mr-1.5" />
                 WhatsApp
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ingredientes • Recetas • Reportes • Contabilidad
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ventas • Inventario • Costos • Contabilidad
             </p>
             {showWhatsApp && (
               <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
@@ -240,67 +230,95 @@ export default function VoiceAssistant() {
           </CardHeader>
         </Card>
 
+        {/* Messages */}
         <div className="flex-1 overflow-auto space-y-3 pr-1">
           {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-center">
-              <div className="space-y-3">
-                <Mic className="w-12 h-12 mx-auto text-primary/30" />
-                <div>
-                  <p className="text-sm font-medium">Bienvenido al Asistente de Voz</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Pregunta sobre ingredientes, recetas, reportes o contabilidad
-                  </p>
+            <div className="h-full flex flex-col items-center justify-center text-center gap-6 pb-8">
+              <div className="space-y-2">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Mic className="w-8 h-8 text-primary/50" />
                 </div>
+                <p className="text-sm font-semibold">Tu Operador de Negocio con IA</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Lee datos reales, ejecuta acciones y te da recomendaciones como coach
+                </p>
+              </div>
+              {/* Quick Actions */}
+              <div className="w-full grid grid-cols-2 gap-2">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => sendMessageDirectly(action.label)}
+                    disabled={isLoading}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors text-left ${action.color}`}
+                  >
+                    <action.icon className="w-4 h-4 shrink-0" />
+                    {action.label}
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
-            messages.map((msg, idx) => (
-              <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-lg ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-none"
-                    : "bg-card border border-border rounded-bl-none"
-                }`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap flex-1">{msg.content}</p>
-                    {msg.role === "assistant" && msg.content && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 shrink-0 -mt-0.5"
-                        onClick={() => speakMessage(msg.content)}
-                        disabled={isSpeaking}
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </Button>
+            <>
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                      : "bg-card border border-border rounded-bl-sm shadow-sm"
+                  }`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap flex-1">{msg.content}</p>
+                      {msg.role === "assistant" && msg.content && (
+                        <button
+                          className="shrink-0 mt-0.5 opacity-50 hover:opacity-100 transition-opacity"
+                          onClick={() => speakMessage(msg.content)}
+                          disabled={isSpeaking}
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {msg.tool_calls?.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-current/10 space-y-1">
+                        {msg.tool_calls.map((tc, tcIdx) => (
+                          <div key={tcIdx} className="text-[11px] opacity-60 flex items-center gap-1">
+                            {tc.status === "completed"
+                              ? <span>✓ {tc.name}</span>
+                              : <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />{tc.name}</span>
+                            }
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {msg.tool_calls?.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-current border-opacity-20 space-y-1">
-                      {msg.tool_calls.map((tc, tcIdx) => (
-                        <div key={tcIdx} className="text-[11px] opacity-80 flex items-center gap-1">
-                          {tc.status === "completed" ? (
-                            <span>✓ {tc.name}</span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" />{tc.name}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))
+              ))}
+              {/* Quick actions below messages */}
+              {!isLoading && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {QUICK_ACTIONS.map((action) => (
+                    <button
+                      key={action.label}
+                      onClick={() => sendMessageDirectly(action.label)}
+                      disabled={isLoading}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors ${action.color}`}
+                    >
+                      <action.icon className="w-3 h-3" />
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {isLoading && (
-            <div className="flex gap-3 justify-start">
-              <div className="bg-card border border-border rounded-lg rounded-bl-none px-4 py-2.5">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce delay-100" />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce delay-200" />
+            <div className="flex gap-2 justify-start">
+              <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="flex gap-1 items-center">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce delay-100" />
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce delay-200" />
                 </div>
               </div>
             </div>
@@ -308,40 +326,40 @@ export default function VoiceAssistant() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Input */}
         <Card className="shrink-0">
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-3 pb-3 px-3">
             <div className="flex gap-2">
               <Button
                 variant="default"
                 size="icon"
                 onClick={isListening ? stopRecording : startRecording}
                 disabled={isLoading}
-                className={isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}
+                className={`shrink-0 ${isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}`}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
               <Input
-                placeholder="Escribe o usa el micrófono..."
+                placeholder={isListening ? "Escuchando..." : "Escribe o habla..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 disabled={isLoading}
                 className="flex-1"
               />
-              <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon">
+              <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon" className="shrink-0">
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
             {isListening && (
-              <div className="mt-2 text-center space-y-1">
+              <div className="mt-2 text-center space-y-0.5">
                 <p className="text-xs text-primary animate-pulse">🎤 Escuchando... habla ahora</p>
-                {interimText && (
-                  <p className="text-xs text-muted-foreground italic">{interimText}</p>
-                )}
+                {interimText && <p className="text-xs text-muted-foreground italic">{interimText}</p>}
               </div>
             )}
           </CardContent>
         </Card>
+
       </div>
     </div>
   );
