@@ -49,10 +49,16 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       if (last?.role === "assistant") {
         setIsLoading(false);
         isLoadingRef.current = false;
-        // Invalidate after AI likely made changes
-        qc.invalidateQueries({ queryKey: ["ingredients"] });
-        qc.invalidateQueries({ queryKey: ["operating_expenses"] });
-        qc.invalidateQueries({ queryKey: ["recipes"] });
+        // Invalidate TODAS las queries después de CUALQUIER acción del AI
+        setTimeout(() => {
+          qc.invalidateQueries({ queryKey: ["orders"] });
+          qc.invalidateQueries({ queryKey: ["recipes"] });
+          qc.invalidateQueries({ queryKey: ["ingredients"] });
+          qc.invalidateQueries({ queryKey: ["operating_expenses"] });
+          qc.invalidateQueries({ queryKey: ["inventory"] });
+          qc.invalidateQueries({ queryKey: ["menu_items"] });
+          qc.invalidateQueries({ queryKey: ["journal_entries"] });
+        }, 500);
       }
     });
     return () => unsub();
@@ -80,7 +86,17 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     isLoadingRef.current = true;
     try {
       const id = await initConversation();
-      await base44.agents.addMessage({ id }, { role: "user", content: text.trim() });
+      // Agregar contexto de tiempo real
+      const today = new Date().toISOString().split('T')[0];
+      const contextMsg = `[CONTEXTO ACTUAL - ${today}]\n- Fecha: ${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n- Hora: ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}\n\n[USUARIO]: ${text.trim()}`;
+      await base44.agents.addMessage({ id }, { role: "user", content: contextMsg });
+      // Invalidar TODAS las queries relacionadas inmediatamente
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["recipes"] });
+      qc.invalidateQueries({ queryKey: ["ingredients"] });
+      qc.invalidateQueries({ queryKey: ["operating_expenses"] });
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["menu_items"] });
     } catch (err) {
       toast.error("Error al enviar");
       setIsLoading(false);
