@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-export default function FinancialConsultant({ conversationId, messages }) {
+export default function FinancialConsultant({ conversationId, messages, playAudio }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [lastPlayedId, setLastPlayedId] = useState(null);
 
   const { data: orders = [] } = useQuery({
     queryKey: ["orders"],
@@ -23,6 +25,16 @@ export default function FinancialConsultant({ conversationId, messages }) {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
+
+  // Reproducir audio del último mensaje del asistente
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedId && playAudio) {
+      setLastPlayedId(lastMsg.id);
+      setTimeout(() => playAudio(lastMsg.content), 500);
+    }
+  }, [messages, playAudio, lastPlayedId]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;

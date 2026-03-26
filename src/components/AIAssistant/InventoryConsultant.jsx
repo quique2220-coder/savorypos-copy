@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-export default function InventoryConsultant({ conversationId, messages }) {
+export default function InventoryConsultant({ conversationId, messages, playAudio }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [lastPlayedId, setLastPlayedId] = useState(null);
 
   const { data: inventory = [] } = useQuery({
     queryKey: ["inventory"],
@@ -16,6 +18,16 @@ export default function InventoryConsultant({ conversationId, messages }) {
   });
 
   const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
+
+  // Reproducir audio del último mensaje del asistente
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedId && playAudio) {
+      setLastPlayedId(lastMsg.id);
+      setTimeout(() => playAudio(lastMsg.content), 500);
+    }
+  }, [messages, playAudio, lastPlayedId]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;

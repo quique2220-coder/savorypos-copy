@@ -67,13 +67,6 @@ export default function AIConsultantDashboard() {
         // Suscribirse a actualizaciones
         unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
           setMessages(data.messages || []);
-          // Reproducir audio del último mensaje del asistente (solo si es nuevo)
-          const lastMsg = data.messages?.[data.messages.length - 1];
-          if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedMessageId) {
-            setLastPlayedMessageId(lastMsg.id);
-            // Esperar 1 segundo antes de reproducir para evitar saturar ElevenLabs
-            setTimeout(() => playAudio(lastMsg.content), 1000);
-          }
         });
       } catch (err) {
         console.error("Error iniciando conversación:", err);
@@ -87,6 +80,11 @@ export default function AIConsultantDashboard() {
       stopAllAudio();
     };
   }, []);
+
+  // Detener audio al cambiar tab
+  useEffect(() => {
+    stopAllAudio();
+  }, [activeTab]);
 
   // Escuchar eventos de voz y enviar mensaje
   useEffect(() => {
@@ -198,11 +196,11 @@ export default function AIConsultantDashboard() {
                   </div>
                 ) : (
                   <>
-                    {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} />}
-                    {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} />}
-                    {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} />}
-                    {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} />}
-                    {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} />}
+                    {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
+                    {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
+                    {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
+                    {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
+                    {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
                   </>
                 )}
               </div>

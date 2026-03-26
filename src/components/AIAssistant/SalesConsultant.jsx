@@ -5,15 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-export default function SalesConsultant({ conversationId, messages }) {
+export default function SalesConsultant({ conversationId, messages, playAudio }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [lastPlayedId, setLastPlayedId] = useState(null);
 
   const { data: orders = [] } = useQuery({
     queryKey: ["orders"],
     queryFn: () => base44.entities.Order.list(),
   });
+
+  // Reproducir audio del último mensaje del asistente
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedId && playAudio) {
+      setLastPlayedId(lastMsg.id);
+      setTimeout(() => playAudio(lastMsg.content), 500);
+    }
+  }, [messages, playAudio, lastPlayedId]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;
