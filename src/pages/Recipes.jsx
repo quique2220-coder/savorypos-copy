@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Pencil, Trash2, ChefHat, Building2 } from "lucide-react";
 import RecipeBuilder from "@/components/costing/RecipeBuilder";
 import OverheadSettings from "@/components/costing/OverheadSettings";
+import RecipesVoiceAssistant from "@/components/costing/RecipesVoiceAssistant";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 
 export default function Recipes() {
@@ -17,6 +18,7 @@ export default function Recipes() {
   const [showOverhead, setShowOverhead] = useState(false);
   const [monthlyDishes, setMonthlyDishes] = useState(1300);
   const [overheadPerDish, setOverheadPerDish] = useState(0);
+  const [assistantConvId, setAssistantConvId] = useState(null);
   const qc = useQueryClient();
 
   const { data: recipes = [] } = useQuery({
@@ -167,6 +169,10 @@ export default function Recipes() {
           </div>
         )}
       </div>
+      <RecipesVoiceAssistant
+        conversationId={assistantConvId}
+        onConversationCreated={setAssistantConvId}
+      />
     </div>
   );
 }
