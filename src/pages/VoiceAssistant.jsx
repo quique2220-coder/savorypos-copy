@@ -36,26 +36,33 @@ export default function VoiceAssistant() {
 
   const lastSpokenIdRef = useRef(null);
 
+  const speakTimerRef = useRef(null);
+
   useEffect(() => {
     if (!conversationId) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const msgs = data.messages || [];
       setMessages(msgs);
-      setIsLoading(false);
 
-      // Auto-speak the latest assistant message if it's new and complete
       const lastMsg = msgs[msgs.length - 1];
-      if (
-        lastMsg &&
-        lastMsg.role === "assistant" &&
-        lastMsg.content &&
-        lastMsg.id !== lastSpokenIdRef.current
-      ) {
-        lastSpokenIdRef.current = lastMsg.id;
-        speakMessage(lastMsg.content);
+      if (lastMsg?.role === "assistant" && lastMsg?.content) {
+        setIsLoading(false);
+        // Debounce: wait 800ms of no new content before speaking (avoids cutting mid-stream)
+        if (lastMsg.id !== lastSpokenIdRef.current) {
+          clearTimeout(speakTimerRef.current);
+          speakTimerRef.current = setTimeout(() => {
+            lastSpokenIdRef.current = lastMsg.id;
+            speakMessage(lastMsg.content);
+          }, 800);
+        }
+      } else if (lastMsg?.role === "user") {
+        setIsLoading(true);
       }
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      clearTimeout(speakTimerRef.current);
+    };
   }, [conversationId]);
 
   useEffect(() => {
@@ -90,7 +97,7 @@ export default function VoiceAssistant() {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
+    recognition.lang = "es-US";
     recognition.interimResults = true;
     recognition.continuous = true;
 
