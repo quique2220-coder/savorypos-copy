@@ -62,7 +62,13 @@ export default function SalesConsultant() {
         recognitionRef.current.stop();
         setIsListening(false);
       }
-      const res = await base44.functions.invoke("elevenLabsTTS", { text: text.substring(0, 3000) });
+      // Limpiar texto de caracteres especiales problematicos
+      const cleanText = text.substring(0, 3000).replace(/[\n\r\t]/g, ' ').trim();
+      if (!cleanText) {
+        setIsSpeaking(false);
+        return;
+      }
+      const res = await base44.functions.invoke("elevenLabsTTS", { text: cleanText });
       if (res.data?.audio) {
         const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
         audioRef.current = audio;
