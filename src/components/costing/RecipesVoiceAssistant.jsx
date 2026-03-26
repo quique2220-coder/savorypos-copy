@@ -83,7 +83,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { toast.error("Usa Chrome para reconocimiento de voz"); return; }
     const rec = new SR();
-    rec.lang = "en-US";
+    rec.lang = "es-US"; // bilingual: Chrome handles Spanish + English mix
     rec.interimResults = true;
     rec.continuous = true;
     let final = "";

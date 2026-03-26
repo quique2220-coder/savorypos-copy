@@ -115,7 +115,7 @@ export default function VoiceAssistant() {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
+    recognition.lang = "es-US"; // bilingual: Chrome will detect both Spanish and English
     recognition.interimResults = true;
     recognition.continuous = true;
 
