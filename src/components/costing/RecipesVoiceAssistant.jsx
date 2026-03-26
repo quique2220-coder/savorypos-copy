@@ -15,8 +15,17 @@ const QUICK_ACTIONS = [
   { label: "Agregar gasto", icon: PlusCircle, msg: "Quiero agregar un gasto operativo mensual." },
 ];
 
-export default function RecipesVoiceAssistant({ conversationId, onConversationCreated }) {
-  const [open, setOpen] = useState(true);
+export default function RecipesVoiceAssistant({ conversationId, onConversationCreated, externalOpen, onOpenChange }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (externalOpen !== undefined) setOpen(externalOpen);
+  }, [externalOpen]);
+
+  const handleSetOpen = (val) => {
+    setOpen(val);
+    onOpenChange?.(val);
+  };
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -124,16 +133,18 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       {/* Floating button */}
       {!open && (
         <button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform z-[9999]"
+          onClick={() => handleSetOpen(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl flex flex-col items-center justify-center hover:scale-105 transition-transform z-[99999]"
+          style={{ boxShadow: "0 0 0 4px hsl(var(--primary)/0.2), 0 8px 32px rgba(0,0,0,0.25)" }}
         >
           <Bot className="w-6 h-6" />
+          <span className="text-[9px] font-bold leading-none mt-0.5">IA</span>
         </button>
       )}
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-6 right-6 w-80 bg-card border border-border rounded-2xl shadow-2xl flex flex-col z-[9999] overflow-hidden" style={{ height: 440 }}>
+        <div className="fixed bottom-6 right-6 w-80 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ height: 440, zIndex: 99999 }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground shrink-0">
             <div className="flex items-center gap-2">
@@ -143,7 +154,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
                 <p className="text-[10px] opacity-75 mt-0.5">Precios · Overhead · Márgenes</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="opacity-80 hover:opacity-100">
+            <button onClick={() => handleSetOpen(false)} className="opacity-80 hover:opacity-100">
               <ChevronDown className="w-4 h-4" />
             </button>
           </div>

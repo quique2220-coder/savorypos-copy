@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, Trash2, ChefHat, Building2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChefHat, Building2, Bot } from "lucide-react";
 import RecipeBuilder from "@/components/costing/RecipeBuilder";
 import OverheadSettings from "@/components/costing/OverheadSettings";
 import RecipesVoiceAssistant from "@/components/costing/RecipesVoiceAssistant";
@@ -19,6 +19,7 @@ export default function Recipes() {
   const [monthlyDishes, setMonthlyDishes] = useState(1300);
   const [overheadPerDish, setOverheadPerDish] = useState(0);
   const [assistantConvId, setAssistantConvId] = useState(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const qc = useQueryClient();
 
   const { data: recipes = [] } = useQuery({
@@ -71,6 +72,9 @@ export default function Recipes() {
             <p className="text-muted-foreground text-sm mt-1">{recipes.length} recetas · cálculo automático de costos</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setAssistantOpen(v => !v)} className="gap-1">
+              <Bot className="w-4 h-4" /> Asistente IA
+            </Button>
             <Button variant="outline" onClick={() => setShowOverhead(!showOverhead)}>
               <Building2 className="w-4 h-4 mr-1" /> Gastos Operativos
             </Button>
@@ -172,6 +176,8 @@ export default function Recipes() {
       <RecipesVoiceAssistant
         conversationId={assistantConvId}
         onConversationCreated={setAssistantConvId}
+        externalOpen={assistantOpen}
+        onOpenChange={setAssistantOpen}
       />
     </div>
   );
