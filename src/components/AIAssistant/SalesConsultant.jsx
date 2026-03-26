@@ -252,16 +252,6 @@ export default function SalesConsultant() {
 
       {/* Input */}
       <div className="flex gap-2">
-        <Button
-          variant={isListening ? "destructive" : isSpeaking ? "secondary" : "default"}
-          size="icon"
-          onClick={startRecording}
-          disabled={isSpeaking || isLoading}
-          className="shrink-0"
-          title={isSpeaking ? "Espera a que termine el asistente" : isListening ? "Detener micrófono" : "Presiona para hablar"}
-        >
-          {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
-        </Button>
         <Input
           placeholder="¿Qué quieres saber sobre ventas?"
           value={input}

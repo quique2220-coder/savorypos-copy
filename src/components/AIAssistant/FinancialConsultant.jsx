@@ -259,15 +259,6 @@ export default function FinancialConsultant() {
 
       {/* Input */}
       <div className="flex gap-2">
-        <Button
-          variant={isListening ? "destructive" : "default"}
-          size="icon"
-          onClick={startRecording}
-          className="shrink-0"
-          title={isListening ? "Detener micrófono" : "Presiona para hablar"}
-        >
-          {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
-        </Button>
         <Input
           placeholder="¿Qué analizo de finanzas?"
           value={input}
