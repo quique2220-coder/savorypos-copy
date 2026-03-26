@@ -69,7 +69,7 @@ export default function VoiceAssistant() {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-MX";
+    recognition.lang = navigator.language?.startsWith("en") ? "en-US" : "es-MX";
     recognition.interimResults = true;
     recognition.continuous = true;
 
@@ -123,7 +123,7 @@ export default function VoiceAssistant() {
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "es-MX";
+    utterance.lang = navigator.language?.startsWith("en") ? "en-US" : "es-MX";
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
