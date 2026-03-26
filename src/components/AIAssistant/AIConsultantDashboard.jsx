@@ -71,7 +71,8 @@ export default function AIConsultantDashboard() {
           const lastMsg = data.messages?.[data.messages.length - 1];
           if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedMessageId) {
             setLastPlayedMessageId(lastMsg.id);
-            playAudio(lastMsg.content);
+            // Esperar 1 segundo antes de reproducir para evitar saturar ElevenLabs
+            setTimeout(() => playAudio(lastMsg.content), 1000);
           }
         });
       } catch (err) {
