@@ -37,11 +37,9 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (window.currentActiveTab === "sales" && isActive) {
-        setMessages(prev => [...prev, e.detail.message]);
-        setIsLoading(false);
-        playResponse(e.detail.message.content);
-      }
+      setMessages(prev => [...prev, e.detail.message]);
+      setIsLoading(false);
+      playResponse(e.detail.message.content);
     };
     
     // Escuchar eventos de voz flotante del botón Alexa
@@ -64,7 +62,7 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
       window.removeEventListener("assistantResponse", handleAssistantResponse);
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
-  }, [conversationId, isActive]);
+  }, [conversationId]);
 
   const playResponse = async (text) => {
     try {

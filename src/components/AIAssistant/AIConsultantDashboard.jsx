@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, TrendingUp, Package, UtensilsCrossed, BookOpen, PieChart } from "lucide-react";
 import SalesConsultant from "./SalesConsultant";
@@ -42,8 +42,6 @@ export default function AIConsultantDashboard() {
           // Reproducir audio solo si el último mensaje es del asistente
           const lastMsg = data.messages?.[data.messages.length - 1];
           if (lastMsg?.role === "assistant") {
-            // Pasar el activeTab actual - cada consultant filtra por su tab
-            window.currentActiveTab = activeTab;
             const event = new CustomEvent("assistantResponse", { detail: { message: lastMsg } });
             window.dispatchEvent(event);
           }
@@ -62,7 +60,7 @@ export default function AIConsultantDashboard() {
       unsubscribe?.();
       stopAllAudio();
     };
-  }, [activeTab]);
+  }, []);
 
   const handleVoiceInput = (text) => {
     // Solo enviar al consultant activo
@@ -147,16 +145,13 @@ export default function AIConsultantDashboard() {
             </TabsList>
 
             <div className="flex-1 overflow-auto rounded-lg border border-border bg-card">
-              {tabs.map((tab) => {
-                const ComponentWithProps = React.cloneElement(tab.component, { conversationId, messages, stopAllAudio, setCurrentAudio, isActive: activeTab === tab.id });
-                return (
-                  <TabsContent key={tab.id} value={tab.id} className="h-full p-0">
-                    <div className="h-full overflow-auto">
-                      <div className="p-6">{ComponentWithProps}</div>
-                    </div>
-                  </TabsContent>
-                );
-              })}
+              <div className="h-full overflow-auto p-6">
+                {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
+                {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
+                {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
+                {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
+                {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
+              </div>
             </div>
           </Tabs>
         </div>

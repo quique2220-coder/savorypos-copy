@@ -48,11 +48,9 @@ export default function PricingConsultant({ conversationId: sharedConversationId
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (window.currentActiveTab === "pricing" && isActive) {
-        setMessages(prev => [...prev, e.detail.message]);
-        setIsLoading(false);
-        playResponse(e.detail.message.content);
-      }
+      setMessages(prev => [...prev, e.detail.message]);
+      setIsLoading(false);
+      playResponse(e.detail.message.content);
     };
     
     // Escuchar eventos de voz flotante solo si es tab pricing
@@ -75,7 +73,7 @@ export default function PricingConsultant({ conversationId: sharedConversationId
       window.removeEventListener("assistantResponse", handleAssistantResponse);
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
-  }, [conversationId, isActive]);
+  }, [conversationId]);
 
   const playResponse = async (text) => {
     try {

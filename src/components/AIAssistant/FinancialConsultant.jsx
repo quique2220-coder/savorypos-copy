@@ -45,11 +45,9 @@ export default function FinancialConsultant({ conversationId: sharedConversation
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      if (window.currentActiveTab === "financial" && isActive) {
-        setMessages(prev => [...prev, e.detail.message]);
-        setIsLoading(false);
-        playResponse(e.detail.message.content);
-      }
+      setMessages(prev => [...prev, e.detail.message]);
+      setIsLoading(false);
+      playResponse(e.detail.message.content);
     };
     
     // Escuchar eventos de voz flotante solo si es tab financial
@@ -72,7 +70,7 @@ export default function FinancialConsultant({ conversationId: sharedConversation
       window.removeEventListener("assistantResponse", handleAssistantResponse);
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
-  }, [conversationId, isActive]);
+  }, [conversationId]);
 
   const playResponse = async (text) => {
     try {
