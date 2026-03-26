@@ -228,11 +228,11 @@ export default function VoiceAssistant() {
           <CardContent className="pt-4 pb-4">
             <div className="flex gap-2">
               <Button
-                variant={isListening ? "default" : "outline"}
+                variant="default"
                 size="icon"
                 onClick={isListening ? stopRecording : startRecording}
                 disabled={isLoading}
-                className={isListening ? "animate-pulse" : ""}
+                className={isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
