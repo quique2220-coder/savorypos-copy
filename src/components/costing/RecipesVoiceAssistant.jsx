@@ -95,11 +95,8 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     try {
       const id = await initConversation();
       const today = new Date().toISOString().split('T')[0];
-      const dayOfWeek = new Date().toLocaleDateString('es-MX', { weekday: 'long' });
-      const fullDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-      const time = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
       
-      const contextMsg = `[CONTEXTO ACTUAL: ${today}]\nDía: ${dayOfWeek}\nFecha: ${fullDate}\nHora: ${time}\n\n${text.trim()}`;
+      const contextMsg = `[${today}] ${text.trim()}`;
       
       await base44.agents.addMessage({ id }, { role: "user", content: contextMsg });
       
