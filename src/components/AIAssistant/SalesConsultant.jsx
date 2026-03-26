@@ -57,6 +57,11 @@ export default function SalesConsultant() {
   const playResponse = async (text) => {
     try {
       setIsSpeaking(true);
+      // Detener micrófono mientras habla el AI
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      }
       const res = await base44.functions.invoke("elevenLabsTTS", { text: text.substring(0, 3000) });
       if (res.data?.audio) {
         const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
@@ -89,6 +94,12 @@ export default function SalesConsultant() {
   };
 
   const startRecording = async () => {
+    // Si está hablando el AI, no permitir grabar
+    if (isSpeaking) {
+      toast.error("Espera a que termine de hablar el asistente");
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error("Navegador no soporta voz. Usa Chrome.");
@@ -214,11 +225,12 @@ export default function SalesConsultant() {
       {/* Input */}
       <div className="flex gap-2">
         <Button
-          variant={isListening ? "destructive" : "default"}
+          variant={isListening ? "destructive" : isSpeaking ? "secondary" : "default"}
           size="icon"
           onClick={startRecording}
+          disabled={isSpeaking || isLoading}
           className="shrink-0"
-          title={isListening ? "Detener micrófono" : "Presiona para hablar"}
+          title={isSpeaking ? "Espera a que termine el asistente" : isListening ? "Detener micrófono" : "Presiona para hablar"}
         >
           {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
         </Button>
@@ -226,10 +238,10 @@ export default function SalesConsultant() {
           placeholder="¿Qué quieres saber sobre ventas?"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          disabled={isLoading || isListening}
+          onKeyDown={(e) => e.key === "Enter" && !isSpeaking && handleSendMessage()}
+          disabled={isLoading || isListening || isSpeaking}
         />
-        <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon">
+        <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading || isSpeaking} size="icon">
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
         {isSpeaking && (
