@@ -78,16 +78,18 @@ export default function VoiceActivation({ activeTab = "sales" }) {
           interimTranscript += transcript;
         }
       }
-
-      if (finalTranscript.trim()) {
-        const event = new CustomEvent("voiceInput", { detail: { text: finalTranscript.trim(), tab: activeTab } });
-        window.dispatchEvent(event);
-      }
     };
-
+    
     recognition.onend = () => {
       setIsListening(false);
       clearTimeout(listeningTimeoutRef.current);
+      
+      // Dispatch event cuando termina con transcript final
+      if (finalTranscript.trim()) {
+        const voiceEvent = new CustomEvent("voiceInput", { detail: { text: finalTranscript.trim(), tab: activeTab } });
+        console.log('Enviando voz:', finalTranscript.trim(), 'a tab:', activeTab);
+        window.dispatchEvent(voiceEvent);
+      }
     };
 
     recognition.onerror = (event) => {

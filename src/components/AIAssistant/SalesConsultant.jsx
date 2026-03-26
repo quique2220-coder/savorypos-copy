@@ -54,7 +54,9 @@ export default function SalesConsultant() {
     
     // Escuchar eventos de voz flotante del botón Alexa
     const handleVoiceInput = (e) => {
+      console.log('SalesConsultant recibió evento de voz:', e.detail);
       if (e.detail.tab === "sales" && e.detail.text.trim() && conversationId) {
+        console.log('Procesando voz en Sales');
         const today = new Date().toISOString().split('T')[0];
         const textWithContext = `Current date: ${today}\n${e.detail.text}`;
         setIsLoading(true);
@@ -67,6 +69,7 @@ export default function SalesConsultant() {
     };
     
     window.addEventListener("voiceInput", handleVoiceInput);
+    console.log('SalesConsultant listener registrado');
     return () => {
       unsubscribe();
       window.removeEventListener("voiceInput", handleVoiceInput);
