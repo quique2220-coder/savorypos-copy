@@ -97,15 +97,24 @@ export default function VoiceAssistant() {
       const reader = new FileReader();
       reader.readAsArrayBuffer(audioBlob);
       reader.onload = async () => {
-        const uint8Array = new Uint8Array(reader.result);
-        const binaryString = Array.from(uint8Array).map(b => String.fromCharCode(b)).join('');
-        const base64Audio = btoa(binaryString);
-        
-        const response = await base44.functions.invoke("elevenLabsSTT", { 
-          audio: base64Audio,
-          mimeType: audioBlob.type
-        });
-        setInput(response.data.transcript || "");
+        try {
+          const uint8Array = new Uint8Array(reader.result);
+          const binaryString = Array.from(uint8Array).map(b => String.fromCharCode(b)).join('');
+          const base64Audio = btoa(binaryString);
+          
+          const response = await base44.functions.invoke("elevenLabsSTT", { 
+            audio: base64Audio,
+            mimeType: audioBlob.type
+          });
+          setInput(response.data.transcript || "");
+        } catch (err) {
+          console.error("Eleven Labs STT error:", err);
+          if (err?.response?.status === 401) {
+            toast.error("API key de Eleven Labs sin permisos de Speech-to-Text. Verifica tu API key.");
+          } else {
+            toast.error("Error en transcripción de voz");
+          }
+        }
       };
       reader.onerror = () => {
         toast.error("Error al leer el audio");
