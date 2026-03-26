@@ -94,11 +94,8 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     isLoadingRef.current = true;
     try {
       const id = await initConversation();
-      const today = new Date().toISOString().split('T')[0];
       
-      const contextMsg = `[${today}] ${text.trim()}`;
-      
-      await base44.agents.addMessage({ id }, { role: "user", content: contextMsg });
+      await base44.agents.addMessage({ id }, { role: "user", content: text.trim() });
       
       // Invalidar queries
       setTimeout(() => {
