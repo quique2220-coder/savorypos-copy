@@ -20,6 +20,7 @@ import Settings from './pages/Settings';
 import Ingredients from './pages/Ingredients';
 import Recipes from './pages/Recipes';
 import AIConsultantDashboard from './components/AIAssistant/AIConsultantDashboard';
+import TestAgent from './pages/TestAgent';
 import OrderOnline from './pages/OrderOnline';
 import OrderConfirmation from './pages/OrderConfirmation';
 
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
         <Route path="/Ingredients" element={<ProtectedRoute requiredGroup="costing"><Ingredients /></ProtectedRoute>} />
         <Route path="/Recipes" element={<ProtectedRoute requiredGroup="costing"><Recipes /></ProtectedRoute>} />
         <Route path="/VoiceAssistant" element={<AIConsultantDashboard />} />
+        <Route path="/TestAgent" element={<TestAgent />} />
       </Route>
       {/* Public pages - outside Layout */}
       <Route path="/OrderOnline" element={<OrderOnline />} />

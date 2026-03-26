@@ -1,0 +1,7 @@
+{
+  "name": "testAgent",
+  "description": "Test agent to verify agent functionality",
+  "instructions": "You are a test assistant. Respond to everything with a simple greeting and ask what the user wants.",
+  "tool_configs": [],
+  "whatsapp_greeting": "Hi, I'm a test agent. How can I help?"
+}
