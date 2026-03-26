@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, TrendingUp, Package, UtensilsCrossed, BookOpen, PieChart } from "lucide-react";
+import { toast } from "sonner";
 import SalesConsultant from "./SalesConsultant";
 import InventoryConsultant from "./InventoryConsultant";
 import RecipeConsultant from "./RecipeConsultant";
@@ -25,10 +26,23 @@ export default function AIConsultantDashboard() {
     }
   };
 
-  // Mantener el tab activo en window para que los consultants lo lean
-  useEffect(() => {
-    window.activeTab = activeTab;
-  }, [activeTab]);
+  // TTS centralizado
+  const playAudio = async (text) => {
+    if (!text?.trim()) return;
+    try {
+      stopAllAudio();
+      const res = await base44.functions.invoke("elevenLabsTTS", { text: text.substring(0, 3000) });
+      if (res.data?.audio) {
+        const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
+        setCurrentAudio(audio);
+        audio.play();
+      }
+    } catch (err) {
+      console.error("TTS error:", err);
+    }
+  };
+
+
 
   // Crear conversación única al montar
   useEffect(() => {
@@ -44,11 +58,10 @@ export default function AIConsultantDashboard() {
         // Suscribirse a actualizaciones
         const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
           setMessages(data.messages || []);
-          // Reproducir audio solo si el último mensaje es del asistente
+          // Reproducir audio del último mensaje del asistente
           const lastMsg = data.messages?.[data.messages.length - 1];
-          if (lastMsg?.role === "assistant") {
-            const event = new CustomEvent("assistantResponse", { detail: { message: lastMsg } });
-            window.dispatchEvent(event);
+          if (lastMsg?.role === "assistant" && lastMsg?.content) {
+            playAudio(lastMsg.content);
           }
         });
 
@@ -65,12 +78,29 @@ export default function AIConsultantDashboard() {
       unsubscribe?.();
       stopAllAudio();
     };
-  }, []);
+  }, [playAudio, stopAllAudio]);
 
-  const handleVoiceInput = (text) => {
-    // Solo enviar al consultant activo
-    const event = new CustomEvent("voiceInput", { detail: { text, tab: activeTab } });
-    window.dispatchEvent(event);
+  // Escuchar eventos de voz y enviar mensaje
+  useEffect(() => {
+    const handleVoiceEvent = (e) => {
+      if (e.detail.tab === activeTab) {
+        handleVoiceInput(e.detail.text);
+      }
+    };
+
+    window.addEventListener("voiceInput", handleVoiceEvent);
+    return () => window.removeEventListener("voiceInput", handleVoiceEvent);
+  }, [activeTab, conversationId]);
+
+  const handleVoiceInput = async (text) => {
+    if (!conversationId) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const textWithContext = `Current date: ${today}\n${text}`;
+      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+    } catch (err) {
+      console.error("Error sending voice:", err);
+    }
   };
 
   const tabs = [
@@ -151,11 +181,11 @@ export default function AIConsultantDashboard() {
 
             <div className="flex-1 overflow-auto rounded-lg border border-border bg-card">
               <div className="h-full overflow-auto p-6">
-                {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
-                {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
-                {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
-                {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
-                {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} stopAllAudio={stopAllAudio} setCurrentAudio={setCurrentAudio} />}
+                {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} />}
+                {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} />}
+                {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} />}
+                {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} />}
+                {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} />}
               </div>
             </div>
           </Tabs>

@@ -1,103 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, Mic, MicOff, Volume2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 
-export default function SalesConsultant({ conversationId: sharedConversationId, messages: sharedMessages, stopAllAudio, setCurrentAudio, isActive = false }) {
-  const [conversationId, setConversationId] = useState(sharedConversationId);
-  const [messages, setMessages] = useState(sharedMessages || []);
+export default function SalesConsultant({ conversationId, messages }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = React.useRef(null);
-  const audioRef = React.useRef(null);
 
-  // Fetch orders para contexto
   const { data: orders = [] } = useQuery({
     queryKey: ["orders"],
     queryFn: () => base44.entities.Order.list(),
   });
-
-  // Usar conversación compartida del dashboard
-  useEffect(() => {
-    if (sharedConversationId) {
-      setConversationId(sharedConversationId);
-    }
-    if (sharedMessages) {
-      setMessages(sharedMessages);
-    }
-  }, [sharedConversationId, sharedMessages]);
-
-  useEffect(() => {
-    if (!conversationId) return;
-    
-    // Escuchar respuesta del asistente central
-    const handleAssistantResponse = (e) => {
-      if (window.activeTab === "sales" && e.detail.message?.content) {
-        setIsLoading(false);
-        playResponse(e.detail.message.content);
-      }
-    };
-    
-    // Escuchar eventos de voz flotante del botón Alexa
-    const handleVoiceInput = (e) => {
-      if (e.detail.tab === "sales" && e.detail.text.trim() && conversationId) {
-        const today = new Date().toISOString().split('T')[0];
-        const textWithContext = `Current date: ${today}\n${e.detail.text}`;
-        setIsLoading(true);
-        base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
-          console.error("Error:", err);
-          toast.error("Error al enviar");
-          setIsLoading(false);
-        });
-      }
-    };
-    
-    window.addEventListener("assistantResponse", handleAssistantResponse);
-    window.addEventListener("voiceInput", handleVoiceInput);
-    return () => {
-      window.removeEventListener("assistantResponse", handleAssistantResponse);
-      window.removeEventListener("voiceInput", handleVoiceInput);
-    };
-  }, [conversationId]);
-
-  const playResponse = async (text) => {
-    try {
-      setIsSpeaking(true);
-      // Detener micrófono mientras habla el AI
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        setIsListening(false);
-      }
-      // Limpiar texto de caracteres especiales problematicos
-      const cleanText = text.substring(0, 3000).replace(/[\n\r\t]/g, ' ').trim();
-      if (!cleanText) {
-        setIsSpeaking(false);
-        return;
-      }
-      const res = await base44.functions.invoke("elevenLabsTTS", { text: cleanText });
-      if (res.data?.audio) {
-        stopAllAudio?.();
-        const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
-        audioRef.current = audio;
-        setCurrentAudio?.(audio);
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
-        audio.play();
-      } else {
-        setIsSpeaking(false);
-      }
-    } catch (err) {
-      console.error("TTS error:", err);
-      setIsSpeaking(false);
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;
@@ -107,77 +23,11 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
     setIsLoading(true);
     try {
       await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+      setIsLoading(false);
     } catch (err) {
       console.error("Error:", err);
-      toast.error("Error al enviar");
       setIsLoading(false);
     }
-  };
-
-  const startRecording = async () => {
-    // Si está hablando el AI, no permitir grabar
-    if (isSpeaking) {
-      toast.error("Espera a que termine de hablar el asistente");
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Navegador no soporta voz. Usa Chrome.");
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-ES";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    let finalTranscript = "";
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (e) => {
-      let interimTranscript = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const transcript = e.results[i][0].transcript;
-        if (e.results[i].isFinal) {
-          finalTranscript += transcript + " ";
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-      if (finalTranscript) setInput(finalTranscript.trim());
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      if (finalTranscript.trim() && !isLoading && conversationId) {
-        const today = new Date().toISOString().split('T')[0];
-        const textWithContext = `Current date: ${today}\n${finalTranscript.trim()}`;
-        setIsLoading(true);
-        setInput("");
-        base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
-          console.error("Error:", err);
-          toast.error("Error al enviar");
-          setIsLoading(false);
-        });
-      }
-    };
-
-    recognition.onerror = (e) => {
-      console.error("Recognition error:", e.error);
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
   };
 
   const quickQuestions = [
@@ -189,7 +39,6 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
 
   return (
     <div className="space-y-4 h-full flex flex-col">
-      {/* Chat Area */}
       <div className="flex-1 overflow-auto space-y-3 pr-1 mb-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
@@ -243,23 +92,17 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
         )}
       </div>
 
-      {/* Input */}
       <div className="flex gap-2">
         <Input
           placeholder="¿Qué quieres saber sobre ventas?"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !isSpeaking && handleSendMessage()}
-          disabled={isLoading || isListening || isSpeaking}
+          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          disabled={isLoading}
         />
-        <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading || isSpeaking} size="icon">
+        <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon">
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
-        {isSpeaking && (
-          <Button variant="ghost" size="icon" disabled>
-            <Volume2 className="w-4 h-4 animate-pulse" />
-          </Button>
-        )}
       </div>
     </div>
   );
