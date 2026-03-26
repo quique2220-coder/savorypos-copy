@@ -196,11 +196,11 @@ export default function AIConsultantDashboard() {
                   </div>
                 ) : (
                   <>
-                    {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
-                    {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
-                    {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
-                    {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
-                    {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} />}
+                    {activeTab === "sales" && <SalesConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} stopAudio={stopAllAudio} />}
+                    {activeTab === "inventory" && <InventoryConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} stopAudio={stopAllAudio} />}
+                    {activeTab === "recipes" && <RecipeConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} stopAudio={stopAllAudio} />}
+                    {activeTab === "pricing" && <PricingConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} stopAudio={stopAllAudio} />}
+                    {activeTab === "financial" && <FinancialConsultant conversationId={conversationId} messages={messages} playAudio={playAudio} stopAudio={stopAllAudio} />}
                   </>
                 )}
               </div>

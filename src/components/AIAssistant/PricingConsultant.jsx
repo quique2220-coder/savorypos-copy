@@ -7,7 +7,7 @@ import { Send, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-export default function PricingConsultant({ conversationId, messages, playAudio }) {
+export default function PricingConsultant({ conversationId, messages, playAudio, stopAudio }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [lastPlayedId, setLastPlayedId] = useState(null);
@@ -35,9 +35,10 @@ export default function PricingConsultant({ conversationId, messages, playAudio 
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedId && playAudio) {
       setLastPlayedId(lastMsg.id);
-      setTimeout(() => playAudio(lastMsg.content), 500);
+      stopAudio?.();
+      setTimeout(() => playAudio(lastMsg.content), 100);
     }
-  }, [messages, playAudio, lastPlayedId]);
+  }, [messages, playAudio, stopAudio, lastPlayedId]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;
