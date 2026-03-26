@@ -37,9 +37,11 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      setMessages(prev => [...prev, e.detail.message]);
-      setIsLoading(false);
-      playResponse(e.detail.message.content);
+      if (window.activeTab === "sales") {
+        setMessages(prev => [...prev, e.detail.message]);
+        setIsLoading(false);
+        playResponse(e.detail.message.content);
+      }
     };
     
     // Escuchar eventos de voz flotante del botón Alexa

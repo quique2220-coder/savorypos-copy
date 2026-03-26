@@ -25,6 +25,11 @@ export default function AIConsultantDashboard() {
     }
   };
 
+  // Mantener el tab activo en window para que los consultants lo lean
+  useEffect(() => {
+    window.activeTab = activeTab;
+  }, [activeTab]);
+
   // Crear conversación única al montar
   useEffect(() => {
     const initConversation = async () => {

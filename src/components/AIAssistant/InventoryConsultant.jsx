@@ -39,9 +39,11 @@ export default function InventoryConsultant({ conversationId: sharedConversation
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      setMessages(prev => [...prev, e.detail.message]);
-      setIsLoading(false);
-      playResponse(e.detail.message.content);
+      if (window.activeTab === "inventory") {
+        setMessages(prev => [...prev, e.detail.message]);
+        setIsLoading(false);
+        playResponse(e.detail.message.content);
+      }
     };
     
     // Escuchar eventos de voz flotante solo si es tab inventory

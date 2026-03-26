@@ -37,9 +37,11 @@ export default function RecipeConsultant({ conversationId: sharedConversationId,
     
     // Escuchar respuesta del asistente central
     const handleAssistantResponse = (e) => {
-      setMessages(prev => [...prev, e.detail.message]);
-      setIsLoading(false);
-      playResponse(e.detail.message.content);
+      if (window.activeTab === "recipes") {
+        setMessages(prev => [...prev, e.detail.message]);
+        setIsLoading(false);
+        playResponse(e.detail.message.content);
+      }
     };
     
     // Escuchar eventos de voz flotante solo si es tab recipes
