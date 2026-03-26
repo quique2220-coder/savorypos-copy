@@ -33,21 +33,20 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId || !isActive) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      setMessages(data.messages || []);
-      const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant" && isActive) {
+    if (!conversationId) return;
+    
+    // Escuchar respuesta del asistente central
+    const handleAssistantResponse = (e) => {
+      if (isActive) {
+        setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
-        playResponse(lastMsg.content);
+        playResponse(e.detail.message.content);
       }
-    });
+    };
     
     // Escuchar eventos de voz flotante del botón Alexa
     const handleVoiceInput = (e) => {
-      console.log('SalesConsultant recibió evento de voz:', e.detail);
       if (e.detail.tab === "sales" && e.detail.text.trim() && conversationId) {
-        console.log('Procesando voz en Sales');
         const today = new Date().toISOString().split('T')[0];
         const textWithContext = `Current date: ${today}\n${e.detail.text}`;
         setIsLoading(true);
@@ -59,9 +58,10 @@ export default function SalesConsultant({ conversationId: sharedConversationId, 
       }
     };
     
+    window.addEventListener("assistantResponse", handleAssistantResponse);
     window.addEventListener("voiceInput", handleVoiceInput);
     return () => {
-      unsubscribe();
+      window.removeEventListener("assistantResponse", handleAssistantResponse);
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
   }, [conversationId, isActive]);

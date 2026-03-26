@@ -44,15 +44,16 @@ export default function PricingConsultant({ conversationId: sharedConversationId
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId || !isActive) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      setMessages(data.messages || []);
-      const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant" && isActive) {
+    if (!conversationId) return;
+    
+    // Escuchar respuesta del asistente central
+    const handleAssistantResponse = (e) => {
+      if (isActive) {
+        setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
-        playResponse(lastMsg.content);
+        playResponse(e.detail.message.content);
       }
-    });
+    };
     
     // Escuchar eventos de voz flotante solo si es tab pricing
     const handleVoiceInput = (e) => {
@@ -68,9 +69,10 @@ export default function PricingConsultant({ conversationId: sharedConversationId
       }
     };
     
+    window.addEventListener("assistantResponse", handleAssistantResponse);
     window.addEventListener("voiceInput", handleVoiceInput);
     return () => {
-      unsubscribe();
+      window.removeEventListener("assistantResponse", handleAssistantResponse);
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
   }, [conversationId, isActive]);

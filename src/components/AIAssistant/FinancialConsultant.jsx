@@ -41,19 +41,20 @@ export default function FinancialConsultant({ conversationId: sharedConversation
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId || !isActive) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      setMessages(data.messages || []);
-      const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant" && isActive) {
-        setIsLoading(false);
-        playResponse(lastMsg.content);
-      }
-    });
+    if (!conversationId) return;
     
-    // Escuchar eventos de voz flotante solo si es tab finance
+    // Escuchar respuesta del asistente central
+    const handleAssistantResponse = (e) => {
+      if (isActive) {
+        setMessages(prev => [...prev, e.detail.message]);
+        setIsLoading(false);
+        playResponse(e.detail.message.content);
+      }
+    };
+    
+    // Escuchar eventos de voz flotante solo si es tab financial
     const handleVoiceInput = (e) => {
-      if (e.detail.tab === "finance" && e.detail.text.trim() && conversationId) {
+      if (e.detail.tab === "financial" && e.detail.text.trim() && conversationId) {
         const today = new Date().toISOString().split('T')[0];
         const textWithContext = `Current date: ${today}\n${e.detail.text}`;
         setIsLoading(true);
@@ -65,9 +66,10 @@ export default function FinancialConsultant({ conversationId: sharedConversation
       }
     };
     
+    window.addEventListener("assistantResponse", handleAssistantResponse);
     window.addEventListener("voiceInput", handleVoiceInput);
     return () => {
-      unsubscribe();
+      window.removeEventListener("assistantResponse", handleAssistantResponse);
       window.removeEventListener("voiceInput", handleVoiceInput);
     };
   }, [conversationId, isActive]);

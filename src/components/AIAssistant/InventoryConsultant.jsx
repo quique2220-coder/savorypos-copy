@@ -35,36 +35,38 @@ export default function InventoryConsultant({ conversationId: sharedConversation
   }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
-    if (!conversationId || !isActive) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      setMessages(data.messages || []);
-      const lastMsg = data.messages?.[data.messages.length - 1];
-      if (lastMsg?.role === "assistant" && isActive) {
+    if (!conversationId) return;
+    
+    // Escuchar respuesta del asistente central
+    const handleAssistantResponse = (e) => {
+      if (isActive) {
+        setMessages(prev => [...prev, e.detail.message]);
         setIsLoading(false);
-        playResponse(lastMsg.content);
+        playResponse(e.detail.message.content);
       }
-    });
+    };
+    
+    // Escuchar eventos de voz flotante solo si es tab inventory
+    const handleVoiceInput = (e) => {
+      if (e.detail.tab === "inventory" && e.detail.text.trim() && conversationId) {
+        const today = new Date().toISOString().split('T')[0];
+        const textWithContext = `Current date: ${today}\n${e.detail.text}`;
+        setIsLoading(true);
+        base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
+          console.error("Error:", err);
+          toast.error("Error al enviar");
+          setIsLoading(false);
+        });
+      }
+    };
 
-   // Escuchar eventos de voz flotante solo si es tab inventory
-   const handleVoiceInput = (e) => {
-     if (e.detail.tab === "inventory" && e.detail.text.trim() && conversationId) {
-       const today = new Date().toISOString().split('T')[0];
-       const textWithContext = `Current date: ${today}\n${e.detail.text}`;
-       setIsLoading(true);
-       base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext }).catch(err => {
-         console.error("Error:", err);
-         toast.error("Error al enviar");
-         setIsLoading(false);
-       });
-     }
-   };
-
-   window.addEventListener("voiceInput", handleVoiceInput);
-   return () => {
-     unsubscribe();
-     window.removeEventListener("voiceInput", handleVoiceInput);
-   };
-   }, [conversationId, isActive]);
+    window.addEventListener("assistantResponse", handleAssistantResponse);
+    window.addEventListener("voiceInput", handleVoiceInput);
+    return () => {
+      window.removeEventListener("assistantResponse", handleAssistantResponse);
+      window.removeEventListener("voiceInput", handleVoiceInput);
+    };
+  }, [conversationId, isActive]);
 
   const playResponse = async (text) => {
     try {
