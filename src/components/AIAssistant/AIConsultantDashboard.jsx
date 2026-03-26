@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,21 +16,23 @@ export default function AIConsultantDashboard() {
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentAudio, setCurrentAudio] = useState(null);
+  const initializingRef = useRef(false);
 
   // Detener audio global
-  const stopAllAudio = () => {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      setCurrentAudio(null);
-    }
-  };
+  const stopAllAudio = useCallback(() => {
+    setCurrentAudio(prev => {
+      if (prev) {
+        prev.pause();
+        prev.currentTime = 0;
+      }
+      return null;
+    });
+  }, []);
 
   // TTS centralizado
-  const playAudio = async (text) => {
+  const playAudio = useCallback(async (text) => {
     if (!text?.trim()) return;
     try {
-      stopAllAudio();
       const res = await base44.functions.invoke("elevenLabsTTS", { text: text.substring(0, 3000) });
       if (res.data?.audio) {
         const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
@@ -40,12 +42,15 @@ export default function AIConsultantDashboard() {
     } catch (err) {
       console.error("TTS error:", err);
     }
-  };
+  }, []);
 
 
 
   // Crear conversación única al montar
   useEffect(() => {
+    if (initializingRef.current) return;
+    initializingRef.current = true;
+
     const initConversation = async () => {
       let retries = 0;
       const maxRetries = 3;
@@ -92,7 +97,7 @@ export default function AIConsultantDashboard() {
       unsubscribe?.();
       stopAllAudio();
     };
-  }, [playAudio, stopAllAudio]);
+  }, []);
 
   // Escuchar eventos de voz y enviar mensaje
   useEffect(() => {
