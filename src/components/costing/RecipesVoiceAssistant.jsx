@@ -92,23 +92,18 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { toast.error("Usa Chrome para reconocimiento de voz"); return; }
     const rec = new SR();
-    // Mejor configuración para español bilingüe
-    rec.lang = "es-MX"; // Español mexicano - mejor soporte que es-US
+    rec.lang = "es-MX";
     rec.interimResults = true;
     rec.continuous = true;
-    rec.maxAlternatives = 3; // Obtener múltiples alternativas
+    rec.maxAlternatives = 3;
     let final = "";
-    let timer = null;
-    let sent = false;
 
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
-          // Usar la mejor alternativa
           const alternatives = e.results[i];
           let bestTranscript = alternatives[0].transcript;
-          // Si hay múltiples alternativas, usar la que tenga más confianza
           for (let j = 1; j < alternatives.length; j++) {
             if (alternatives[j].confidence > alternatives[0].confidence) {
               bestTranscript = alternatives[j].transcript;
@@ -121,33 +116,21 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
       }
       setInput(final.trim());
       setInterimText(interim);
-      clearTimeout(timer);
-      timer = setTimeout(() => rec.stop(), 2000);
     };
     rec.onerror = (e) => {
       console.error("Speech recognition error:", e.error);
-      setIsListening(false);
-      setInterimText("");
       if (e.error === "no-speech") {
         toast.error("No se detectó voz. Intenta de nuevo.");
       } else if (e.error === "not-allowed") {
         toast.error("Permiso de micrófono denegado");
-      } else {
-        toast.error("Error de reconocimiento: " + e.error);
       }
     };
     rec.onend = () => {
       setIsListening(false);
       setInterimText("");
-      if (!sent && final.trim()) {
-        sent = true;
-        // Limpieza básica de transcripción
-        const cleaned = final.trim()
-          .replace(/\b(cabo|cava|cava de)\b/gi, "acabo de")
-          .replace(/\b(ventaos|ventao|venta o)\b/gi, "una venta")
-          .replace(/\b(love you|llevó)\b/gi, "")
-          .trim();
-        sendMessage(cleaned);
+      // NO enviar automáticamente - dejar que el usuario revise y envíe manualmente
+      if (final.trim()) {
+        toast.success("Voz captada. Revisa el texto y presiona enviar.");
       }
     };
     recognitionRef.current = rec;
@@ -155,6 +138,7 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     setInput("");
     rec.start();
     setIsListening(true);
+    toast.info("Escuchando... habla claramente");
   };
 
   const stopListening = () => {
