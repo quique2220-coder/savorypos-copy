@@ -181,7 +181,12 @@ export default function SalesConsultant() {
               {quickQuestions.map((q) => (
                 <button
                   key={q}
-                  onClick={() => setInput(q)}
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const textWithContext = `Current date: ${today}\n${q}`;
+                    setIsLoading(true);
+                    base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+                  }}
                   className="text-xs px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
                 >
                   {q}
