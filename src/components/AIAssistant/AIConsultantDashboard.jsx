@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, TrendingUp, Package, UtensilsCrossed, BookOpen, PieChart } from "lucide-react";
@@ -11,6 +12,36 @@ import VoiceActivation from "../VoiceActivation";
 
 export default function AIConsultantDashboard() {
   const [activeTab, setActiveTab] = useState("sales");
+  const [conversationId, setConversationId] = useState(null);
+  const [messages, setMessages] = useState([]);
+
+  // Crear conversación única al montar
+  useEffect(() => {
+    const initConversation = async () => {
+      try {
+        const conv = await base44.agents.createConversation({
+          agent_name: "voiceAssistant",
+          metadata: { name: "Consultor Experto IA" },
+        });
+        setConversationId(conv.id);
+        setMessages(conv.messages || []);
+
+        // Suscribirse a actualizaciones
+        const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
+          setMessages(data.messages || []);
+        });
+
+        return unsubscribe;
+      } catch (err) {
+        console.error("Error iniciando conversación:", err);
+      }
+    };
+
+    let unsubscribe;
+    initConversation().then(unsub => { unsubscribe = unsub; });
+    
+    return () => unsubscribe?.();
+  }, []);
 
   const handleVoiceInput = (text) => {
     // Solo enviar al consultant activo
@@ -95,13 +126,16 @@ export default function AIConsultantDashboard() {
             </TabsList>
 
             <div className="flex-1 overflow-auto rounded-lg border border-border bg-card">
-              {tabs.map((tab) => (
-                <TabsContent key={tab.id} value={tab.id} className="h-full p-0">
-                  <div className="h-full overflow-auto">
-                    <div className="p-6">{tab.component}</div>
-                  </div>
-                </TabsContent>
-              ))}
+              {tabs.map((tab) => {
+                const ComponentWithProps = React.cloneElement(tab.component, { conversationId, messages });
+                return (
+                  <TabsContent key={tab.id} value={tab.id} className="h-full p-0">
+                    <div className="h-full overflow-auto">
+                      <div className="p-6">{ComponentWithProps}</div>
+                    </div>
+                  </TabsContent>
+                );
+              })}
             </div>
           </Tabs>
         </div>

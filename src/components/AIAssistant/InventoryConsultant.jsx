@@ -8,9 +8,9 @@ import { Send, Loader2, Mic, MicOff, AlertTriangle, Volume2 } from "lucide-react
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function InventoryConsultant() {
-  const [conversationId, setConversationId] = useState(null);
-  const [messages, setMessages] = useState([]);
+export default function InventoryConsultant({ conversationId: sharedConversationId, messages: sharedMessages }) {
+  const [conversationId, setConversationId] = useState(sharedConversationId);
+  const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -26,22 +26,13 @@ export default function InventoryConsultant() {
 
   const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
 
+  // Usar conversación compartida del dashboard
   useEffect(() => {
-    const initConversation = async () => {
-      try {
-        const conv = await base44.agents.createConversation({
-          agent_name: "voiceAssistant",
-          metadata: { name: "Inventory Consultant" },
-        });
-        setConversationId(conv.id);
-        setMessages(conv.messages || []);
-      } catch (err) {
-        console.error("Error:", err);
-        toast.error("Error al iniciar consultor");
-      }
-    };
-    initConversation();
-  }, []);
+    if (sharedConversationId) {
+      setConversationId(sharedConversationId);
+      setMessages(sharedMessages || []);
+    }
+  }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
    if (!conversationId) return;

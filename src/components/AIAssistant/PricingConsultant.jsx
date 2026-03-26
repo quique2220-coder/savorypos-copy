@@ -7,9 +7,9 @@ import { Send, Loader2, Mic, MicOff, TrendingUp, TrendingDown, Volume2 } from "l
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function PricingConsultant() {
-  const [conversationId, setConversationId] = useState(null);
-  const [messages, setMessages] = useState([]);
+export default function PricingConsultant({ conversationId: sharedConversationId, messages: sharedMessages }) {
+  const [conversationId, setConversationId] = useState(sharedConversationId);
+  const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -35,22 +35,13 @@ export default function PricingConsultant() {
   const bestMargin = marginData[0];
   const worstMargin = marginData[marginData.length - 1];
 
+  // Usar conversación compartida del dashboard
   useEffect(() => {
-    const initConversation = async () => {
-      try {
-        const conv = await base44.agents.createConversation({
-          agent_name: "voiceAssistant",
-          metadata: { name: "Pricing Consultant" },
-        });
-        setConversationId(conv.id);
-        setMessages(conv.messages || []);
-      } catch (err) {
-        console.error("Error:", err);
-        toast.error("Error al iniciar consultor");
-      }
-    };
-    initConversation();
-  }, []);
+    if (sharedConversationId) {
+      setConversationId(sharedConversationId);
+      setMessages(sharedMessages || []);
+    }
+  }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
     if (!conversationId) return;

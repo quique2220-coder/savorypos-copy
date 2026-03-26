@@ -7,9 +7,9 @@ import { Send, Loader2, Mic, MicOff, AlertCircle, Volume2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function FinancialConsultant() {
-  const [conversationId, setConversationId] = useState(null);
-  const [messages, setMessages] = useState([]);
+export default function FinancialConsultant({ conversationId: sharedConversationId, messages: sharedMessages }) {
+  const [conversationId, setConversationId] = useState(sharedConversationId);
+  const [messages, setMessages] = useState(sharedMessages || []);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -32,22 +32,13 @@ export default function FinancialConsultant() {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
 
+  // Usar conversación compartida del dashboard
   useEffect(() => {
-    const initConversation = async () => {
-      try {
-        const conv = await base44.agents.createConversation({
-          agent_name: "voiceAssistant",
-          metadata: { name: "Financial Consultant" },
-        });
-        setConversationId(conv.id);
-        setMessages(conv.messages || []);
-      } catch (err) {
-        console.error("Error:", err);
-        toast.error("Error al iniciar consultor");
-      }
-    };
-    initConversation();
-  }, []);
+    if (sharedConversationId) {
+      setConversationId(sharedConversationId);
+      setMessages(sharedMessages || []);
+    }
+  }, [sharedConversationId, sharedMessages]);
 
   useEffect(() => {
     if (!conversationId) return;
