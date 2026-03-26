@@ -128,9 +128,18 @@ export default function RecipesVoiceAssistant({ conversationId, onConversationCr
     rec.onend = () => {
       setIsListening(false);
       setInterimText("");
-      // NO enviar automáticamente - dejar que el usuario revise y envíe manualmente
       if (final.trim()) {
-        toast.success("Voz captada. Revisa el texto y presiona enviar.");
+        // Limpieza agresiva de transcripción antes de mostrar
+        const cleaned = final.trim()
+          .replace(/\b(cabo|cava|cava de)\b/gi, "acabo de")
+          .replace(/\b(ventaos|ventao|venta o|ventaos)\b/gi, "una venta")
+          .replace(/\b(Montessori|mentos|mento|mento de|mentos de)\b/gi, "monto de")
+          .replace(/\b(love you|llevó|llegó|llevo)\b/gi, "")
+          .replace(/\b(come over here|come over|cover)\b/gi, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        setInput(cleaned);
+        toast.success("Voz captada. Revisa y presiona enviar.");
       }
     };
     recognitionRef.current = rec;
