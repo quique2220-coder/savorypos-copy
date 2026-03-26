@@ -103,6 +103,7 @@ export default function VoiceAssistant() {
 
     let finalTranscript = "";
     let silenceTimer = null;
+    let hasSent = false; // prevent double-send
 
     recognition.onresult = (e) => {
       let interim = "";
@@ -124,6 +125,7 @@ export default function VoiceAssistant() {
     };
 
     recognition.onerror = (e) => {
+      clearTimeout(silenceTimer);
       if (e.error !== "no-speech") toast.error("Error al reconocer voz: " + e.error);
       setIsListening(false);
       setInterimText("");
@@ -133,8 +135,9 @@ export default function VoiceAssistant() {
       clearTimeout(silenceTimer);
       setIsListening(false);
       setInterimText("");
-      // Auto-send when speech ends
-      if (finalTranscript.trim()) {
+      // Guard: only send once per recording session
+      if (!hasSent && finalTranscript.trim()) {
+        hasSent = true;
         sendMessageDirectly(finalTranscript.trim());
       }
     };
