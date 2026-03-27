@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2, TrendingUp, TrendingDown, Target } from "lucide-react";
+import { Send, Loader2, AlertCircle, Package } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 const getLocalDate = () => {
@@ -11,7 +11,7 @@ const getLocalDate = () => {
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 };
 
-export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
+export default function InventoryConsultant({ playAudio, stopAudio, isActive }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -20,23 +20,12 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
 
-  // Consulta de datos
-  const { data: recipes = [] } = useQuery({
-    queryKey: ["recipes"],
-    queryFn: () => base44.entities.Recipe.list(),
+  const { data: inventory = [] } = useQuery({
+    queryKey: ["inventory"],
+    queryFn: () => base44.entities.InventoryItem.list(),
   });
 
-  // Cálculo de márgenes optimizado
-  const marginData = recipes
-    .filter(r => r.sale_price > 0)
-    .map(r => ({ 
-      ...r, 
-      margin: ((r.sale_price - (r.cost || 0)) / r.sale_price) * 100 
-    }))
-    .sort((a, b) => b.margin - a.margin);
-
-  const bestMargin = marginData[0];
-  const worstMargin = marginData[marginData.length - 1];
+  const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
 
   useEffect(() => {
     if (initRef.current || !isActive) return;
@@ -44,7 +33,7 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
 
     base44.agents.createConversation({
       agent_name: "restaurantAI",
-      metadata: { tab: "pricing" },
+      metadata: { tab: "inventory" },
     }).then(conv => {
       setConversationId(conv.id);
       setMessages(conv.messages || []);
@@ -66,69 +55,48 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
       setLastPlayedId(lastMsg.id);
       if (playAudio) playAudio(lastMsg.content);
     }
-  }, [messages, isActive]);
+  }, [messages, isActive, lastPlayedId, playAudio]);
 
-  // FUNCIÓN DE ALTO RENDIMIENTO (Snapshot para el AI)
   const sendMessage = async (text) => {
     if (!text.trim() || !conversationId) return;
     if (stopAudio) stopAudio();
     setIsLoading(true);
     setInput("");
 
-    const dataContext = {
-      analisis_real: marginData.map(r => ({
-        nombre: r.name,
-        precio: `$${r.sale_price}`,
-        margen: `${r.margin.toFixed(1)}%`,
-        estado: r.margin < 30 ? "CRITICO" : "SALUDABLE"
-      }))
-    };
+    const snapshot = inventory.map(i => ({
+      n: i.name,
+      s: i.current_stock,
+      m: i.min_stock || 0,
+      st: i.current_stock <= (i.min_stock || 0) ? "CRITICO" : "OK"
+    }));
 
-    const promptFinal = `
-      INSTRUCCION: Usa estos datos directos para responder. No calcules nada.
-      SNAPSHOT: ${JSON.stringify(dataContext)}
-      
-      PREGUNTA: ${text.trim()}
+    const textWithContext = `
+      SNAPSHOT: ${JSON.stringify(snapshot)}
+      USER_QUERY: ${text.trim()}
+      INSTRUCTION: Usa los datos del SNAPSHOT para responder rápido.
     `;
 
-    await base44.agents.addMessage(
-      { id: conversationId }, 
-      { role: "user", content: promptFinal }
-    );
+    await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
   };
 
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Dashboard superior */}
-      {marginData.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 shrink-0">
-          <div className="bg-green-50 border border-green-100 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-3 h-3 text-green-600" />
-              <p className="text-[10px] text-green-700 font-bold uppercase">Mejor Margen</p>
-            </div>
-            <p className="text-xs font-bold truncate">{bestMargin.name}</p>
-            <p className="text-sm font-black text-green-600">{bestMargin.margin.toFixed(1)}%</p>
-          </div>
-          <div className="bg-red-50 border border-red-100 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-3 h-3 text-red-600" />
-              <p className="text-[10px] text-red-700 font-bold uppercase">Peor Margen</p>
-            </div>
-            <p className="text-xs font-bold truncate">{worstMargin?.name || "N/A"}</p>
-            <p className="text-sm font-black text-red-600">{worstMargin?.margin.toFixed(1) || 0}%</p>
-          </div>
-        </div>
+      {lowStockItems.length > 0 && (
+        <Card className="border-red-500 bg-red-50 shrink-0 animate-pulse">
+          <CardContent className="p-3 flex gap-3 items-center">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-[10px] text-red-700 font-bold uppercase">Stock Crítico detectado</p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Chat */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none"}`}>
+            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none border"}`}>
               <CardContent className="p-3 text-sm">
-                {msg.role === "user" && msg.content.includes("PREGUNTA:") 
-                  ? msg.content.split("PREGUNTA:")[1].trim() 
+                {msg.role === "user" && msg.content.includes("USER_QUERY:") 
+                  ? msg.content.split("USER_QUERY:")[1].split("INSTRUCTION:")[0].trim() 
                   : msg.content}
               </CardContent>
             </Card>
@@ -138,14 +106,13 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100">
         <Input 
           value={input} 
           onChange={e => setInput(e.target.value)} 
           onKeyDown={e => e.key === "Enter" && sendMessage(input)}
-          placeholder="¿Cuál es mi mejor platillo?" 
-          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4"
+          placeholder="¿Qué falta?" 
+          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
         />
         <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full">
           <Send className="w-4 h-4" />
