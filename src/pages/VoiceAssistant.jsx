@@ -1,36 +1,37 @@
-import React, { useState, useEffect, useRef } from "react";
+// 1. Función para limpiar el texto de caracteres que traban al TTS
+const cleanTextForSpeech = (text) => {
+  return text
+    .replace(/[$]/g, " dólares ") // Cambia $ por la palabra para fluidez
+    .replace(/[-]/g, " menos ")   // Cambia el guion de utilidad negativa por "menos"
+    .replace(/[*_#]/g, "")        // Elimina basura de markdown
+    .trim();
+};
 
-// ... otros imports
-
-export default function VoiceAssistant({ lastMessage, playAudio, stopAudio }) {
-  const [isSpeaking, setIsSpeaking] = useState(false);
+export default function VoiceAssistant({ lastMessage, playAudio, stopAudio, isActive }) {
   const processedIdRef = useRef(null);
 
   useEffect(() => {
-    // 1. Validamos que el mensaje sea nuevo y sea del asistente
-    if (lastMessage?.role === "assistant" && lastMessage.id !== processedIdRef.current) {
-      
-      // 2. Limpiamos el texto de metadatos técnicos (Snapshot, Instrucciones) 
-      // para que la voz no intente leer código JSON
-      let cleanText = lastMessage.content;
-      if (cleanText.includes("USER_QUERY:")) {
-        cleanText = cleanText.split("INSTRUCTION:")[0] || cleanText;
-      }
-
-      // 3. Detenemos cualquier audio previo para evitar solapamiento
-      if (stopAudio) stopAudio();
-      
-      processedIdRef.current = lastMessage.id;
-      setIsSpeaking(true);
-
-      // 4. Pequeño delay de 100ms para asegurar que el buffer esté listo
-      setTimeout(() => {
-        if (playAudio) {
-          playAudio(cleanText);
-        }
-      }, 100);
+    // Si no hay mensaje, es del usuario, o ya se procesó este ID, no hacer nada
+    if (!lastMessage || lastMessage.role !== "assistant" || lastMessage.id === processedIdRef.current || !isActive) {
+      return;
     }
-  }, [lastMessage, playAudio, stopAudio]);
 
-  // ... resto del componente
+    // Marcamos como procesado inmediatamente para evitar loops
+    processedIdRef.current = lastMessage.id;
+
+    // Limpiamos el texto antes de mandarlo a ElevenLabs/TTS
+    const speechText = cleanTextForSpeech(lastMessage.content);
+
+    // Pequeño delay de seguridad para que el estado de React se asiente
+    const timer = setTimeout(() => {
+      if (playAudio) {
+        console.log("Reproduciendo locución completa...");
+        playAudio(speechText);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [lastMessage, isActive, playAudio]);
+
+  return null; // Este componente es un controlador lógico
 }
