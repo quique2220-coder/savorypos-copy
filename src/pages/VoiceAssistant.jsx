@@ -3,17 +3,21 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Mic, MicOff, Loader2, MessageCircle, X, Volume2, TrendingUp, DollarSign, Package, ChefHat } from "lucide-react";
+import { 
+  Send, Mic, MicOff, Loader2, MessageCircle, 
+  TrendingUp, Package, ChefHat, DollarSign, PieChart, Volume2 
+} from "lucide-react";
 import { toast } from "sonner";
 import MarginAnalysisVisual from "@/components/costing/MarginAnalysisVisual";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-const QUICK_ACTIONS = [
-  { label: "¿Cómo voy hoy?", icon: TrendingUp, color: "text-green-600 bg-green-50 border-green-200 hover:bg-green-100" },
-  { label: "Registrar gasto", icon: DollarSign, color: "text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100" },
-  { label: "Ver inventario", icon: Package, color: "text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100" },
-  { label: "Analizar platillo", icon: ChefHat, color: "text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100" },
+const ANALYTIC_ACTIONS = [
+  { label: "Ventas & Performance", icon: TrendingUp, prompt: "¿Cómo van las ventas y el performance de hoy?", color: "text-blue-600 bg-blue-50 border-blue-200" },
+  { label: "Inventario", icon: Package, prompt: "¿Qué artículos están bajos en inventario?", color: "text-orange-600 bg-orange-50 border-orange-200" },
+  { label: "Platillos", icon: ChefHat, prompt: "Analiza el costo y rendimiento de mis platillos", color: "text-purple-600 bg-purple-50 border-purple-200" },
+  { label: "Precios & Márgenes", icon: PieChart, prompt: "¿Cuáles son mis platillos con mejor margen de ganancia?", color: "text-green-600 bg-green-50 border-green-200" },
+  { label: "Finanzas", icon: DollarSign, prompt: "Dame un resumen de mis gastos y salud financiera", color: "text-red-600 bg-red-50 border-red-200" },
 ];
 
 export default function VoiceAssistant() {
@@ -24,17 +28,12 @@ export default function VoiceAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [showWhatsApp, setShowWhatsApp] = useState(false);
-  const [interimText, setInterimText] = useState("");
   const [showMarginAnalysis, setShowMarginAnalysis] = useState(false);
+  const [interimText, setInterimText] = useState("");
 
   const messagesEndRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const lastSpokenIdRef = useRef(null);
-  const speakTimerRef = useRef(null);
-  
-  // REFERENCIA MAESTRA: Evita que se encimen los audios
   const audioRef = useRef(null);
+  const lastSpokenIdRef = useRef(null);
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes"],
@@ -42,23 +41,20 @@ export default function VoiceAssistant() {
   });
 
   useEffect(() => {
-    const initConversation = async () => {
+    const init = async () => {
       try {
         const conv = await base44.agents.createConversation({
-          agent_name: "restaurantAI", // Usando el agente nuevo que creaste
-          metadata: { name: "Voice Session" },
+          agent_name: "restaurantAI",
+          metadata: { type: "expert_consultant" }
         });
         setConversationId(conv.id);
         setMessages(conv.messages || []);
       } catch (err) {
-        toast.error("Error al conectar con el asistente");
+        toast.error("Error al iniciar Consultor IA");
       }
     };
-    initConversation();
-    return () => {
-      if (audioRef.current) audioRef.current.pause();
-      clearTimeout(speakTimerRef.current);
-    };
+    init();
+    return () => audioRef.current?.pause();
   }, []);
 
   useEffect(() => {
@@ -70,179 +66,147 @@ export default function VoiceAssistant() {
       
       if (lastMsg?.role === "assistant" && lastMsg?.content) {
         setIsLoading(false);
-        const contentLower = lastMsg.content.toLowerCase();
-        setShowMarginAnalysis(contentLower.includes("margen") || contentLower.includes("rentable"));
-        
-        // Solo hablar si el mensaje es nuevo
+        // Activar visual de márgenes si se menciona
+        if (lastMsg.content.toLowerCase().includes("margen")) setShowMarginAnalysis(true);
+
         if (lastMsg.id !== lastSpokenIdRef.current) {
-          clearTimeout(speakTimerRef.current);
-          speakTimerRef.current = setTimeout(() => {
-            lastSpokenIdRef.current = lastMsg.id;
-            speakMessage(lastMsg.content);
-          }, 600);
+          lastSpokenIdRef.current = lastMsg.id;
+          speak(lastMsg.content);
         }
       }
     });
     return () => unsubscribe();
   }, [conversationId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const speakMessage = async (text) => {
-    if (!text || isListening) return;
-
-    // DETENER AUDIO ANTERIOR (Solución al problema de "muchos hablando")
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
+  const speak = async (text) => {
+    if (audioRef.current) audioRef.current.pause();
     setIsSpeaking(true);
-
     try {
-      // Parámetros de ESTABILIDAD Y CLARIDAD
       const res = await base44.functions.invoke("elevenLabsTTS", { 
         text,
-        voice_settings: {
-          stability: 0.5,       // Evita que la voz se quiebre
-          similarity_boost: 0.8, // Mayor nitidez
-          use_speaker_boost: true
-        }
+        voice_settings: { stability: 0.6, similarity_boost: 0.85 } 
       });
-
-      const base64 = res.data?.audio;
-      if (!base64) throw new Error();
-
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      
-      const blob = new Blob([bytes], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      
+      const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
       audioRef.current = audio;
-      audio.onended = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(url);
-      };
-      
+      audio.onended = () => setIsSpeaking(false);
       await audio.play();
     } catch {
       setIsSpeaking(false);
-      console.warn("Fallo en TTS o límites de ElevenLabs.");
     }
   };
 
   const sendMessage = async (text) => {
-    if (!text.trim() || !conversationId || isLoading) return;
-    
-    // Callar al asistente si el usuario responde
-    if (audioRef.current) audioRef.current.pause(); 
-    
+    if (!text.trim() || isLoading) return;
+    if (audioRef.current) audioRef.current.pause();
     setInput("");
     setIsLoading(true);
     try {
-      // Usamos la fecha local de tu zona horaria (Mountain Time) para que no haya desfase de días
-      const localDate = new Date().toLocaleDateString('en-CA'); 
+      const today = new Date().toLocaleDateString('en-CA');
       await base44.agents.addMessage(
         { id: conversationId }, 
-        { role: "user", content: text.trim(), metadata: { currentDate: localDate } }
+        { role: "user", content: `Current date: ${today}. ${text.trim()}` }
       );
     } catch {
       setIsLoading(false);
-      toast.error("Error al enviar mensaje");
     }
   };
 
-  const startRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return toast.error("Usa Chrome para esta función.");
-
-    if (audioRef.current) audioRef.current.pause();
-    
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-MX";
-    recognition.interimResults = true;
-
-    recognition.onresult = (e) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) sendMessage(e.results[i][0].transcript);
-        else interim = e.results[i][0].transcript;
-      }
-      setInterimText(interim);
+  const startVoice = () => {
+    const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Speech) return toast.error("Navegador no compatible");
+    const rec = new Speech();
+    rec.lang = "es-MX";
+    rec.onresult = (e) => {
+      const txt = e.results[0][0].transcript;
+      if (e.results[0].isFinal) sendMessage(txt);
+      else setInterimText(txt);
     };
-
-    recognition.onend = () => setIsListening(false);
-    recognition.start();
+    rec.onend = () => setIsListening(false);
+    rec.start();
     setIsListening(true);
-    recognitionRef.current = recognition;
   };
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 p-4">
-      <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-4">
-        
-        <Card className="border-none shadow-sm">
-          <CardHeader className="p-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-green-500 animate-ping" : "bg-slate-300"}`} />
-              Asistente SavoryPOS
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => setShowWhatsApp(!showWhatsApp)}>
-              <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
-            </Button>
-          </CardHeader>
-        </Card>
-
-        <div className="flex-1 overflow-y-auto space-y-4 px-2 scrollbar-hide">
-          {showMarginAnalysis && recipes.length > 0 && <MarginAnalysisVisual recipes={recipes} onNavigate={navigate} />}
-          
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center opacity-60 gap-4">
-               <ChefHat className="w-12 h-12" />
-               <p>Pregúntame sobre tus ventas de hoy o gastos.</p>
-            </div>
-          ) : (
-            messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] p-3 rounded-2xl text-sm shadow-sm ${
-                  msg.role === "user" ? "bg-blue-600 text-white rounded-tr-none" : "bg-white border rounded-tl-none"
-                }`}>
-                  {msg.content}
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
+    <div className="h-screen flex flex-col bg-slate-50">
+      {/* Header Estilo Consultor */}
+      <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-green-500 animate-pulse" : "bg-slate-300"}`} />
+            Consultor Experto IA
+          </h1>
+          <p className="text-xs text-slate-500">Análisis inteligente de tu negocio</p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>Salir</Button>
+      </header>
 
-        <Card className="border-t shadow-lg">
-          <CardContent className="p-3">
-            <div className="flex gap-2">
-              <Button 
-                variant={isListening ? "destructive" : "secondary"} 
-                onClick={isListening ? () => recognitionRef.current?.stop() : startRecording}
-                className="rounded-full w-12 h-12 p-0 shrink-0"
-              >
-                {isListening ? <MicOff /> : <Mic />}
-              </Button>
-              <Input 
-                value={input} 
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && sendMessage(input)}
-                placeholder="Escribe o presiona el micro..."
-                className="rounded-full bg-slate-100 border-none"
-                disabled={isLoading}
-              />
-              <Button onClick={() => sendMessage(input)} className="rounded-full w-12 h-12 p-0 shrink-0" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
-              </Button>
+      {/* Botones de Análisis Rápido */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-4 bg-white/50 border-b">
+        {ANALYTIC_ACTIONS.map((action) => (
+          <button
+            key={action.label}
+            onClick={() => sendMessage(action.prompt)}
+            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all hover:shadow-md active:scale-95 ${action.color}`}
+          >
+            <action.icon className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-bold text-center leading-tight">{action.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Chat & Visuals */}
+      <main className="flex-1 overflow-y-auto p-4 space-y-4">
+        {showMarginAnalysis && recipes.length > 0 && (
+          <div className="animate-in fade-in zoom-in duration-300">
+            <MarginAnalysisVisual recipes={recipes} onNavigate={navigate} />
+          </div>
+        )}
+
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40">
+            <PieChart className="w-16 h-16" />
+            <p className="text-sm max-w-xs">Selecciona un área de análisis arriba o usa el micrófono para consultar datos específicos.</p>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[85%] p-4 rounded-2xl text-sm shadow-sm ${
+              msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white border rounded-tl-none text-slate-700"
+            }`}>
+              {msg.content}
             </div>
-            {interimText && <p className="text-[10px] text-center mt-2 text-slate-400 italic">"{interimText}..."</p>}
-          </CardContent>
-        </Card>
-      </div>}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </main>
+
+      {/* Input de Control */}
+      <footer className="p-4 bg-white border-t">
+        <div className="max-w-3xl mx-auto flex gap-3 items-center">
+          <Button 
+            variant={isListening ? "destructive" : "secondary"}
+            className="rounded-full w-12 h-12 shrink-0 shadow-inner"
+            onClick={startVoice}
+          >
+            {isListening ? <MicOff /> : <Mic />}
+          </Button>
+          <div className="relative flex-1">
+            <Input 
+              placeholder="Haz una consulta analítica..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+              className="rounded-full bg-slate-100 border-none pr-10"
+            />
+            {isLoading && <Loader2 className="absolute right-3 top-2.5 w-4 h-4 animate-spin text-slate-400" />}
+          </div>
+          <Button onClick={() => sendMessage(input)} className="rounded-full w-12 h-12 shrink-0">
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+        {interimText && <p className="text-[10px] text-center mt-2 text-slate-400 italic">"{interimText}..."</p>}
+      </footer>
+    </div>
+  );
+}
