@@ -97,10 +97,19 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
     <div className="flex flex-col h-full gap-4">
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
-            <BarChart className="w-12 h-12 mb-2 text-primary" />
-            <p className="text-sm font-medium">Análisis de Ventas</p>
-          </div>
+          <div className="h-full flex flex-col items-center justify-center opacity-100 text-center space-y-3">
+  <div className="flex gap-1 mb-2">
+    <span className="w-1.5 h-6 bg-orange-500 animate-bounce [animation-delay:-0.3s] rounded-full"></span>
+    <span className="w-1.5 h-6 bg-orange-500 animate-bounce [animation-delay:-0.15s] rounded-full"></span>
+    <span className="w-1.5 h-6 bg-orange-500 animate-bounce rounded-full"></span>
+  </div>
+  <p className="text-sm font-bold text-slate-600 tracking-tight">
+    Sincronizando con Punto de Venta...
+  </p>
+  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
+    Optimizando márgenes de utilidad
+  </p>
+</div>
         )}
 
         {messages.map((msg, i) => (
