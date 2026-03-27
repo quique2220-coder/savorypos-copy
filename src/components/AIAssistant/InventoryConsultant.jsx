@@ -116,4 +116,18 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex gap-
+      <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100 shrink-0">
+        <Input 
+          value={input} 
+          onChange={e => setInput(e.target.value)} 
+          onKeyDown={e => e.key === "Enter" && !isLoading && sendMessage(input)}
+          placeholder="¿Qué falta comprar?" 
+          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
+        />
+        <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full shrink-0">
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
