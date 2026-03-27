@@ -8,7 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 
 const getLocalDate = () => {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()){String(now.getDate()).padStart(2,'0')}`;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
@@ -20,7 +23,7 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
 
-  // Traemos las órdenes reales para el Snapshot
+  // Consulta de órdenes para el Snapshot de velocidad
   const { data: orders = [] } = useQuery({
     queryKey: ["orders"],
     queryFn: () => base44.entities.Order.list(),
@@ -58,7 +61,6 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
     }
   }, [messages, isActive, lastPlayedId, playAudio]);
 
-  // FUNCIÓN DE ALTA VELOCIDAD: Inyección de Snapshot de Ventas
   const sendMessage = async (text) => {
     if (!text.trim() || !conversationId) return;
     if (stopAudio) stopAudio();
@@ -66,7 +68,7 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
     const userText = text.trim();
     setInput("");
 
-    // Calculamos el resumen de ventas rápido
+    // Cálculo de Snapshot para respuesta instantánea
     const today = getLocalDate();
     const todayOrders = orders.filter(o => o.created_at?.startsWith(today));
     const totalSales = todayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
@@ -74,14 +76,13 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
     const salesSnapshot = {
       ventas_hoy: `$${totalSales.toFixed(2)}`,
       ordenes_hoy: todayOrders.length,
-      total_historico: `$${orders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2)}`,
-      ultima_orden: todayOrders[todayOrders.length - 1]?.total || 0
+      total_historico: `$${orders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2)}`
     };
 
     const textWithContext = `
       SALES_SNAPSHOT: ${JSON.stringify(salesSnapshot)}
       USER_QUERY: ${userText}
-      INSTRUCTION: Usa el SNAPSHOT para responder sobre el performance actual. Sé breve.
+      INSTRUCTION: Usa los datos del SNAPSHOT. Sé breve y directo.
     `;
 
     try {
@@ -92,28 +93,19 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
     }
   };
 
-  const quickQuestions = ["¿Cómo van las ventas de hoy?", "Resumen histórico", "Performance general"];
-
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center opacity-40 text-center px-4">
-            <TrendingUp className="w-12 h-12 mb-2 text-primary" />
-            <p className="text-sm font-medium">Análisis de Ventas & Performance</p>
-            <div className="flex flex-wrap gap-2 mt-4 justify-center">
-              {quickQuestions.map(q => (
-                <Button key={q} variant="outline" size="xs" className="text-[10px] rounded-full" onClick={() => sendMessage(q)}>
-                  {q}
-                </Button>
-              ))}
-            </div>
+          <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
+            <BarChart className="w-12 h-12 mb-2 text-primary" />
+            <p className="text-sm font-medium">Análisis de Ventas</p>
           </div>
         )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none border border-slate-100"}`}>
+            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none border"}`}>
               <CardContent className="p-3 text-sm leading-relaxed">
                 {msg.role === "user" && msg.content.includes("USER_QUERY:") 
                   ? msg.content.split("USER_QUERY:")[1].split("INSTRUCTION:")[0].trim() 
@@ -131,7 +123,7 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
           value={input} 
           onChange={e => setInput(e.target.value)} 
           onKeyDown={e => e.key === "Enter" && !isLoading && sendMessage(input)}
-          placeholder="Consulta sobre el rendimiento..." 
+          placeholder="¿Cómo van las ventas?" 
           className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
         />
         <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full shrink-0">
