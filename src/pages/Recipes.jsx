@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, Trash2, ChefHat, Building2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChefHat, Building2, Sparkles } from "lucide-react";
 import RecipeBuilder from "@/components/costing/RecipeBuilder";
 import OverheadSettings from "@/components/costing/OverheadSettings";
+import QuickRecipeCreator from "@/components/costing/QuickRecipeCreator";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 
 export default function Recipes() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showOverhead, setShowOverhead] = useState(false);
   const [monthlyDishes, setMonthlyDishes] = useState(1300);
@@ -72,7 +74,10 @@ export default function Recipes() {
             <Button variant="outline" onClick={() => setShowOverhead(!showOverhead)}>
               <Building2 className="w-4 h-4 mr-1" /> Gastos Operativos
             </Button>
-            <Button onClick={() => { setEditing(null); setShowForm(true); }}>
+            <Button variant="outline" onClick={() => { setShowQuickCreate(true); setShowForm(false); setEditing(null); }} className="gap-1 border-primary/40 text-primary hover:bg-primary/5">
+              <Sparkles className="w-4 h-4" /> Creación Rápida
+            </Button>
+            <Button onClick={() => { setEditing(null); setShowForm(true); setShowQuickCreate(false); }}>
               <Plus className="w-4 h-4 mr-1" /> Nuevo Platillo
             </Button>
           </div>
@@ -94,7 +99,15 @@ export default function Recipes() {
           </div>
         )}
 
-        {showForm && (
+        {showQuickCreate && (
+          <QuickRecipeCreator
+            ingredients={ingredients}
+            onSave={(data) => { saveMutation.mutate({ id: null, data }); setShowQuickCreate(false); }}
+            onCancel={() => setShowQuickCreate(false)}
+          />
+        )}
+
+        {showForm && !showQuickCreate && (
           <RecipeBuilder
             recipe={editing}
             ingredients={ingredients}
