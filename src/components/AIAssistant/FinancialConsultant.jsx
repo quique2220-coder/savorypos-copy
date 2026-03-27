@@ -37,9 +37,14 @@ export default function FinancialConsultant({ conversationId, messages, playAudi
     }
   }, [messages, playAudio, stopAudio, lastPlayedId]);
 
+  const getLocalDate = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || !conversationId) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDate();
     const textWithContext = `Current date: ${today}\n${input.trim()}`;
     setInput("");
     setIsLoading(true);
@@ -106,7 +111,8 @@ export default function FinancialConsultant({ conversationId, messages, playAudi
                 <button
                   key={q}
                   onClick={() => {
-                    const today = new Date().toISOString().split('T')[0];
+                    const now = new Date();
+                    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
                     const textWithContext = `Current date: ${today}\n${q}`;
                     setIsLoading(true);
                     base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
