@@ -9,7 +9,7 @@ export default function MentorIA() {
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [advice, setAdvice] = useState(null);
-  const [lastPrice, setLastPrice] = useState(null); // Para mantener el título correcto
+  const [lastPrice, setLastPrice] = useState(null);
 
   const handleAskAdvice = async () => {
     const numericPrice = parseFloat(price);
@@ -19,9 +19,8 @@ export default function MentorIA() {
     }
 
     setLoading(true);
-    setAdvice(null); // Limpiar consejo anterior para feedback visual
+    setAdvice(null); 
     try {
-      // Llamada a la función personalizada en el backend de Base44
       const response = await base44.functions.invoke("restaurantMentor", {
         price: numericPrice,
       });
@@ -40,7 +39,7 @@ export default function MentorIA() {
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
-        {/* Decoración visual de IA */}
+        {/* Decoración visual */}
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <Sparkles className="w-20 h-20 text-primary" />
         </div>
@@ -64,7 +63,8 @@ export default function MentorIA() {
               placeholder="0.00"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              // CORRECCIÓN: Ahora llama a handleAskAdvice
+              onKeyDown={(e) => e.key === "Enter" && handleAskAdvice()}
               disabled={loading}
               className="pl-7 bg-slate-50 border-slate-200 focus:bg-white transition-all"
             />
