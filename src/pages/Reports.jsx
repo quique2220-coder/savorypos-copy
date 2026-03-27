@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List, Telescope } from "lucide-react";
 import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
@@ -13,6 +13,7 @@ import SalesDetail from "@/components/reports/SalesDetail";
 import BalanceSheet from "@/components/reports/BalanceSheet";
 import CashFlow from "@/components/reports/CashFlow";
 import PrintButton from "@/components/reports/PrintButton";
+import OpportunityFinder from "@/components/reports/OpportunityFinder";
 
 const COLORS = ["hsl(25, 95%, 53%)", "hsl(160, 60%, 45%)", "hsl(220, 70%, 50%)", "hsl(280, 65%, 60%)", "hsl(340, 75%, 55%)"];
 
@@ -281,6 +282,7 @@ export default function Reports() {
           <TabsTrigger value="pnl" className="flex items-center gap-1.5"><FileText className="w-4 h-4" /> P&amp;L</TabsTrigger>
           <TabsTrigger value="balance" className="flex items-center gap-1.5"><Scale className="w-4 h-4" /> Balance Sheet</TabsTrigger>
           <TabsTrigger value="cashflow" className="flex items-center gap-1.5"><Droplets className="w-4 h-4" /> Cash Flow</TabsTrigger>
+          <TabsTrigger value="opportunity" className="flex items-center gap-1.5"><Telescope className="w-4 h-4" /> Opportunity</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
@@ -419,6 +421,15 @@ export default function Reports() {
           <Card><CardContent className="p-6">
             <BalanceSheet contentRef={balancePrintRef} financials={financials} inventory={inventory} period={periodLabel} />
           </CardContent></Card>
+        </TabsContent>
+
+        {/* ── OPPORTUNITY FINDER ── */}
+        <TabsContent value="opportunity">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Opportunity Finder</h2>
+            <p className="text-sm text-muted-foreground">Menu Engineering Matrix — identify Stars, Plowhorses, Puzzles & Dogs.</p>
+          </div>
+          <OpportunityFinder orders={completed} menuItems={menuItems} />
         </TabsContent>
 
         {/* ── CASH FLOW ── */}
