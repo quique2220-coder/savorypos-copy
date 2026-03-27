@@ -34,13 +34,16 @@ export default function VoiceAssistant() {
   const speakTimerRef = useRef(null);
   const conversationIdRef = useRef(null);
   const isLoadingRef = useRef(false);
+  
+  // REFERENCIA CRÍTICA: Control de audio para evitar solapamientos
+  const currentAudioRef = useRef(null);
 
-  // Fetch recipes para el análisis visual de márgenes
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes"],
     queryFn: () => base44.entities.Recipe.list(),
   });
 
+  // Inicialización de la conversación
   useEffect(() => {
     const initConversation = async () => {
       try {
@@ -56,31 +59,44 @@ export default function VoiceAssistant() {
       }
     };
     initConversation();
+    
+    // Limpieza al desmontar el componente
+    return () => {
+      if (currentAudioRef.current) currentAudioRef.current.pause();
+      clearTimeout(speakTimerRef.current);
+    };
   }, []);
 
   useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
 
+  // Suscripción a mensajes con lógica de voz mejorada
   useEffect(() => {
     if (!conversationId) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const msgs = data.messages || [];
       setMessages(msgs);
       const lastMsg = msgs[msgs.length - 1];
+
       if (lastMsg?.role === "assistant" && lastMsg?.content) {
         setIsLoading(false);
         isLoadingRef.current = false;
-        // Detectar si es análisis de márgenes
-        const isMarginAnalysis = lastMsg.content.toLowerCase().includes("margen") || 
-                                  lastMsg.content.toLowerCase().includes("platillo") ||
-                                  lastMsg.content.toLowerCase().includes("rentable");
-        setShowMarginAnalysis(isMarginAnalysis);
+
+        // Lógica de visualización de márgenes
+        const contentLower = lastMsg.content.toLowerCase();
+        setShowMarginAnalysis(
+          contentLower.includes("margen") || 
+          contentLower.includes("platillo") ||
+          contentLower.includes("rentable")
+        );
+
+        // Lógica de voz: Evitar repetir el mismo mensaje y controlar timers
         if (lastMsg.id !== lastSpokenIdRef.current) {
           clearTimeout(speakTimerRef.current);
           speakTimerRef.current = setTimeout(() => {
             lastSpokenIdRef.current = lastMsg.id;
             speakMessage(lastMsg.content);
-          }, 800);
+          }, 500); // Reducido el delay para mayor fluidez
         }
       } else if (lastMsg?.role === "user") {
         setIsLoading(true);
@@ -93,85 +109,108 @@ export default function VoiceAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Función TTS optimizada para ElevenLabs
+  const speakMessage = async (text) => {
+    if (!text) return;
+
+    // 1. Detener cualquier audio que esté sonando actualmente
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+
+    setIsSpeaking(true);
+
+    try {
+      const res = await base44.functions.invoke("elevenLabsTTS", { text });
+      const base64 = res.data?.audio;
+      
+      if (!base64) throw new Error("No audio data received");
+
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      
+      const blob = new Blob([bytes], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      
+      currentAudioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(url);
+        currentAudioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        currentAudioRef.current = null;
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error("TTS Error:", error);
+      setIsSpeaking(false);
+      // Fallback: usar síntesis nativa si ElevenLabs falla por créditos o red
+      // const utterance = new SpeechSynthesisUtterance(text);
+      // window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const sendMessageDirectly = async (text) => {
     if (!text.trim() || !conversationIdRef.current || isLoadingRef.current) return;
+    
+    // Detener audio si el usuario interrumpe con un nuevo mensaje
+    if (currentAudioRef.current) currentAudioRef.current.pause();
+
     setInput("");
     setIsLoading(true);
     isLoadingRef.current = true;
     try {
       await base44.agents.addMessage({ id: conversationIdRef.current }, { role: "user", content: text.trim() });
     } catch (err) {
-      console.error("Error sending message:", err);
-      toast.error("Error al enviar mensaje");
       setIsLoading(false);
       isLoadingRef.current = false;
+      toast.error("Error al enviar");
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || !conversationId || isLoadingRef.current) return;
-    const userMessage = input.trim();
-    setInput("");
-    setIsLoading(true);
-    isLoadingRef.current = true;
-    try {
-      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: userMessage });
-    } catch (err) {
-      console.error("Error sending message:", err);
-      toast.error("Error al enviar mensaje");
-      setIsLoading(false);
-      isLoadingRef.current = false;
-    }
-  };
+  const handleSendMessage = () => sendMessageDirectly(input);
 
   const startRecording = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error("Tu navegador no soporta reconocimiento de voz. Usa Chrome.");
+      toast.error("Navegador no compatible con voz.");
       return;
     }
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-US"; // bilingual: Chrome will detect both Spanish and English
-    recognition.interimResults = true;
-    recognition.continuous = true;
 
-    let finalTranscript = "";
-    let silenceTimer = null;
-    let hasSent = false;
+    if (currentAudioRef.current) currentAudioRef.current.pause(); // Callar al asistente al hablarle
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-MX"; 
+    recognition.interimResults = true;
+    recognition.continuous = false; // Cambiado a false para detectar el final de la frase más rápido
 
     recognition.onresult = (e) => {
       let interim = "";
+      let final = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + " ";
-        else interim = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
       }
-      setInput(finalTranscript.trim());
       setInterimText(interim);
-      clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => recognition.stop(), 2000);
-    };
-
-    recognition.onerror = (e) => {
-      clearTimeout(silenceTimer);
-      if (e.error !== "no-speech") toast.error("Error al reconocer voz: " + e.error);
-      setIsListening(false);
-      setInterimText("");
-    };
-
-    recognition.onend = () => {
-      clearTimeout(silenceTimer);
-      setIsListening(false);
-      setInterimText("");
-      if (!hasSent && finalTranscript.trim()) {
-        hasSent = true;
-        sendMessageDirectly(finalTranscript.trim());
+      if (final) {
+        setInput(final);
+        sendMessageDirectly(final);
+        recognition.stop();
       }
     };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
 
     recognitionRef.current = recognition;
-    finalTranscript = "";
-    setInput("");
-    setInterimText("");
     recognition.start();
     setIsListening(true);
   };
@@ -181,206 +220,117 @@ export default function VoiceAssistant() {
     setIsListening(false);
   };
 
-  const speakMessage = async (text) => {
-    if (!text) return;
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(true);
-    try {
-      const res = await base44.functions.invoke("elevenLabsTTS", { text });
-      const base64 = res.data?.audio;
-      if (!base64) throw new Error("No audio");
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); };
-      audio.onerror = () => setIsSpeaking(false);
-      audio.play();
-    } catch {
-      setIsSpeaking(false);
-    }
-  };
-
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-primary/5 to-accent/5 p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-3">
-
+        
         {/* Header */}
-        <Card className="shrink-0">
+        <Card className="shrink-0 border-primary/20 shadow-sm">
           <CardHeader className="pb-3 pt-4 px-4">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mic className="w-4 h-4 text-primary" />
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isSpeaking ? "bg-green-100 animate-pulse" : "bg-primary/10"}`}>
+                  <Mic className={`w-4 h-4 ${isSpeaking ? "text-green-600" : "text-primary"}`} />
                 </div>
-                Asistente de Negocio
+                Asistente SavoryPOS
               </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => setShowWhatsApp(!showWhatsApp)}>
-                <MessageCircle className="w-4 h-4 mr-1.5" />
-                WhatsApp
+              <Button variant="outline" size="sm" onClick={() => setShowWhatsApp(!showWhatsApp)} className="text-xs">
+                <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Ventas • Inventario • Costos • Contabilidad
-            </p>
-            {showWhatsApp && (
-              <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-green-700">Conecta con WhatsApp</span>
-                  <button onClick={() => setShowWhatsApp(false)}>
-                    <X className="w-3.5 h-3.5 text-green-600" />
-                  </button>
-                </div>
-                <a
-                  href={base44.agents.getWhatsAppConnectURL("voiceAssistant")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block text-xs font-semibold text-green-700 bg-white border border-green-300 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
-                >
-                  💬 Abrir en WhatsApp
-                </a>
-              </div>
-            )}
           </CardHeader>
         </Card>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-auto space-y-3 pr-1">
+        {/* Chat Area */}
+        <div className="flex-1 overflow-auto space-y-4 px-1 custom-scrollbar">
           {showMarginAnalysis && recipes.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
               <MarginAnalysisVisual recipes={recipes} onNavigate={navigate} />
             </div>
           )}
+
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center gap-6 pb-8">
-              <div className="space-y-2">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <Mic className="w-8 h-8 text-primary/50" />
-                </div>
-                <p className="text-sm font-semibold">Tu Operador de Negocio con IA</p>
-                <p className="text-xs text-muted-foreground max-w-xs">
-                  Lee datos reales, ejecuta acciones y te da recomendaciones como coach
-                </p>
+            <div className="h-full flex flex-col items-center justify-center text-center gap-6 opacity-80">
+              <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center">
+                <ChefHat className="w-8 h-8 text-primary/40" />
               </div>
-              {/* Quick Actions */}
-              <div className="w-full grid grid-cols-2 gap-2">
-                {QUICK_ACTIONS.map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => sendMessageDirectly(action.label)}
-                    disabled={isLoading}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors text-left ${action.color}`}
-                  >
-                    <action.icon className="w-4 h-4 shrink-0" />
-                    {action.label}
+              <div className="space-y-1">
+                <p className="font-medium text-sm">¿En qué puedo ayudarte hoy?</p>
+                <p className="text-xs text-muted-foreground">Analizo tus ventas, costos y stock en tiempo real.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
+                {QUICK_ACTIONS.map((a) => (
+                  <button key={a.label} onClick={() => sendMessageDirectly(a.label)} className={`p-3 rounded-xl border text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-2 ${a.color}`}>
+                    <a.icon className="w-4 h-4" /> {a.label}
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <>
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-card border border-border rounded-bl-sm shadow-sm"
-                  }`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap flex-1">{msg.content}</p>
-                      {msg.role === "assistant" && msg.content && (
-                        <button
-                          className="shrink-0 mt-0.5 opacity-50 hover:opacity-100 transition-opacity"
-                          onClick={() => speakMessage(msg.content)}
-                          disabled={isSpeaking}
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    {msg.tool_calls?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-current/10 space-y-1">
-                        {msg.tool_calls.map((tc, tcIdx) => (
-                          <div key={tcIdx} className="text-[11px] opacity-60 flex items-center gap-1">
-                            {tc.status === "completed"
-                              ? <span>✓ {tc.name}</span>
-                              : <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />{tc.name}</span>
-                            }
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {/* Quick actions below messages */}
-              {!isLoading && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {QUICK_ACTIONS.map((action) => (
-                    <button
-                      key={action.label}
-                      onClick={() => sendMessageDirectly(action.label)}
-                      disabled={isLoading}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors ${action.color}`}
+            messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`relative max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                  msg.role === "user" 
+                  ? "bg-primary text-primary-foreground rounded-br-none" 
+                  : "bg-card border rounded-bl-none"
+                }`}>
+                  {msg.content}
+                  {msg.role === "assistant" && (
+                    <button 
+                      onClick={() => speakMessage(msg.content)}
+                      className="absolute -right-8 top-2 p-1 hover:bg-primary/10 rounded-full transition-colors"
                     >
-                      <action.icon className="w-3 h-3" />
-                      {action.label}
+                      <Volume2 className={`w-4 h-4 ${isSpeaking ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
                     </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-          {isLoading && (
-            <div className="flex gap-2 justify-start">
-              <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                <div className="flex gap-1 items-center">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce delay-100" />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce delay-200" />
+                  )}
                 </div>
               </div>
-            </div>
+            ))
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <Card className="shrink-0">
-          <CardContent className="pt-3 pb-3 px-3">
-            <div className="flex gap-2">
+        {/* Input Bar */}
+        <Card className="shrink-0 shadow-lg border-t-0">
+          <CardContent className="p-3">
+            <div className="flex gap-2 items-center">
               <Button
-                variant="default"
+                variant={isListening ? "destructive" : "secondary"}
                 size="icon"
                 onClick={isListening ? stopRecording : startRecording}
                 disabled={isLoading}
-                className={`shrink-0 ${isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}`}
+                className={`rounded-full shrink-0 ${isListening ? "animate-pulse" : ""}`}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
-              <Input
-                placeholder={isListening ? "Escuchando..." : "Escribe o habla..."}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon" className="shrink-0">
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              
+              <div className="relative flex-1">
+                <Input
+                  placeholder={isListening ? "Escuchando..." : "Escribe aquí..."}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  className="pr-10 rounded-full bg-muted/50 border-none focus-visible:ring-1"
+                />
+                {isLoading && <Loader2 className="absolute right-3 top-2.5 w-4 h-4 animate-spin text-primary" />}
+              </div>
+
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={!input.trim() || isLoading} 
+                size="icon" 
+                className="rounded-full shrink-0"
+              >
+                <Send className="w-4 h-4" />
               </Button>
             </div>
-            {isListening && (
-              <div className="mt-2 text-center space-y-0.5">
-                <p className="text-xs text-primary animate-pulse">🎤 Escuchando... habla ahora</p>
-                {interimText && <p className="text-xs text-muted-foreground italic">{interimText}</p>}
-              </div>
+            {interimText && (
+              <p className="text-[10px] text-center mt-2 text-muted-foreground animate-pulse italic">
+                "{interimText}..."
+              </p>
             )}
           </CardContent>
         </Card>
-
       </div>
     </div>
   );
