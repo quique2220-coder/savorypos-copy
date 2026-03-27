@@ -20,7 +20,6 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
 
-  // Obtener inventario en tiempo real
   const { data: inventory = [] } = useQuery({
     queryKey: ["inventory"],
     queryFn: () => base44.entities.InventoryItem.list(),
@@ -28,7 +27,6 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
 
   const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
 
-  // Inicializar conversación
   useEffect(() => {
     if (initRef.current || !isActive) return;
     initRef.current = true;
@@ -41,7 +39,6 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
       setMessages(conv.messages || []);
       base44.agents.subscribeToConversation(conv.id, (data) => {
         setMessages(data.messages || []);
-        // Si el último mensaje es del asistente, dejamos de cargar
         if (data.messages?.[data.messages.length - 1]?.role === "assistant") {
           setIsLoading(false);
         }
@@ -53,7 +50,6 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Manejo de Voz
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
@@ -63,7 +59,6 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
     }
   }, [messages, isActive, lastPlayedId, playAudio]);
 
-  // ENVÍO CON SNAPSHOT DE ALTA VELOCIDAD
   const sendMessage = async (text) => {
     if (!text.trim() || !conversationId) return;
     if (stopAudio) stopAudio();
@@ -71,7 +66,6 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
     const userText = text.trim();
     setInput("");
 
-    // Mapa simplificado para que la IA no trabaje de más
     const inventorySnapshot = inventory.map(i => ({
       n: i.name,
       s: i.current_stock,
@@ -88,7 +82,7 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
     try {
       await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("Error:", err);
       setIsLoading(false);
     }
   };
@@ -96,4 +90,30 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
   return (
     <div className="flex flex-col h-full gap-4">
       {lowStockItems.length > 0 && (
-        <Card className="border-red
+        <Card className="border-red-500 bg-red-50 shrink-0 animate-pulse">
+          <CardContent className="p-3 flex gap-3 items-center">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <div className="text-[10px] text-red-700 font-bold uppercase">
+              Stock Crítico: {lowStockItems.length} items requieren atención
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none border border-slate-100"}`}>
+              <CardContent className="p-3 text-sm">
+                {msg.role === "user" && msg.content.includes("USER_QUERY:") 
+                  ? msg.content.split("USER_QUERY:")[1].split("INSTRUCTION:")[0].trim() 
+                  : msg.content}
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto" />}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="flex gap-
