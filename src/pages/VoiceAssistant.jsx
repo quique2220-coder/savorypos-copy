@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Mic, MicOff, Loader2, TrendingUp, Package, ChefHat, PieChart } from "lucide-react";
 
 const ACTIONS = [
-  { label: "Ventas", prompt: "¿Cómo van las ventas hoy?", icon: TrendingUp },
+  { label: "Ventas", prompt: "¿Cómo van las ventas de hoy?", icon: TrendingUp },
   { label: "Inventario", prompt: "¿Qué hay bajo en stock?", icon: Package },
   { label: "Platillos", prompt: "Analiza el costo de mis platillos", icon: ChefHat },
   { label: "Márgenes", prompt: "¿Cuáles son mis mejores márgenes?", icon: PieChart },
@@ -27,6 +27,7 @@ export default function VoiceAssistant() {
       setConversationId(conv.id);
     };
     init();
+    return () => audioRef.current?.pause();
   }, []);
 
   useEffect(() => {
@@ -47,7 +48,8 @@ export default function VoiceAssistant() {
     if (audioRef.current) audioRef.current.pause();
     setIsSpeaking(true);
     try {
-      const cleanText = text.replace(/[*#]/g, "").replace(/%/g, " por ciento").replace(/\$/g, " pesos ");
+      // Limpieza de caracteres que traban a ElevenLabs
+      const cleanText = text.replace(/[*#]/g, "").replace(/%/g, " por ciento").replace(/\$/g, " pesos ").replace(/\n/g, ". ");
       const res = await base44.functions.invoke("elevenLabsTTS", { text: cleanText });
       const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
       audioRef.current = audio;
@@ -60,41 +62,42 @@ export default function VoiceAssistant() {
     if (!text.trim() || isLoading) return;
     setIsLoading(true);
     setInput("");
+    if (audioRef.current) audioRef.current.pause();
     const lang = /[áéíóúñ]/i.test(text) ? "RESPONDER EN ESPAÑOL:" : "RESPOND IN ENGLISH:";
     await base44.agents.addMessage({ id: conversationId }, { role: "user", content: `${lang} ${text}` });
   };
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 p-4 gap-4">
-      <Card><CardHeader className="flex flex-row justify-between items-center">
+      <Card className="shadow-sm"><CardHeader className="flex flex-row justify-between items-center p-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-green-500 animate-pulse" : "bg-slate-300"}`} />
           Consultor Experto
         </CardTitle>
       </CardHeader></Card>
 
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {ACTIONS.map(a => (
-          <Button key={a.label} variant="outline" size="sm" onClick={() => sendMessage(a.prompt)} className="rounded-full flex gap-2">
-            <a.icon className="w-4 h-4" /> {a.label}
+          <Button key={a.label} variant="outline" size="sm" onClick={() => sendMessage(a.prompt)} className="rounded-full bg-white shadow-sm hover:bg-slate-100 shrink-0">
+            <a.icon className="w-4 h-4 mr-2" /> {a.label}
           </Button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4">
+      <div className="flex-1 overflow-y-auto space-y-4 px-2">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`p-3 rounded-2xl max-w-[85%] text-sm ${msg.role === "user" ? "bg-slate-800 text-white" : "bg-white border shadow-sm"}`}>
+            <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white border rounded-tl-none text-slate-700"}`}>
               {msg.content}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex gap-2">
-        <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage(input)} placeholder="Pregunta algo..." className="rounded-full" />
-        <Button onClick={() => sendMessage(input)} disabled={isLoading} className="rounded-full">
-          {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
+      <div className="flex gap-2 bg-white p-2 rounded-full shadow-lg border">
+        <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage(input)} placeholder="Pregunta algo..." className="rounded-full border-none focus-visible:ring-0" />
+        <Button onClick={() => sendMessage(input)} disabled={isLoading} className="rounded-full w-12 h-10">
+          {isLoading ? <Loader2 className="animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
     </div>
