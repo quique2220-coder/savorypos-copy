@@ -28,8 +28,18 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
   const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
 
   useEffect(() => {
-    if (initRef.current || !isActive) return;
-    initRef.current = true;
+  const handleVoiceInput = (event) => {
+    const { text, tab } = event.detail;
+    
+    // Si el mensaje es para esta pestaña, lo enviamos
+    if (tab === activeTab) {
+      sendMessage(text);
+    }
+  };
+
+  window.addEventListener("voiceInput", handleVoiceInput);
+  return () => window.removeEventListener("voiceInput", handleVoiceInput);
+}, [activeTab, sendMessage]); // Asegúrate de que sendMessage esté disponible
 
     base44.agents.createConversation({
       agent_name: "restaurantAI",
