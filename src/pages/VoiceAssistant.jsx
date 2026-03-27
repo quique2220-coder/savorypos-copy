@@ -24,7 +24,25 @@ export default function VoiceAssistant() {
   const audioRef = useRef(null);
   const lastSpokenIdRef = useRef(null);
   const messagesEndRef = useRef(null);
-
+{/* Debajo del texto del mensaje del asistente */}
+{msg.role === "assistant" && msg.content.includes("hora pico") && (
+  <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+    <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Flujo de Ventas (24h)</p>
+    <div className="flex items-end gap-1 h-24">
+      {/* Mini gráfico de barras simple */}
+      {[5, 8, 15, 40, 80, 100, 90, 60, 30, 10].map((val, i) => (
+        <div 
+          key={i} 
+          className="bg-slate-800 w-full rounded-t-sm" 
+          style={{ height: `${val}%` }} 
+        />
+      ))}
+    </div>
+    <div className="flex justify-between text-[8px] mt-1 text-slate-400">
+      <span>00:00</span><span>12:00</span><span>23:59</span>
+    </div>
+  </div>
+)}
   // Inicializar conversación
   useEffect(() => {
     const init = async () => {
