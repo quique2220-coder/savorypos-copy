@@ -20,6 +20,7 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
 
+  // Obtener inventario en tiempo real
   const { data: inventory = [] } = useQuery({
     queryKey: ["inventory"],
     queryFn: () => base44.entities.InventoryItem.list(),
@@ -27,6 +28,7 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
 
   const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
 
+  // Inicializar conversación
   useEffect(() => {
     if (initRef.current || !isActive) return;
     initRef.current = true;
@@ -39,6 +41,10 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
       setMessages(conv.messages || []);
       base44.agents.subscribeToConversation(conv.id, (data) => {
         setMessages(data.messages || []);
+        // Si el último mensaje es del asistente, dejamos de cargar
+        if (data.messages?.[data.messages.length - 1]?.role === "assistant") {
+          setIsLoading(false);
+        }
       });
     });
   }, [isActive]);
@@ -47,81 +53,47 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Manejo de Voz
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.role === "assistant" && lastMsg.id !== lastPlayedId && isActive) {
-      setIsLoading(false);
       setLastPlayedId(lastMsg.id);
       if (playAudio) playAudio(lastMsg.content);
     }
-  }, [messages, isActive]);
+  }, [messages, isActive, lastPlayedId, playAudio]);
 
-  // OPTIMIZACIÓN DE ALTA VELOCIDAD
+  // ENVÍO CON SNAPSHOT DE ALTA VELOCIDAD
   const sendMessage = async (text) => {
     if (!text.trim() || !conversationId) return;
     if (stopAudio) stopAudio();
     setIsLoading(true);
+    const userText = text.trim();
     setInput("");
 
-    // Enviamos el estado ya calculado para que el AI no pierda tiempo procesando
+    // Mapa simplificado para que la IA no trabaje de más
     const inventorySnapshot = inventory.map(i => ({
-      item: i.name,
-      stock: i.current_stock,
-      min: i.min_stock,
-      alerta: i.current_stock <= (i.min_stock || 0) ? "CRÍTICO" : "OK"
+      n: i.name,
+      s: i.current_stock,
+      m: i.min_stock || 0,
+      st: i.current_stock <= (i.min_stock || 0) ? "ALERTA" : "OK"
     }));
 
     const textWithContext = `
-      SNAPSHOT_TECNICO: ${JSON.stringify(inventorySnapshot)}
-      PREGUNTA_USUARIO: ${text.trim()}
-      INSTRUCCION: Responde rápido usando el SNAPSHOT.
+      SNAPSHOT: ${JSON.stringify(inventorySnapshot)}
+      USER_QUERY: ${userText}
+      INSTRUCTION: Respond directly using SNAPSHOT data. Be ultra-concise.
     `;
 
-    await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+    try {
+      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="flex flex-col h-full gap-4">
       {lowStockItems.length > 0 && (
-        <Card className="border-red-200 bg-red-50 shrink-0 animate-pulse">
-          <CardContent className="p-3 flex gap-3 items-center">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <div className="text-[10px] text-red-700 font-bold uppercase">
-              Stock Crítico detectado
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none"}`}>
-              <CardContent className="p-3 text-sm">
-                {msg.role === "user" && msg.content.includes("PREGUNTA_USUARIO:") 
-                  ? msg.content.split("PREGUNTA_USUARIO:")[1].split("INSTRUCCION:")[0].trim() 
-                  : msg.content}
-              </CardContent>
-            </Card>
-          </div>
-        ))}
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto mt-2" />}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100 shrink-0">
-        <Input 
-          value={input} 
-          onChange={e => setInput(e.target.value)} 
-          onKeyDown={e => e.key === "Enter" && sendMessage(input)}
-          placeholder="¿Qué falta en el inventario?" 
-          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
-        />
-        <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full shrink-0">
-          <Send className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
+        <Card className="border-red
