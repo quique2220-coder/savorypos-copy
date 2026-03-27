@@ -43,6 +43,34 @@ export default function VoiceAssistant() {
     </div>
   </div>
 )}
+{/* Dentro del mapeo de mensajes, añade esta lógica para detectar análisis de márgenes */}
+{msg.role === "assistant" && (msg.content.includes("margen") || msg.content.includes("rentable")) && (
+  <div className="grid grid-cols-2 gap-3 mt-4">
+    <Card className="bg-green-50 border-green-200 shadow-none">
+      <CardHeader className="p-3 pb-0">
+        <CardTitle className="text-[10px] text-green-700 uppercase flex items-center gap-1">
+          <TrendingUp className="w-3 h-3" /> Top Rentable
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3">
+        <p className="font-bold text-slate-800 text-sm">Mexican Rice</p>
+        <p className="text-xs text-green-600 font-bold">92.05% Margen</p>
+      </CardContent>
+    </Card>
+
+    <Card className="bg-red-50 border-red-200 shadow-none">
+      <CardHeader className="p-3 pb-0">
+        <CardTitle className="text-[10px] text-red-700 uppercase flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" /> Revisar Precio
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3">
+        <p className="font-bold text-slate-800 text-sm">Coca-Cola</p>
+        <p className="text-xs text-red-600 font-bold">-16.46% Margen</p>
+      </CardContent>
+    </Card>
+  </div>
+)}
   // Inicializar conversación
   useEffect(() => {
     const init = async () => {
