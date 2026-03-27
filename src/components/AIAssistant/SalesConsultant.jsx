@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2, TrendingUp, BarChart } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 const getLocalDate = () => {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()){String(now.getDate()).padStart(2,'0')}`;
 };
 
 export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
@@ -18,7 +19,12 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
   const [lastPlayedId, setLastPlayedId] = useState(null);
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
-  const unsubscribeRef = useRef(null);
+
+  // Traemos las órdenes reales para el Snapshot
+  const { data: orders = [] } = useQuery({
+    queryKey: ["orders"],
+    queryFn: () => base44.entities.Order.list(),
+  });
 
   useEffect(() => {
     if (initRef.current || !isActive) return;
@@ -26,16 +32,17 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
 
     base44.agents.createConversation({
       agent_name: "restaurantAI",
-      metadata: { name: "Ventas & Performance" },
+      metadata: { tab: "sales" },
     }).then(conv => {
       setConversationId(conv.id);
       setMessages(conv.messages || []);
-      unsubscribeRef.current = base44.agents.subscribeToConversation(conv.id, (data) => {
+      base44.agents.subscribeToConversation(conv.id, (data) => {
         setMessages(data.messages || []);
+        if (data.messages?.[data.messages.length - 1]?.role === "assistant") {
+          setIsLoading(false);
+        }
       });
     });
-
-    return () => { unsubscribeRef.current?.(); };
   }, [isActive]);
 
   useEffect(() => {
@@ -45,33 +52,55 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role === "assistant" && lastMsg?.content) {
-      setIsLoading(false);
-      if (lastMsg?.id !== lastPlayedId && playAudio && isActive) {
-        setLastPlayedId(lastMsg.id);
-        stopAudio?.();
-        setTimeout(() => playAudio(lastMsg.content), 100);
-      }
+    if (lastMsg?.role === "assistant" && lastMsg.id !== lastPlayedId && isActive) {
+      setLastPlayedId(lastMsg.id);
+      if (playAudio) playAudio(lastMsg.content);
     }
-  }, [messages, isActive]);
+  }, [messages, isActive, lastPlayedId, playAudio]);
 
+  // FUNCIÓN DE ALTA VELOCIDAD: Inyección de Snapshot de Ventas
   const sendMessage = async (text) => {
     if (!text.trim() || !conversationId) return;
-    const textWithContext = `Current date: ${getLocalDate()}\n${text.trim()}`;
+    if (stopAudio) stopAudio();
     setIsLoading(true);
+    const userText = text.trim();
     setInput("");
-    await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+
+    // Calculamos el resumen de ventas rápido
+    const today = getLocalDate();
+    const todayOrders = orders.filter(o => o.created_at?.startsWith(today));
+    const totalSales = todayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    
+    const salesSnapshot = {
+      ventas_hoy: `$${totalSales.toFixed(2)}`,
+      ordenes_hoy: todayOrders.length,
+      total_historico: `$${orders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2)}`,
+      ultima_orden: todayOrders[todayOrders.length - 1]?.total || 0
+    };
+
+    const textWithContext = `
+      SALES_SNAPSHOT: ${JSON.stringify(salesSnapshot)}
+      USER_QUERY: ${userText}
+      INSTRUCTION: Usa el SNAPSHOT para responder sobre el performance actual. Sé breve.
+    `;
+
+    try {
+      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
+    } catch (err) {
+      console.error("Error:", err);
+      setIsLoading(false);
+    }
   };
 
-  const quickQuestions = ["¿Cómo voy hoy?", "Ventas de la semana", "Platillo más vendido"];
+  const quickQuestions = ["¿Cómo van las ventas de hoy?", "Resumen histórico", "Performance general"];
 
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-        {messages.length === 0 && !isLoading ? (
-          <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
-            <BarChart className="w-12 h-12 mb-2 text-primary" />
-            <p className="text-sm font-medium">Consultor de Ventas</p>
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center opacity-40 text-center px-4">
+            <TrendingUp className="w-12 h-12 mb-2 text-primary" />
+            <p className="text-sm font-medium">Análisis de Ventas & Performance</p>
             <div className="flex flex-wrap gap-2 mt-4 justify-center">
               {quickQuestions.map(q => (
                 <Button key={q} variant="outline" size="xs" className="text-[10px] rounded-full" onClick={() => sendMessage(q)}>
@@ -80,28 +109,30 @@ export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
               ))}
             </div>
           </div>
-        ) : (
-          messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none"}`}>
-                <CardContent className="p-3 text-sm leading-relaxed">
-                  {msg.content}
-                </CardContent>
-              </Card>
-            </div>
-          ))
         )}
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto" />}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none border border-slate-100"}`}>
+              <CardContent className="p-3 text-sm leading-relaxed">
+                {msg.role === "user" && msg.content.includes("USER_QUERY:") 
+                  ? msg.content.split("USER_QUERY:")[1].split("INSTRUCTION:")[0].trim() 
+                  : msg.content}
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto mt-2" />}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100">
+      <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100 shrink-0 mb-1">
         <Input 
           value={input} 
           onChange={e => setInput(e.target.value)} 
-          onKeyDown={e => e.key === "Enter" && sendMessage(input)}
-          placeholder="¿Cómo van las ventas?" 
-          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4"
+          onKeyDown={e => e.key === "Enter" && !isLoading && sendMessage(input)}
+          placeholder="Consulta sobre el rendimiento..." 
+          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
         />
         <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full shrink-0">
           <Send className="w-4 h-4" />
