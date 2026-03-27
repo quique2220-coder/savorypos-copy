@@ -1,243 +1,36 @@
 import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Send, Mic, MicOff, Loader2, TrendingUp, Package, ChefHat, PieChart, AlertCircle } from "lucide-react";
 
-// Botones de acceso rápido para el Consultor
-const ACTIONS = [
-  { label: "Ventas", prompt: "¿Cómo van las ventas de hoy?", icon: TrendingUp },
-  { label: "Inventario", prompt: "¿Qué hay bajo en stock?", icon: Package },
-  { label: "Platillos", prompt: "Analiza el costo de mis platillos", icon: ChefHat },
-  { label: "Márgenes", prompt: "¿Cuáles son mis mejores márgenes?", icon: PieChart },
-];
+// ... otros imports
 
-export default function VoiceAssistant() {
-  const [conversationId, setConversationId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+export default function VoiceAssistant({ lastMessage, playAudio, stopAudio }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  
-  const audioRef = useRef(null);
-  const lastSpokenIdRef = useRef(null);
-  const messagesEndRef = useRef(null);
-{/* Debajo del texto del mensaje del asistente */}
-{msg.role === "assistant" && msg.content.includes("hora pico") && (
-  <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-    <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Flujo de Ventas (24h)</p>
-    <div className="flex items-end gap-1 h-24">
-      {/* Mini gráfico de barras simple */}
-      {[5, 8, 15, 40, 80, 100, 90, 60, 30, 10].map((val, i) => (
-        <div 
-          key={i} 
-          className="bg-slate-800 w-full rounded-t-sm" 
-          style={{ height: `${val}%` }} 
-        />
-      ))}
-    </div>
-    <div className="flex justify-between text-[8px] mt-1 text-slate-400">
-      <span>00:00</span><span>12:00</span><span>23:59</span>
-    </div>
-  </div>
-)}
-{/* Dentro del mapeo de mensajes, añade esta lógica para detectar análisis de márgenes */}
-{msg.role === "assistant" && (msg.content.includes("margen") || msg.content.includes("rentable")) && (
-  <div className="grid grid-cols-2 gap-3 mt-4">
-    <Card className="bg-green-50 border-green-200 shadow-none">
-      <CardHeader className="p-3 pb-0">
-        <CardTitle className="text-[10px] text-green-700 uppercase flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" /> Top Rentable
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3">
-        <p className="font-bold text-slate-800 text-sm">Mexican Rice</p>
-        <p className="text-xs text-green-600 font-bold">92.05% Margen</p>
-      </CardContent>
-    </Card>
+  const processedIdRef = useRef(null);
 
-    <Card className="bg-red-50 border-red-200 shadow-none">
-      <CardHeader className="p-3 pb-0">
-        <CardTitle className="text-[10px] text-red-700 uppercase flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" /> Revisar Precio
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3">
-        <p className="font-bold text-slate-800 text-sm">Coca-Cola</p>
-        <p className="text-xs text-red-600 font-bold">-16.46% Margen</p>
-      </CardContent>
-    </Card>
-  </div>
-)}
-  // Inicializar conversación
   useEffect(() => {
-    const init = async () => {
-      try {
-        const conv = await base44.agents.createConversation({ agent_name: "restaurantAI" });
-        setConversationId(conv.id);
-      } catch (err) {
-        console.error("Error al conectar con el agente");
-      }
-    };
-    init();
-    return () => audioRef.current?.pause();
-  }, []);
-
-  // Suscribirse a los mensajes
-  useEffect(() => {
-    if (!conversationId) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      const msgs = data.messages || [];
-      setMessages(msgs);
-      const lastMsg = msgs[msgs.length - 1];
-
-      // Si el mensaje es del asistente y no se ha hablado, reproducir voz
-      if (lastMsg?.role === "assistant" && lastMsg.id !== lastSpokenIdRef.current) {
-        setIsLoading(false);
-        lastSpokenIdRef.current = lastMsg.id;
-        handleVoice(lastMsg.content);
-      }
-    });
-    return () => unsubscribe();
-  }, [conversationId]);
-
-  // Auto-scroll al final
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleVoice = async (text) => {
-    if (audioRef.current) audioRef.current.pause();
-    setIsSpeaking(true);
-    try {
-      // FILTRO MAESTRO: Limpia el texto para que ElevenLabs sea fluido
-      const cleanText = text
-        .replace(/[*#]/g, "")                // Quita asteriscos/hashtags
-        .replace(/%/g, " por ciento")        // % -> texto
-        .replace(/\$/g, " pesos ")           // $ -> texto
-        .replace(/\n/g, ". ")                // Saltos de línea -> puntos
-        .replace(/\((.*?)\)/g, ". ");        // Quita paréntesis para evitar cortes
-
-      const res = await base44.functions.invoke("elevenLabsTTS", { text: cleanText });
+    // 1. Validamos que el mensaje sea nuevo y sea del asistente
+    if (lastMessage?.role === "assistant" && lastMessage.id !== processedIdRef.current) {
       
-      if (res.data?.audio) {
-        const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
-        audioRef.current = audio;
-        audio.onended = () => setIsSpeaking(false);
-        await audio.play();
+      // 2. Limpiamos el texto de metadatos técnicos (Snapshot, Instrucciones) 
+      // para que la voz no intente leer código JSON
+      let cleanText = lastMessage.content;
+      if (cleanText.includes("USER_QUERY:")) {
+        cleanText = cleanText.split("INSTRUCTION:")[0] || cleanText;
       }
-    } catch (error) {
-      console.error("Error en audio:", error);
-      setIsSpeaking(false);
+
+      // 3. Detenemos cualquier audio previo para evitar solapamiento
+      if (stopAudio) stopAudio();
+      
+      processedIdRef.current = lastMessage.id;
+      setIsSpeaking(true);
+
+      // 4. Pequeño delay de 100ms para asegurar que el buffer esté listo
+      setTimeout(() => {
+        if (playAudio) {
+          playAudio(cleanText);
+        }
+      }, 100);
     }
-  };
+  }, [lastMessage, playAudio, stopAudio]);
 
-  const sendMessage = async (text) => {
-    if (!text.trim() || isLoading) return;
-    if (audioRef.current) audioRef.current.pause();
-    
-    setIsLoading(true);
-    setInput("");
-    
-    const today = new Date().toLocaleDateString('en-CA');
-    const isSpanish = /[áéíóúñ]/i.test(text);
-    const langPrefix = isSpanish ? "RESPONDER EN ESPAÑOL:" : "RESPOND IN ENGLISH:";
-
-    try {
-      await base44.agents.addMessage(
-        { id: conversationId }, 
-        { role: "user", content: `Date: ${today}. ${langPrefix} ${text.trim()}` }
-      );
-    } catch (err) {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleListening = () => {
-    const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Speech) return alert("Navegador no compatible con voz");
-    
-    const rec = new Speech();
-    rec.lang = "es-MX";
-    rec.onresult = (e) => {
-      if (e.results[0].isFinal) sendMessage(e.results[0][0].transcript);
-    };
-    rec.onend = () => setIsListening(false);
-    rec.start();
-    setIsListening(true);
-  };
-
-  return (
-    <div className="h-screen flex flex-col bg-slate-100 p-4 gap-4 overflow-hidden">
-      {/* Header Visual */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className={`w-4 h-4 rounded-full ${isSpeaking ? "bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]" : "bg-slate-300"}`} />
-          <h1 className="font-bold text-slate-800">Consultor SavoryPOS</h1>
-        </div>
-        <div className="text-[10px] bg-slate-800 text-white px-2 py-1 rounded-md font-mono tracking-tighter">BILINGUAL AI</div>
-      </div>
-
-      {/* Botones de Acción */}
-      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {ACTIONS.map(a => (
-          <Button key={a.label} variant="outline" size="sm" onClick={() => sendMessage(a.prompt)} className="rounded-full bg-white shadow-sm hover:bg-slate-50 shrink-0 border-slate-200">
-            <a.icon className="w-4 h-4 mr-2" /> {a.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Historial de Mensajes */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2 opacity-50">
-            <ChefHat className="w-12 h-12" />
-            <p className="text-sm font-medium italic">¿En qué área de tu negocio nos enfocamos hoy?</p>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none"}`}>
-              <CardContent className="p-4 text-sm leading-relaxed">
-                {msg.content}
-                {/* Visualizador de errores de ingredientes */}
-                {msg.content.includes("failed") && msg.role === "assistant" && (
-                  <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-xs">
-                    <AlertCircle className="w-4 h-4" /> Error en conversión de unidades
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Barra de Entrada */}
-      <div className="bg-white p-3 rounded-3xl shadow-xl border border-slate-200 flex gap-2 max-w-4xl mx-auto w-full">
-        <Button 
-          variant={isListening ? "destructive" : "secondary"} 
-          className="rounded-full w-12 h-12 shrink-0 transition-all"
-          onClick={toggleListening}
-        >
-          {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-        </Button>
-        
-        <Input 
-          value={input} 
-          onChange={e => setInput(e.target.value)} 
-          onKeyDown={e => e.key === "Enter" && sendMessage(input)}
-          placeholder="Consulta ventas, márgenes o costos..." 
-          className="border-none bg-slate-50 rounded-full focus-visible:ring-0 px-6 h-12"
-          disabled={isLoading}
-        />
-        
-        <Button onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full w-12 h-12 shrink-0 bg-slate-800 hover:bg-slate-700">
-          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-        </Button>
-      </div>
-    </div>
-  );
+  // ... resto del componente
 }
