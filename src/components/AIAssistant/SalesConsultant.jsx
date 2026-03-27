@@ -3,69 +3,77 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 
-export default function SalesConsultant({ conversationId, messages, playAudio, stopAudio }) {
+const getLocalDate = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+};
+
+export default function SalesConsultant({ playAudio, stopAudio, isActive }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [conversationId, setConversationId] = useState(null);
   const [lastPlayedId, setLastPlayedId] = useState(null);
   const messagesEndRef = useRef(null);
+  const initRef = useRef(false);
+  const unsubscribeRef = useRef(null);
 
-  const { data: orders = [] } = useQuery({
-    queryKey: ["orders"],
-    queryFn: () => base44.entities.Order.list(),
-  });
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
 
-  // Auto-scroll al último mensaje
+    base44.agents.createConversation({
+      agent_name: "restaurantAI",
+      metadata: { name: "Ventas & Performance" },
+    }).then(conv => {
+      setConversationId(conv.id);
+      setMessages(conv.messages || []);
+      unsubscribeRef.current = base44.agents.subscribeToConversation(conv.id, (data) => {
+        setMessages(data.messages || []);
+      });
+    });
+
+    return () => { unsubscribeRef.current?.(); };
+  }, []);
+
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Apagar loading y reproducir audio cuando llega respuesta del asistente
+  // Apagar loading y reproducir audio cuando llega respuesta
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.role === "assistant" && lastMsg?.content) {
       setIsLoading(false);
-      if (lastMsg?.id !== lastPlayedId && playAudio) {
+      if (lastMsg?.id !== lastPlayedId && playAudio && isActive) {
         setLastPlayedId(lastMsg.id);
         stopAudio?.();
         setTimeout(() => playAudio(lastMsg.content), 100);
       }
     }
-  }, [messages, playAudio, stopAudio, lastPlayedId]);
+  }, [messages]);
 
-  const getLocalDate = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  };
-
-  const handleSendMessage = async () => {
-    if (!input.trim() || !conversationId) return;
-    const today = getLocalDate();
-    const textWithContext = `Current date: ${today}\n${input.trim()}`;
-    setInput("");
+  const sendMessage = async (text) => {
+    if (!text.trim() || !conversationId) return;
+    const textWithContext = `Current date: ${getLocalDate()}\n${text.trim()}`;
     setIsLoading(true);
-    try {
-      await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
-      setIsLoading(false);
-    } catch (err) {
-      console.error("Error:", err);
-      setIsLoading(false);
-    }
+    await base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
   };
 
-  const quickQuestions = [
-    "¿Cómo voy hoy?",
-    "¿Cuál fue mi mejor día?",
-    "Proyección semanal",
-    "Comparar con ayer"
-  ];
+  const handleSend = () => {
+    sendMessage(input);
+    setInput("");
+  };
+
+  const quickQuestions = ["¿Cómo voy hoy?", "¿Cuál fue mi mejor día?", "Proyección semanal", "Comparar con ayer"];
 
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <div className="flex-1 overflow-auto space-y-3 pr-1 mb-4">
-        {messages.length === 0 ? (
+      <div className="flex-1 overflow-auto space-y-3 pr-1">
+        {messages.length === 0 && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-lg">📊</span>
@@ -76,17 +84,8 @@ export default function SalesConsultant({ conversationId, messages, playAudio, s
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {quickQuestions.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => {
-                    const now = new Date();
-                    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-                    const textWithContext = `Current date: ${today}\n${q}`;
-                    setIsLoading(true);
-                    base44.agents.addMessage({ id: conversationId }, { role: "user", content: textWithContext });
-                  }}
-                  className="text-xs px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
-                >
+                <button key={q} onClick={() => sendMessage(q)}
+                  className="text-xs px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors">
                   {q}
                 </button>
               ))}
@@ -95,13 +94,9 @@ export default function SalesConsultant({ conversationId, messages, playAudio, s
         ) : (
           messages.map((msg, idx) => (
             <div key={idx} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-lg px-4 py-3 rounded-2xl ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-secondary text-secondary-foreground rounded-bl-sm"
-              }`}>
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              </div>
+              <div className={`max-w-lg px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${
+                msg.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-secondary text-secondary-foreground rounded-bl-sm"
+              }`}>{msg.content}</div>
             </div>
           ))
         )}
@@ -118,16 +113,12 @@ export default function SalesConsultant({ conversationId, messages, playAudio, s
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      <div className="flex gap-2">
-        <Input
-          placeholder="¿Qué quieres saber sobre ventas?"
-          value={input}
+      <div className="flex gap-2 shrink-0">
+        <Input placeholder="¿Qué quieres saber sobre ventas?" value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          disabled={isLoading}
-        />
-        <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} size="icon">
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          disabled={isLoading} />
+        <Button onClick={handleSend} disabled={!input.trim() || isLoading} size="icon">
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
