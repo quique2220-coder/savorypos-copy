@@ -58,7 +58,7 @@ export default function AIConsultantDashboard() {
       try {
         await new Promise(resolve => setTimeout(resolve, 500)); // Esperar un poco antes de intentar
         const conv = await base44.agents.createConversation({
-          agent_name: "voiceAssistant",
+          agent_name: "restaurantAI",
           metadata: { name: "Consultor Experto IA" },
         });
         setConversationId(conv.id);
