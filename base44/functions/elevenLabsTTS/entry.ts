@@ -4,7 +4,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Method not allowed" }, { status: 405 });
     }
 
-    const { text } = await req.json();
+    // Leemos el texto y las configuraciones opcionales que vengan del frontend
+    const body = await req.json();
+    const { text, voice_settings } = body;
 
     if (!text || typeof text !== "string") {
       return Response.json({ error: "Invalid text input" }, { status: 400 });
@@ -15,7 +17,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: "API key not configured" }, { status: 500 });
     }
 
-    // Sarah - natural bilingual EN/ES voice
+    // Sarah - Voz natural bilingüe
     const voiceId = "EXAVITQu4vr4xnSDxMaL";
 
     const response = await fetch(
@@ -30,8 +32,11 @@ Deno.serve(async (req) => {
           text,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
-            stability: 0.35,
-            similarity_boost: 0.9,
+            // Aumentamos estabilidad para evitar que la voz se quiebre en listas largas
+            stability: voice_settings?.stability || 0.65, 
+            similarity_boost: voice_settings?.similarity_boost || 0.8,
+            style: 0.0,
+            use_speaker_boost: true
           },
         }),
       }
@@ -41,19 +46,25 @@ Deno.serve(async (req) => {
       const errorData = await response.text();
       console.error("Eleven Labs TTS error:", errorData);
       return Response.json(
-        { error: "TTS processing failed" },
+        { error: "TTS processing failed", details: errorData },
         { status: response.status }
       );
     }
 
+    // Método eficiente para convertir ArrayBuffer a Base64 en Deno
     const audioBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(audioBuffer);
-    let binaryString = '';
-    for (let i = 0; i < uint8Array.length; i++) {
-      binaryString += String.fromCharCode(uint8Array[i]);
+    
+    // Usamos btoa de una forma más segura para buffers grandes
+    let binary = "";
+    const len = uint8Array.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
     }
-    const base64Audio = btoa(binaryString);
+    const base64Audio = btoa(binary);
+
     return Response.json({ audio: base64Audio });
+
   } catch (error) {
     console.error("TTS function error:", error.message);
     return Response.json({ error: error.message }, { status: 500 });
