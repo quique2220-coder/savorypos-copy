@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 
 /**
  * Limpieza profunda para que el TTS no se trabe con símbolos financieros
- * como los que aparecen en tu dashboard: "$569.265", "-$3,530.735", etc.
+ * como los que aparecen en tu dashboard: "$569.26", "-$3,530.73", etc.
  */
 const cleanTextForSpeech = (text) => {
   if (!text) return "";
