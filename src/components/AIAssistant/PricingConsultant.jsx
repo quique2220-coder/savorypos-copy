@@ -1,176 +1,28 @@
-import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Send, Loader2, TrendingUp, TrendingDown, Target } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-
-const getLocalDate = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-};
-
-export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [conversationId, setConversationId] = useState(null);
-  const [lastPlayedId, setLastPlayedId] = useState(null);
-  const messagesEndRef = useRef(null);
-  const initRef = useRef(false);
-
-  // Consulta de Recetas (Dataset principal)
-  const { data: recipes = [] } = useQuery({
-    queryKey: ["recipes"],
-    queryFn: () => base44.entities.Recipe.list(),
-  });
-
-  // Cálculo local de márgenes (High Performance)
-  const marginData = recipes
-    .filter(r => r.sale_price > 0)
-    .map(r => ({ 
-      ...r, 
-      margin: ((r.sale_price - (r.cost || 0)) / r.sale_price) * 100 
+const sendMessage = async (text) => {
+  if (!text.trim() || !conversationId) return;
+  setIsLoading(true);
+  
+  // Procesamos los datos nosotros mismos (Cero error para la IA)
+  const dataContext = {
+    analisis_real: marginData.map(r => ({
+      nombre: r.name,
+      precio: `$${r.sale_price}`,
+      margen_porcentual: `${r.margin.toFixed(1)}%`,
+      alerta: r.margin < 30 ? "BAJO MARGEN" : "OK"
     }))
-    .sort((a, b) => b.margin - a.margin);
-
-  const bestMargin = marginData[0];
-  const worstMargin = marginData[marginData.length - 1];
-
-  useEffect(() => {
-    if (initRef.current || !isActive) return;
-    initRef.current = true;
-
-    base44.agents.createConversation({
-      agent_name: "restaurantAI",
-      metadata: { tab: "pricing" },
-    }).then(conv => {
-      setConversationId(conv.id);
-      setMessages(conv.messages || []);
-      base44.agents.subscribeToConversation(conv.id, (data) => {
-        setMessages(data.messages || []);
-      });
-    });
-  }, [isActive]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role === "assistant" && lastMsg.id !== lastPlayedId && isActive) {
-      setIsLoading(false);
-      setLastPlayedId(lastMsg.id);
-      if (playAudio) playAudio(lastMsg.content);
-    }
-  }, [messages, isActive]);
-
-  // FUNCIÓN OPTIMIZADA: Envía un Snapshot de datos al Agente
-  const sendMessage = async (text) => {
-    if (!text.trim() || !conversationId) return;
-    if (stopAudio) stopAudio();
-    setIsLoading(true);
-    setInput("");
-
-    // Pre-procesamiento de datos (Estructura optimizada para la IA)
-    const dataContext = {
-      platillos: recipes.map(r => ({
-        n: r.name,
-        p: r.sale_price,
-        c: r.cost || 0,
-        m: r.sale_price > 0 
-          ? (((r.sale_price - (r.cost || 0)) / r.sale_price) * 100).toFixed(1) + "%" 
-          : "0%"
-      }))
-    };
-
-    // Inyectamos el contexto directamente en el mensaje para respuesta instantánea
-    const textWithContext = `
-      Current date: ${getLocalDate()}
-      DATA_SNAPSHOT: ${JSON.stringify(dataContext)}
-      USER_QUERY: ${text.trim()}
-    `;
-
-    await base44.agents.addMessage(
-      { id: conversationId }, 
-      { role: "user", content: textWithContext }
-    );
   };
 
-  const quickQuestions = ["¿Cuáles son mis mejores márgenes?", "Sugerir aumento de precios", "Analizar rentabilidad"];
+  // Le entregamos la respuesta ya masticada
+  const promptFinal = `
+    INSTRUCCION: No calcules nada. Usa estos datos:
+    ${JSON.stringify(dataContext)}
+    
+    PREGUNTA DEL USUARIO: ${text.trim()}
+  `;
 
-  return (
-    <div className="flex flex-col h-full gap-4">
-      {/* Dashboard Visual */}
-      {marginData.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 shrink-0">
-          <div className="bg-green-50 border border-green-100 p-3 rounded-xl shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-3 h-3 text-green-600" />
-              <p className="text-[10px] text-green-700 font-bold uppercase">Top Margen</p>
-            </div>
-            <p className="text-xs font-bold truncate">{bestMargin.name}</p>
-            <p className="text-sm font-black text-green-600">{bestMargin.margin.toFixed(1)}%</p>
-          </div>
-          
-          <div className="bg-red-50 border border-red-100 p-3 rounded-xl shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-3 h-3 text-red-600" />
-              <p className="text-[10px] text-red-700 font-bold uppercase">Bajo Margen</p>
-            </div>
-            <p className="text-xs font-bold truncate">{worstMargin?.name || "N/A"}</p>
-            <p className="text-sm font-black text-red-600">{worstMargin?.margin.toFixed(1) || 0}%</p>
-          </div>
-        </div>
-      )}
-
-      {/* Chat */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
-            <Target className="w-12 h-12 mb-2 text-primary" />
-            <p className="text-sm font-medium">Análisis de Precios Instantáneo</p>
-            <div className="flex flex-wrap gap-2 mt-4 justify-center">
-              {quickQuestions.map(q => (
-                <Button key={q} variant="outline" size="xs" className="text-[10px] rounded-full" onClick={() => sendMessage(q)}>
-                  {q}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none"}`}>
-              <CardContent className="p-3 text-sm leading-relaxed">
-                {/* Ocultamos el SNAPSHOT técnico del usuario para que solo vea su pregunta */}
-                {msg.role === "user" && msg.content.includes("USER_QUERY:") 
-                  ? msg.content.split("USER_QUERY:")[1].trim() 
-                  : msg.content}
-              </CardContent>
-            </Card>
-          </div>
-        ))}
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto" />}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100 shrink-0">
-        <Input 
-          value={input} 
-          onChange={e => setInput(e.target.value)} 
-          onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-          placeholder="Ej: ¿Qué platillos debería subir de precio?" 
-          className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
-        />
-        <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full shrink-0">
-          <Send className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
+  setInput("");
+  await base44.agents.addMessage(
+    { id: conversationId }, 
+    { role: "user", content: promptFinal }
   );
-}
+};
