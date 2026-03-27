@@ -44,62 +44,39 @@ export default function VoiceAssistant() {
     });
   }, [conversationId]);
 
-  const playVoice = async (text) => {
-    if (audioRef.current) audioRef.current.pause();
-    setIsSpeaking(true);
-    try {
-      // Limpieza de caracteres que traban a ElevenLabs
-      const cleanText = text.replace(/[*#]/g, "").replace(/%/g, " por ciento").replace(/\$/g, " pesos ").replace(/\n/g, ". ");
-      const res = await base44.functions.invoke("elevenLabsTTS", { text: cleanText });
-      const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
-      audioRef.current = audio;
-      audio.onended = () => setIsSpeaking(false);
-      audio.play();
-    } catch { setIsSpeaking(false); }
-  };
+  const handleVoice = async (text) => {
+  // Detenemos cualquier audio que esté sonando
+  if (audioRef.current) {
+    audioRef.current.pause();
+    audioRef.current = null;
+  }
+  
+  setIsSpeaking(true);
+  
+  try {
+    // === FILTRO DE LIMPIEZA PROFUNDA (Aquí está la magia) ===
+    const cleanText = text
+      .replace(/\n/g, " ")               // Quita saltos de línea para que no haya baches
+      .replace(/\*/g, "")                // Quita asteriscos de negritas
+      .replace(/%/g, " por ciento")      // Convierte % en palabras
+      .replace(/\(/g, ". ")              // Convierte paréntesis en pausas naturales
+      .replace(/\)/g, "")                // Elimina el cierre de paréntesis
+      .replace(/:/g, ",")                // Cambia dos puntos por comas (pausa breve)
+      .replace(/\$/g, " pesos ");        // Asegura que lea la moneda correctamente
 
-  const sendMessage = async (text) => {
-    if (!text.trim() || isLoading) return;
-    setIsLoading(true);
-    setInput("");
-    if (audioRef.current) audioRef.current.pause();
-    const lang = /[áéíóúñ]/i.test(text) ? "RESPONDER EN ESPAÑOL:" : "RESPOND IN ENGLISH:";
-    await base44.agents.addMessage({ id: conversationId }, { role: "user", content: `${lang} ${text}` });
-  };
+    // Enviamos el texto limpio a ElevenLabs
+    const res = await base44.functions.invoke("elevenLabsTTS", { text: cleanText });
+    
+    if (!res.data?.audio) throw new Error("No audio data");
 
-  return (
-    <div className="h-screen flex flex-col bg-slate-50 p-4 gap-4">
-      <Card className="shadow-sm"><CardHeader className="flex flex-row justify-between items-center p-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-green-500 animate-pulse" : "bg-slate-300"}`} />
-          Consultor Experto
-        </CardTitle>
-      </CardHeader></Card>
-
-      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {ACTIONS.map(a => (
-          <Button key={a.label} variant="outline" size="sm" onClick={() => sendMessage(a.prompt)} className="rounded-full bg-white shadow-sm hover:bg-slate-100 shrink-0">
-            <a.icon className="w-4 h-4 mr-2" /> {a.label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-4 px-2">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white border rounded-tl-none text-slate-700"}`}>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex gap-2 bg-white p-2 rounded-full shadow-lg border">
-        <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage(input)} placeholder="Pregunta algo..." className="rounded-full border-none focus-visible:ring-0" />
-        <Button onClick={() => sendMessage(input)} disabled={isLoading} className="rounded-full w-12 h-10">
-          {isLoading ? <Loader2 className="animate-spin" /> : <Send className="w-4 h-4" />}
-        </Button>
-      </div>
-    </div>
-  );
-}
+    const audio = new Audio(`data:audio/mpeg;base64,${res.data.audio}`);
+    audioRef.current = audio;
+    audio.onended = () => setIsSpeaking(false);
+    audio.onerror = () => setIsSpeaking(false);
+    
+    await audio.play();
+  } catch (error) {
+    console.error("Error en TTS:", error);
+    setIsSpeaking(false);
+  }
+};
