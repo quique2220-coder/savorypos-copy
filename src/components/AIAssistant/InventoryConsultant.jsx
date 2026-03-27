@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
 
+  // Consultar Inventario
   const { data: inventory = [] } = useQuery({
     queryKey: ["inventory"],
     queryFn: () => base44.entities.InventoryItem.list(),
@@ -27,50 +28,9 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
 
   const lowStockItems = inventory.filter(item => item.current_stock <= (item.min_stock || 0));
 
-  useEffect(() => {
-  const handleVoiceInput = (event) => {
-    const { text, tab } = event.detail;
-    
-    // Si el mensaje es para esta pestaña, lo enviamos
-    if (tab === activeTab) {
-      sendMessage(text);
-    }
-  };
-
-  window.addEventListener("voiceInput", handleVoiceInput);
-  return () => window.removeEventListener("voiceInput", handleVoiceInput);
-}, [activeTab, sendMessage]); // Asegúrate de que sendMessage esté disponible
-
-    base44.agents.createConversation({
-      agent_name: "restaurantAI",
-      metadata: { tab: "inventory" },
-    }).then(conv => {
-      setConversationId(conv.id);
-      setMessages(conv.messages || []);
-      base44.agents.subscribeToConversation(conv.id, (data) => {
-        setMessages(data.messages || []);
-        if (data.messages?.[data.messages.length - 1]?.role === "assistant") {
-          setIsLoading(false);
-        }
-      });
-    });
-  }, [isActive]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role === "assistant" && lastMsg.id !== lastPlayedId && isActive) {
-      setLastPlayedId(lastMsg.id);
-      if (playAudio) playAudio(lastMsg.content);
-    }
-  }, [messages, isActive, lastPlayedId, playAudio]);
-
-  const sendMessage = async (text) => {
-    if (!text.trim() || !conversationId) return;
+  // Función para enviar mensajes (Memorizada para evitar loops en useEffect)
+  const sendMessage = useCallback(async (text) => {
+    if (!text?.trim() || !conversationId) return;
     if (stopAudio) stopAudio();
     setIsLoading(true);
     const userText = text.trim();
@@ -95,7 +55,56 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
       console.error("Error:", err);
       setIsLoading(false);
     }
-  };
+  }, [conversationId, inventory, stopAudio]);
+
+  // Escuchador de Voz (VoiceInput)
+  useEffect(() => {
+    const handleVoiceInput = (event) => {
+      const { text, tab } = event.detail;
+      // Reaccionamos solo si el evento es para "inventory"
+      if (tab === "inventory") {
+        sendMessage(text);
+      }
+    };
+
+    window.addEventListener("voiceInput", handleVoiceInput);
+    return () => window.removeEventListener("voiceInput", handleVoiceInput);
+  }, [sendMessage]);
+
+  // Inicializar Agente
+  useEffect(() => {
+    if (initRef.current || !isActive) return;
+    initRef.current = true;
+
+    base44.agents.createConversation({
+      agent_name: "restaurantAI",
+      metadata: { tab: "inventory" },
+    }).then(conv => {
+      setConversationId(conv.id);
+      setMessages(conv.messages || []);
+      base44.agents.subscribeToConversation(conv.id, (data) => {
+        setMessages(data.messages || []);
+        if (data.messages?.[data.messages.length - 1]?.role === "assistant") {
+          setIsLoading(false);
+        }
+      });
+    });
+  }, [isActive]);
+
+  // Scroll automático
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Manejo de Audio (TTS)
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg.id !== lastPlayedId && isActive) {
+      setLastPlayedId(lastMsg.id);
+      if (playAudio) playAudio(lastMsg.content);
+    }
+  }, [messages, isActive, lastPlayedId, playAudio]);
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -110,7 +119,7 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
         </Card>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none border border-slate-100"}`}>
@@ -122,7 +131,11 @@ export default function InventoryConsultant({ playAudio, stopAudio, isActive }) 
             </Card>
           </div>
         ))}
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary mx-auto" />}
+        {isLoading && (
+          <div className="flex justify-start">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
