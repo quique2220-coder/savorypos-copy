@@ -20,12 +20,13 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
 
-  // Consulta de Recetas para análisis de margen visual
+  // Consulta de Recetas (Dataset principal)
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes"],
     queryFn: () => base44.entities.Recipe.list(),
   });
 
+  // Cálculo local de márgenes (High Performance)
   const marginData = recipes
     .filter(r => r.sale_price > 0)
     .map(r => ({ 
@@ -37,7 +38,6 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
   const bestMargin = marginData[0];
   const worstMargin = marginData[marginData.length - 1];
 
-  // Inicialización del Agente
   useEffect(() => {
     if (initRef.current || !isActive) return;
     initRef.current = true;
@@ -58,7 +58,6 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Manejo de Voz
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
@@ -69,23 +68,43 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
     }
   }, [messages, isActive]);
 
+  // FUNCIÓN OPTIMIZADA: Envía un Snapshot de datos al Agente
   const sendMessage = async (text) => {
     if (!text.trim() || !conversationId) return;
     if (stopAudio) stopAudio();
     setIsLoading(true);
     setInput("");
-    const context = `Current date: ${getLocalDate()}. `;
-    await base44.agents.addMessage({ id: conversationId }, { 
-      role: "user", 
-      content: context + text.trim() 
-    });
+
+    // Pre-procesamiento de datos (Estructura optimizada para la IA)
+    const dataContext = {
+      platillos: recipes.map(r => ({
+        n: r.name,
+        p: r.sale_price,
+        c: r.cost || 0,
+        m: r.sale_price > 0 
+          ? (((r.sale_price - (r.cost || 0)) / r.sale_price) * 100).toFixed(1) + "%" 
+          : "0%"
+      }))
+    };
+
+    // Inyectamos el contexto directamente en el mensaje para respuesta instantánea
+    const textWithContext = `
+      Current date: ${getLocalDate()}
+      DATA_SNAPSHOT: ${JSON.stringify(dataContext)}
+      USER_QUERY: ${text.trim()}
+    `;
+
+    await base44.agents.addMessage(
+      { id: conversationId }, 
+      { role: "user", content: textWithContext }
+    );
   };
 
   const quickQuestions = ["¿Cuáles son mis mejores márgenes?", "Sugerir aumento de precios", "Analizar rentabilidad"];
 
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Dashboard de Márgenes */}
+      {/* Dashboard Visual */}
       {marginData.length > 0 && (
         <div className="grid grid-cols-2 gap-2 shrink-0">
           <div className="bg-green-50 border border-green-100 p-3 rounded-xl shadow-sm">
@@ -108,12 +127,12 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
         </div>
       )}
 
-      {/* Historial de Chat */}
+      {/* Chat */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
             <Target className="w-12 h-12 mb-2 text-primary" />
-            <p className="text-sm font-medium">Estrategia de Precios y Utilidad</p>
+            <p className="text-sm font-medium">Análisis de Precios Instantáneo</p>
             <div className="flex flex-wrap gap-2 mt-4 justify-center">
               {quickQuestions.map(q => (
                 <Button key={q} variant="outline" size="xs" className="text-[10px] rounded-full" onClick={() => sendMessage(q)}>
@@ -128,7 +147,10 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <Card className={`max-w-[85%] border-none shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-none" : "bg-white rounded-tl-none"}`}>
               <CardContent className="p-3 text-sm leading-relaxed">
-                {msg.content}
+                {/* Ocultamos el SNAPSHOT técnico del usuario para que solo vea su pregunta */}
+                {msg.role === "user" && msg.content.includes("USER_QUERY:") 
+                  ? msg.content.split("USER_QUERY:")[1].trim() 
+                  : msg.content}
               </CardContent>
             </Card>
           </div>
@@ -137,13 +159,12 @@ export default function PricingConsultant({ playAudio, stopAudio, isActive }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Barra de Entrada */}
       <div className="flex gap-2 p-2 bg-white rounded-full shadow-md border border-slate-100 shrink-0">
         <Input 
           value={input} 
           onChange={e => setInput(e.target.value)} 
-          onKeyDown={e => e.key === "Enter" && sendMessage(input)}
-          placeholder="Ej: ¿Cómo optimizo mis precios?" 
+          onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+          placeholder="Ej: ¿Qué platillos debería subir de precio?" 
           className="border-none bg-transparent focus-visible:ring-0 shadow-none px-4 text-sm"
         />
         <Button size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()} className="rounded-full shrink-0">
