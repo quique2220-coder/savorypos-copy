@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 
 export default function PricingConsultant({ conversationId, messages, playAudio, stopAudio }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [lastPlayedId, setLastPlayedId] = useState(null);
+  const messagesEndRef = useRef(null);
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes"],
@@ -29,14 +29,22 @@ export default function PricingConsultant({ conversationId, messages, playAudio,
   const bestMargin = marginData[0];
   const worstMargin = marginData[marginData.length - 1];
 
-  // Reproducir audio del último mensaje del asistente
+  // Auto-scroll al último mensaje
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Apagar loading y reproducir audio cuando llega respuesta del asistente
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role === "assistant" && lastMsg?.content && lastMsg?.id !== lastPlayedId && playAudio) {
-      setLastPlayedId(lastMsg.id);
-      stopAudio?.();
-      setTimeout(() => playAudio(lastMsg.content), 100);
+    if (lastMsg?.role === "assistant" && lastMsg?.content) {
+      setIsLoading(false);
+      if (lastMsg?.id !== lastPlayedId && playAudio) {
+        setLastPlayedId(lastMsg.id);
+        stopAudio?.();
+        setTimeout(() => playAudio(lastMsg.content), 100);
+      }
     }
   }, [messages, playAudio, stopAudio, lastPlayedId]);
 
@@ -150,6 +158,7 @@ export default function PricingConsultant({ conversationId, messages, playAudio,
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="flex gap-2">
