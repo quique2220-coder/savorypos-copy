@@ -32,100 +32,88 @@ export default function VoiceAssistant() {
   const recognitionRef = useRef(null);
   const lastSpokenIdRef = useRef(null);
   const speakTimerRef = useRef(null);
-  const conversationIdRef = useRef(null);
-  const isLoadingRef = useRef(false);
   
-  // REFERENCIA CRÍTICA: Control de audio para evitar solapamientos
-  const currentAudioRef = useRef(null);
+  // REFERENCIA MAESTRA: Evita que se encimen los audios
+  const audioRef = useRef(null);
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes"],
     queryFn: () => base44.entities.Recipe.list(),
   });
 
-  // Inicialización de la conversación
   useEffect(() => {
     const initConversation = async () => {
       try {
         const conv = await base44.agents.createConversation({
-          agent_name: "voiceAssistant",
-          metadata: { name: "Voice Assistant Session" },
+          agent_name: "restaurantAI", // Usando el agente nuevo que creaste
+          metadata: { name: "Voice Session" },
         });
         setConversationId(conv.id);
         setMessages(conv.messages || []);
       } catch (err) {
-        console.error("Error creating conversation:", err);
-        toast.error("Error al iniciar el asistente");
+        toast.error("Error al conectar con el asistente");
       }
     };
     initConversation();
-    
-    // Limpieza al desmontar el componente
     return () => {
-      if (currentAudioRef.current) currentAudioRef.current.pause();
+      if (audioRef.current) audioRef.current.pause();
       clearTimeout(speakTimerRef.current);
     };
   }, []);
 
-  useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
-  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
-
-  // Suscripción a mensajes con lógica de voz mejorada
   useEffect(() => {
     if (!conversationId) return;
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const msgs = data.messages || [];
       setMessages(msgs);
       const lastMsg = msgs[msgs.length - 1];
-
+      
       if (lastMsg?.role === "assistant" && lastMsg?.content) {
         setIsLoading(false);
-        isLoadingRef.current = false;
-
-        // Lógica de visualización de márgenes
         const contentLower = lastMsg.content.toLowerCase();
-        setShowMarginAnalysis(
-          contentLower.includes("margen") || 
-          contentLower.includes("platillo") ||
-          contentLower.includes("rentable")
-        );
-
-        // Lógica de voz: Evitar repetir el mismo mensaje y controlar timers
+        setShowMarginAnalysis(contentLower.includes("margen") || contentLower.includes("rentable"));
+        
+        // Solo hablar si el mensaje es nuevo
         if (lastMsg.id !== lastSpokenIdRef.current) {
           clearTimeout(speakTimerRef.current);
           speakTimerRef.current = setTimeout(() => {
             lastSpokenIdRef.current = lastMsg.id;
             speakMessage(lastMsg.content);
-          }, 500); // Reducido el delay para mayor fluidez
+          }, 600);
         }
-      } else if (lastMsg?.role === "user") {
-        setIsLoading(true);
       }
     });
-    return () => { unsubscribe(); clearTimeout(speakTimerRef.current); };
+    return () => unsubscribe();
   }, [conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Función TTS optimizada para ElevenLabs
   const speakMessage = async (text) => {
-    if (!text) return;
+    if (!text || isListening) return;
 
-    // 1. Detener cualquier audio que esté sonando actualmente
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current = null;
+    // DETENER AUDIO ANTERIOR (Solución al problema de "muchos hablando")
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
 
     setIsSpeaking(true);
 
     try {
-      const res = await base44.functions.invoke("elevenLabsTTS", { text });
+      // Parámetros de ESTABILIDAD Y CLARIDAD
+      const res = await base44.functions.invoke("elevenLabsTTS", { 
+        text,
+        voice_settings: {
+          stability: 0.5,       // Evita que la voz se quiebre
+          similarity_boost: 0.8, // Mayor nitidez
+          use_speaker_boost: true
+        }
+      });
+
       const base64 = res.data?.audio;
-      
-      if (!base64) throw new Error("No audio data received");
+      if (!base64) throw new Error();
 
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
@@ -135,154 +123,96 @@ export default function VoiceAssistant() {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       
-      currentAudioRef.current = audio;
-
+      audioRef.current = audio;
       audio.onended = () => {
         setIsSpeaking(false);
         URL.revokeObjectURL(url);
-        currentAudioRef.current = null;
       };
-
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        currentAudioRef.current = null;
-      };
-
+      
       await audio.play();
-    } catch (error) {
-      console.error("TTS Error:", error);
+    } catch {
       setIsSpeaking(false);
-      // Fallback: usar síntesis nativa si ElevenLabs falla por créditos o red
-      // const utterance = new SpeechSynthesisUtterance(text);
-      // window.speechSynthesis.speak(utterance);
+      console.warn("Fallo en TTS o límites de ElevenLabs.");
     }
   };
 
-  const sendMessageDirectly = async (text) => {
-    if (!text.trim() || !conversationIdRef.current || isLoadingRef.current) return;
+  const sendMessage = async (text) => {
+    if (!text.trim() || !conversationId || isLoading) return;
     
-    // Detener audio si el usuario interrumpe con un nuevo mensaje
-    if (currentAudioRef.current) currentAudioRef.current.pause();
-
+    // Callar al asistente si el usuario responde
+    if (audioRef.current) audioRef.current.pause(); 
+    
     setInput("");
     setIsLoading(true);
-    isLoadingRef.current = true;
     try {
-      await base44.agents.addMessage({ id: conversationIdRef.current }, { role: "user", content: text.trim() });
-    } catch (err) {
+      // Usamos la fecha local de tu zona horaria (Mountain Time) para que no haya desfase de días
+      const localDate = new Date().toLocaleDateString('en-CA'); 
+      await base44.agents.addMessage(
+        { id: conversationId }, 
+        { role: "user", content: text.trim(), metadata: { currentDate: localDate } }
+      );
+    } catch {
       setIsLoading(false);
-      isLoadingRef.current = false;
-      toast.error("Error al enviar");
+      toast.error("Error al enviar mensaje");
     }
   };
-
-  const handleSendMessage = () => sendMessageDirectly(input);
 
   const startRecording = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Navegador no compatible con voz.");
-      return;
-    }
+    if (!SpeechRecognition) return toast.error("Usa Chrome para esta función.");
 
-    if (currentAudioRef.current) currentAudioRef.current.pause(); // Callar al asistente al hablarle
-
+    if (audioRef.current) audioRef.current.pause();
+    
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-MX"; 
+    recognition.lang = "es-MX";
     recognition.interimResults = true;
-    recognition.continuous = false; // Cambiado a false para detectar el final de la frase más rápido
 
     recognition.onresult = (e) => {
       let interim = "";
-      let final = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript;
-        else interim += e.results[i][0].transcript;
+        if (e.results[i].isFinal) sendMessage(e.results[i][0].transcript);
+        else interim = e.results[i][0].transcript;
       }
       setInterimText(interim);
-      if (final) {
-        setInput(final);
-        sendMessageDirectly(final);
-        recognition.stop();
-      }
     };
 
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
-
-    recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
-  };
-
-  const stopRecording = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
+    recognitionRef.current = recognition;
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-primary/5 to-accent/5 p-4">
-      <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-3">
+    <div className="h-screen flex flex-col bg-slate-50 p-4">
+      <div className="max-w-2xl mx-auto w-full flex flex-col h-full gap-4">
         
-        {/* Header */}
-        <Card className="shrink-0 border-primary/20 shadow-sm">
-          <CardHeader className="pb-3 pt-4 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isSpeaking ? "bg-green-100 animate-pulse" : "bg-primary/10"}`}>
-                  <Mic className={`w-4 h-4 ${isSpeaking ? "text-green-600" : "text-primary"}`} />
-                </div>
-                Asistente SavoryPOS
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => setShowWhatsApp(!showWhatsApp)} className="text-xs">
-                <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
-              </Button>
-            </div>
+        <Card className="border-none shadow-sm">
+          <CardHeader className="p-4 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-green-500 animate-ping" : "bg-slate-300"}`} />
+              Asistente SavoryPOS
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setShowWhatsApp(!showWhatsApp)}>
+              <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
+            </Button>
           </CardHeader>
         </Card>
 
-        {/* Chat Area */}
-        <div className="flex-1 overflow-auto space-y-4 px-1 custom-scrollbar">
-          {showMarginAnalysis && recipes.length > 0 && (
-            <div className="mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
-              <MarginAnalysisVisual recipes={recipes} onNavigate={navigate} />
-            </div>
-          )}
-
+        <div className="flex-1 overflow-y-auto space-y-4 px-2 scrollbar-hide">
+          {showMarginAnalysis && recipes.length > 0 && <MarginAnalysisVisual recipes={recipes} onNavigate={navigate} />}
+          
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center gap-6 opacity-80">
-              <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center">
-                <ChefHat className="w-8 h-8 text-primary/40" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-medium text-sm">¿En qué puedo ayudarte hoy?</p>
-                <p className="text-xs text-muted-foreground">Analizo tus ventas, costos y stock en tiempo real.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
-                {QUICK_ACTIONS.map((a) => (
-                  <button key={a.label} onClick={() => sendMessageDirectly(a.label)} className={`p-3 rounded-xl border text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-2 ${a.color}`}>
-                    <a.icon className="w-4 h-4" /> {a.label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-col items-center justify-center h-full text-center opacity-60 gap-4">
+               <ChefHat className="w-12 h-12" />
+               <p>Pregúntame sobre tus ventas de hoy o gastos.</p>
             </div>
           ) : (
-            messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`relative max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
-                  msg.role === "user" 
-                  ? "bg-primary text-primary-foreground rounded-br-none" 
-                  : "bg-card border rounded-bl-none"
+            messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl text-sm shadow-sm ${
+                  msg.role === "user" ? "bg-blue-600 text-white rounded-tr-none" : "bg-white border rounded-tl-none"
                 }`}>
                   {msg.content}
-                  {msg.role === "assistant" && (
-                    <button 
-                      onClick={() => speakMessage(msg.content)}
-                      className="absolute -right-8 top-2 p-1 hover:bg-primary/10 rounded-full transition-colors"
-                    >
-                      <Volume2 className={`w-4 h-4 ${isSpeaking ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
-                    </button>
-                  )}
                 </div>
               </div>
             ))
@@ -290,48 +220,29 @@ export default function VoiceAssistant() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <Card className="shrink-0 shadow-lg border-t-0">
+        <Card className="border-t shadow-lg">
           <CardContent className="p-3">
-            <div className="flex gap-2 items-center">
-              <Button
-                variant={isListening ? "destructive" : "secondary"}
-                size="icon"
-                onClick={isListening ? stopRecording : startRecording}
-                disabled={isLoading}
-                className={`rounded-full shrink-0 ${isListening ? "animate-pulse" : ""}`}
-              >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </Button>
-              
-              <div className="relative flex-1">
-                <Input
-                  placeholder={isListening ? "Escuchando..." : "Escribe aquí..."}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="pr-10 rounded-full bg-muted/50 border-none focus-visible:ring-1"
-                />
-                {isLoading && <Loader2 className="absolute right-3 top-2.5 w-4 h-4 animate-spin text-primary" />}
-              </div>
-
+            <div className="flex gap-2">
               <Button 
-                onClick={handleSendMessage} 
-                disabled={!input.trim() || isLoading} 
-                size="icon" 
-                className="rounded-full shrink-0"
+                variant={isListening ? "destructive" : "secondary"} 
+                onClick={isListening ? () => recognitionRef.current?.stop() : startRecording}
+                className="rounded-full w-12 h-12 p-0 shrink-0"
               >
-                <Send className="w-4 h-4" />
+                {isListening ? <MicOff /> : <Mic />}
+              </Button>
+              <Input 
+                value={input} 
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendMessage(input)}
+                placeholder="Escribe o presiona el micro..."
+                className="rounded-full bg-slate-100 border-none"
+                disabled={isLoading}
+              />
+              <Button onClick={() => sendMessage(input)} className="rounded-full w-12 h-12 p-0 shrink-0" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
               </Button>
             </div>
-            {interimText && (
-              <p className="text-[10px] text-center mt-2 text-muted-foreground animate-pulse italic">
-                "{interimText}..."
-              </p>
-            )}
+            {interimText && <p className="text-[10px] text-center mt-2 text-slate-400 italic">"{interimText}..."</p>}
           </CardContent>
         </Card>
-      </div>
-    </div>
-  );
-}
+      </div>}
