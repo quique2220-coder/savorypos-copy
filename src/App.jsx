@@ -17,12 +17,18 @@ import Proyecciones from './pages/Proyecciones';
 import Contabilidad from './pages/Contabilidad';
 import CRM from './pages/CRM';
 import Settings from './pages/Settings';
+import AdminDashboard from './pages/AdminDashboard';
 import Ingredients from './pages/Ingredients';
 import Recipes from './pages/Recipes';
 import AIConsultantDashboard from './components/AIAssistant/AIConsultantDashboard';
 import TestAgent from './pages/TestAgent';
 import OrderOnline from './pages/OrderOnline';
 import OrderConfirmation from './pages/OrderConfirmation';
+
+const RoleRedirect = () => {
+  const { user } = useAuth();
+  return <Navigate to={user?.role === "admin" ? "/Admin" : "/POS"} replace />;
+};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -46,7 +52,7 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/POS" replace />} />
+      <Route path="/" element={<RoleRedirect />} />
       <Route element={<Layout />}>
         <Route path="/POS" element={<ProtectedRoute requiredGroup="pos"><POS /></ProtectedRoute>} />
         <Route path="/Menu" element={<ProtectedRoute requiredGroup="ops"><Menu /></ProtectedRoute>} />
@@ -57,6 +63,7 @@ const AuthenticatedApp = () => {
         <Route path="/Contabilidad" element={<ProtectedRoute requiredGroup="finance"><Contabilidad /></ProtectedRoute>} />
         <Route path="/CRM" element={<ProtectedRoute requiredGroup="crm"><CRM /></ProtectedRoute>} />
         <Route path="/Settings" element={<ProtectedRoute requiredGroup="admin"><Settings /></ProtectedRoute>} />
+      <Route path="/Admin" element={<ProtectedRoute requiredGroup="admin"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/Ingredients" element={<ProtectedRoute requiredGroup="costing"><Ingredients /></ProtectedRoute>} />
         <Route path="/Recipes" element={<ProtectedRoute requiredGroup="costing"><Recipes /></ProtectedRoute>} />
         <Route path="/VoiceAssistant" element={<AIConsultantDashboard />} />
