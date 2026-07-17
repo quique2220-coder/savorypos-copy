@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, TrendingDown, HelpCircle, AlertTriangle } from "lucide-react";
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from "recharts";
+import { calcMenuItemCost } from "@/utils/menuItemCost";
 
 const CATEGORIES = {
   star:      { label: "Star",      icon: Star,          color: "bg-amber-100 text-amber-800 border-amber-300",    dot: "#f59e0b", desc: "High margin + High sales. Promote aggressively." },
@@ -50,7 +51,7 @@ const CustomTooltip = ({ active, payload }) => {
   );
 };
 
-export default function OpportunityFinder({ orders, menuItems }) {
+export default function OpportunityFinder({ orders, menuItems, ingredientsMap = {} }) {
   const { items, avgMargin, avgSold } = useMemo(() => {
     // Count sales per menu item name
     const soldMap = {};
@@ -60,13 +61,14 @@ export default function OpportunityFinder({ orders, menuItems }) {
       });
     });
 
-    // Build per-item profitability
+    // Build per-item profitability using REAL calculated ingredient costs
     const items = menuItems
       .filter((m) => m.is_available !== false)
       .map((m) => {
         const sold = soldMap[m.name] || 0;
         const price = m.price || 0;
-        const cost = m.cost || price * 0.35;
+        const { costPerServing } = calcMenuItemCost(m, ingredientsMap);
+        const cost = costPerServing;
         const margin = price > 0 ? ((price - cost) / price) * 100 : 0;
         return { id: m.id, name: m.name, sold, margin, price, cost };
       });
@@ -81,7 +83,7 @@ export default function OpportunityFinder({ orders, menuItems }) {
       avgMargin,
       avgSold,
     };
-  }, [orders, menuItems]);
+  }, [orders, menuItems, ingredientsMap]);
 
   const grouped = useMemo(() => {
     const g = { star: [], plowhorse: [], puzzle: [], dog: [] };

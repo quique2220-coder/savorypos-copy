@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List, Telescope } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List, Telescope, PieChart as PieChartIcon } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
@@ -14,6 +14,8 @@ import BalanceSheet from "@/components/reports/BalanceSheet";
 import CashFlow from "@/components/reports/CashFlow";
 import PrintButton from "@/components/reports/PrintButton";
 import OpportunityFinder from "@/components/reports/OpportunityFinder";
+import CategoryMarginReport from "@/components/reports/CategoryMarginReport";
+import { buildIngredientsMap, calcMenuItemCost } from "@/utils/menuItemCost";
 
 const COLORS = ["hsl(25, 95%, 53%)", "hsl(160, 60%, 45%)", "hsl(220, 70%, 50%)", "hsl(280, 65%, 60%)", "hsl(340, 75%, 55%)"];
 
@@ -107,6 +109,18 @@ export default function Reports() {
     queryFn: () => base44.entities.OperatingExpense.list(),
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => base44.entities.Category.list(),
+  });
+
+  const { data: ingredients = [] } = useQuery({
+    queryKey: ["ingredients"],
+    queryFn: () => base44.entities.Ingredient.list(),
+  });
+
+  const ingredientsMap = useMemo(() => buildIngredientsMap(ingredients), [ingredients]);
+
   const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
    // Always recalculate range with current date to include today's orders
    const now = new Date();
@@ -140,13 +154,13 @@ export default function Reports() {
      : allCompleted;
 
    const revenue = completed.reduce((s, o) => s + (o.total || 0), 0);
-   // COGS derived from menu item costs matched to order items
+   // COGS derived from REAL ingredient costs (calculated from Ingredient master data)
    let cogsFromItems = 0;
    completed.forEach((o) => {
      o.items?.forEach((item) => {
        const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
-       const cost = menuItem?.cost || 0;
-       cogsFromItems += cost * (item.quantity || 1);
+       const { costPerServing } = calcMenuItemCost(menuItem, ingredientsMap);
+       cogsFromItems += costPerServing * (item.quantity || 1);
      });
    });
    const cogs = cogsFromItems;
@@ -237,7 +251,7 @@ export default function Reports() {
       ? `${customStart} → ${customEnd}`
       : PERIOD_OPTIONS.find((p) => p.value === period)?.label || "All Time";
     return { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel };
-  }, [orders, menuItems, operatingExpenses, period, customStart, customEnd]);
+  }, [orders, menuItems, operatingExpenses, ingredientsMap, period, customStart, customEnd]);
 
   if (isLoading) {
     return (
@@ -293,6 +307,7 @@ export default function Reports() {
           <TabsTrigger value="balance" className="flex items-center gap-1.5"><Scale className="w-4 h-4" /> Balance Sheet</TabsTrigger>
           <TabsTrigger value="cashflow" className="flex items-center gap-1.5"><Droplets className="w-4 h-4" /> Cash Flow</TabsTrigger>
           <TabsTrigger value="opportunity" className="flex items-center gap-1.5"><Telescope className="w-4 h-4" /> Opportunity</TabsTrigger>
+          <TabsTrigger value="margins" className="flex items-center gap-1.5"><PieChartIcon className="w-4 h-4" /> Márgenes</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
@@ -439,7 +454,16 @@ export default function Reports() {
             <h2 className="text-lg font-bold">Opportunity Finder</h2>
             <p className="text-sm text-muted-foreground">Menu Engineering Matrix — identify Stars, Plowhorses, Puzzles & Dogs.</p>
           </div>
-          <OpportunityFinder orders={completed} menuItems={menuItems} />
+          <OpportunityFinder orders={completed} menuItems={menuItems} ingredientsMap={ingredientsMap} />
+        </TabsContent>
+
+        {/* ── CATEGORY MARGINS ── */}
+        <TabsContent value="margins">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Margen Real por Categoría</h2>
+            <p className="text-sm text-muted-foreground">Ganancia real por categoría de platillos, calculada desde los costos de ingredientes.</p>
+          </div>
+          <CategoryMarginReport orders={completed} menuItems={menuItems} categories={categories} ingredients={ingredients} />
         </TabsContent>
 
         {/* ── CASH FLOW ── */}
