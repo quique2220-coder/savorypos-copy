@@ -26,11 +26,8 @@ export default function Menu() {
     queryFn: () => base44.entities.Ingredient.list(),
   });
 
-  // Only dish recipes
-  const menuItems = useMemo(() =>
-    recipes.filter(r => r.recipe_type !== "subrecipe"),
-    [recipes]
-  );
+  // All recipes (dishes + subrecipes) — show everything so nothing is hidden
+  const menuItems = useMemo(() => recipes, [recipes]);
 
   // Calculate cost from recipe_items + ingredients using proper unit conversion
   const calcCost = (recipe) => {
@@ -101,6 +98,7 @@ export default function Menu() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Cost/Srv</TableHead>
@@ -127,6 +125,11 @@ export default function Menu() {
                           <span className="font-medium">{item.name}</span>
                           {item.description && <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.recipe_type === "subrecipe" ? "outline" : "default"} className="text-xs">
+                          {item.recipe_type === "subrecipe" ? "Sub-receta" : "Platillo"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-sm">{item.category || "—"}</TableCell>
                       <TableCell className="font-semibold">${price?.toFixed(2)}</TableCell>
@@ -171,7 +174,7 @@ export default function Menu() {
                 })}
                 {menuItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       No menu items yet. Add your first item or create recipes in the Recipes section.
                     </TableCell>
                   </TableRow>
