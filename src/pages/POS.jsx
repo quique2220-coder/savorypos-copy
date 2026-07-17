@@ -55,7 +55,7 @@ export default function POS() {
   const menuItems = useMemo(() => {
     const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
     return recipes
-      .filter(r => r.recipe_type !== "subrecipe" && r.is_active !== false)
+      .filter(r => r.is_active !== false)
       .map(r => {
         const totals = calcRecipeTotals(r, ingMap);
         // Use suggestedPrice if recipe has ingredients, otherwise fall back to sale_price
