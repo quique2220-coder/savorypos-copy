@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, Store, ShoppingBag } from "lucide-react";
+import { TrendingUp, Store, ShoppingBag, BarChart3 } from "lucide-react";
 import BreakEvenAnalysis from "@/components/financial/BreakEvenAnalysis";
 import StartupMode from "@/components/financial/StartupMode";
 import LiveDashboard from "@/components/financial/LiveDashboard";
@@ -99,10 +99,16 @@ export default function Proyecciones() {
 
         <Tabs defaultValue="live">
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
-            <TabsTrigger value="live">🔴 En Vivo</TabsTrigger>
-            <TabsTrigger value="startup">🟢 Estoy empezando</TabsTrigger>
+            <TabsTrigger value="live" className="gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500" /> En Vivo
+            </TabsTrigger>
+            <TabsTrigger value="startup" className="gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Estoy empezando
+            </TabsTrigger>
             <TabsTrigger value="overview">Resumen Ejecutivo</TabsTrigger>
-            <TabsTrigger value="breakeven">📊 Break-Even</TabsTrigger>
+            <TabsTrigger value="breakeven" className="gap-1.5">
+              <BarChart3 className="w-4 h-4" /> Break-Even
+            </TabsTrigger>
             <TabsTrigger value="monthly">36 Meses</TabsTrigger>
             <TabsTrigger value="channels">Canales de Venta</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
@@ -121,7 +127,7 @@ export default function Proyecciones() {
           {/* RESUMEN */}
           <TabsContent value="overview">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KPI label="Ventas Año 1" value="$1.02M" sub="Year 1 Total" color="text-primary" />
+              <KPI label="Ventas Año 1" value="$1.02M" sub="Year 1 Total" color="text-emerald-600" />
               <KPI label="Ventas Año 2" value="$1.26M" sub="+23% vs Año 1" color="text-emerald-600" />
               <KPI label="Ventas Año 3" value="$1.40M" sub="+11% vs Año 2" color="text-emerald-600" />
               <KPI label="Ingreso Neto 3 Años" value={`$${(totalNI / 1000).toFixed(0)}K`} sub="Utilidad acumulada" color="text-blue-600" />
@@ -149,22 +155,30 @@ export default function Proyecciones() {
               <Card>
                 <CardHeader><CardTitle className="text-sm">Resumen por Año</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
-                  {yearSummary.map(y => (
-                    <div key={y.year} className="p-3 rounded-lg bg-muted/50">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-semibold">{y.year}</span>
-                        <Badge className="bg-primary/10 text-primary">${(y.sales/1000).toFixed(0)}K ventas</Badge>
+                  {yearSummary.map(y => {
+                    const margin = (1 - y.cogs / y.sales) * 100;
+                    return (
+                      <div key={y.year} className="p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-sm">{y.year}</span>
+                          <Badge className="bg-primary/10 text-primary text-xs">${(y.sales / 1000).toFixed(0)}K ventas</Badge>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 space-y-1">
+                            <p className="text-xs text-muted-foreground">COGS: ${(y.cogs / 1000).toFixed(0)}K</p>
+                            <p className="text-xs text-muted-foreground">Margen: {margin.toFixed(1)}%</p>
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(margin, 100)}%` }} />
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">NI</p>
+                            <p className={`text-sm font-bold ${y.netIncome > 0 ? "text-emerald-600" : "text-red-600"}`}>${(y.netIncome / 1000).toFixed(0)}K</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                        <div>COGS: ${(y.cogs/1000).toFixed(0)}K</div>
-                        <div>Margen: {((1-y.cogs/y.sales)*100).toFixed(1)}%</div>
-                        <div className={y.netIncome > 0 ? "text-emerald-600 font-semibold" : "text-red-600"}>NI: ${(y.netIncome/1000).toFixed(0)}K</div>
-                      </div>
-                      <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((y.netIncome/y.sales)*100*3, 100)}%` }} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             </div>
