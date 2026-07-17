@@ -95,18 +95,18 @@ function AlertBanner({ type, message }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────
-const DEFAULT_YR = { sales: 0, cogs: 0, avgTicket: 18.5 };
+const DEFAULT_YR = { sales: 850000, cogs: 150000, avgTicket: 18.5 };
 const DEFAULT_FIXED = {
-  rent: 0, payrollCooks: 0, payrollFront: 0, payrollManager: 0,
-  insurance: 0, electricity: 0, water: 0, gas: 0, internet: 0, other: 0,
+  rent: 12000, payrollCooks: 25000, payrollFront: 10000, payrollManager: 35000,
+  insurance: 1500, electricity: 5000, water: 500, gas: 500, internet: 1200, other: 1000,
 };
 
 export default function BreakEvenAnalysis() {
   const [selectedYear, setSelectedYear] = useState(0);
   const [years, setYears] = useState([
     { label: "Actual", ...DEFAULT_YR },
-    { label: "Meta Año 1", ...DEFAULT_YR },
-    { label: "Meta Año 2", ...DEFAULT_YR },
+    { label: "Meta Año 1", sales: 0, cogs: 0, avgTicket: 18.5 },
+    { label: "Meta Año 2", sales: 0, cogs: 0, avgTicket: 18.5 },
   ]);
   const [fixed, setFixed] = useState(DEFAULT_FIXED);
   const [showFixedBreakdown, setShowFixedBreakdown] = useState(true);
