@@ -48,7 +48,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<Navigate to="/POS" replace />} />
       <Route element={<Layout />}>
-        <Route path="/POS" element={<ProtectedRoute requiredGroup="ops"><POS /></ProtectedRoute>} />
+        <Route path="/POS" element={<ProtectedRoute requiredGroup="pos"><POS /></ProtectedRoute>} />
         <Route path="/Menu" element={<ProtectedRoute requiredGroup="ops"><Menu /></ProtectedRoute>} />
         <Route path="/Orders" element={<ProtectedRoute requiredGroup="ops"><Orders /></ProtectedRoute>} />
         <Route path="/Inventory" element={<ProtectedRoute requiredGroup="ops"><Inventory /></ProtectedRoute>} />
@@ -56,7 +56,7 @@ const AuthenticatedApp = () => {
         <Route path="/Proyecciones" element={<ProtectedRoute requiredGroup="finance"><Proyecciones /></ProtectedRoute>} />
         <Route path="/Contabilidad" element={<ProtectedRoute requiredGroup="finance"><Contabilidad /></ProtectedRoute>} />
         <Route path="/CRM" element={<ProtectedRoute requiredGroup="crm"><CRM /></ProtectedRoute>} />
-        <Route path="/Settings" element={<Settings />} />
+        <Route path="/Settings" element={<ProtectedRoute requiredGroup="admin"><Settings /></ProtectedRoute>} />
         <Route path="/Ingredients" element={<ProtectedRoute requiredGroup="costing"><Ingredients /></ProtectedRoute>} />
         <Route path="/Recipes" element={<ProtectedRoute requiredGroup="costing"><Recipes /></ProtectedRoute>} />
         <Route path="/VoiceAssistant" element={<AIConsultantDashboard />} />

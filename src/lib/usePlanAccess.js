@@ -76,8 +76,20 @@ export function usePlanAccess() {
   const currentPlan = accounts[0]?.current_plan || 'starter';
   const features = PLAN_FEATURES[currentPlan] || PLAN_FEATURES.growth;
 
-  // Map group names to feature checks
+  // Role-based + plan-based access control
+  // Employees (role === "user") can only access the POS terminal
+  // Owner (role === "admin") has plan-based access to all modules
+  const isEmployee = user?.role === "user";
+
   const canAccess = (group) => {
+    // Employees: POS only
+    if (isEmployee) {
+      return group === "pos";
+    }
+    // Admin/owner: "pos" and "admin" groups always accessible
+    if (group === "pos" || group === "admin") return true;
+
+    // Plan-based access for other groups
     const groupMap = {
       'ops': ['POS', 'Orders', 'Menu', 'Inventory', 'Ingredients', 'Recipes'],
       'finance': ['Reports', 'Contabilidad', 'Proyecciones'],
@@ -93,6 +105,8 @@ export function usePlanAccess() {
   return {
     currentPlan,
     canAccess,
+    isEmployee,
+    isOwner: !isEmployee,
     hasFeature: (module) => features[module] === true,
   };
 }
