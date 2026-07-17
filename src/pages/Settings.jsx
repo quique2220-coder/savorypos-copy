@@ -194,8 +194,16 @@ export default function Settings() {
 
   const updatePlanMutation = useMutation({
     mutationFn: async (newPlan) => {
-      if (!account || account.length === 0) throw new Error('Account no encontrada');
-      await base44.entities.Account.update(account[0].id, { current_plan: newPlan });
+      if (account && account.length > 0) {
+        await base44.entities.Account.update(account[0].id, { current_plan: newPlan });
+      } else {
+        await base44.entities.Account.create({
+          username: user?.email || "user",
+          email: user?.email || "",
+          business_name: business.name || "Mi Restaurante",
+          current_plan: newPlan,
+        });
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['Account', user?.email] });
