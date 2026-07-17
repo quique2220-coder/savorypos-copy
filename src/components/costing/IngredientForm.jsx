@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X, ChevronDown, ChevronUp } from "lucide-react";
-import { UNITS, ALLERGENS, INGREDIENT_CATEGORIES } from "@/utils/units";
+import { UNITS, ALLERGENS, INGREDIENT_CATEGORIES, getConversionFactor } from "@/utils/units";
 import { costPerBaseUnit } from "@/utils/recipeCalculator";
 
 const DEFAULT = {
@@ -115,27 +115,31 @@ export default function IngredientForm({ ingredient, onSave, onCancel }) {
             className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
             {showNutrition ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            Información Nutricional <span className="text-primary">(por 1 {form.purchase_unit})</span>
+            Información Nutricional <span className="text-primary">(por 1 {form.base_unit})</span>
           </button>
-          {showNutrition && form.purchase_quantity > 1 && (
-            <button
-              type="button"
-              onClick={() => {
-                const qty = form.purchase_quantity || 1;
-                setForm(f => ({
-                  ...f,
-                  calories_per_base_unit: +(f.calories_per_base_unit / qty).toFixed(4),
-                  protein_per_base_unit: +(f.protein_per_base_unit / qty).toFixed(4),
-                  carbs_per_base_unit: +(f.carbs_per_base_unit / qty).toFixed(4),
-                  fat_per_base_unit: +(f.fat_per_base_unit / qty).toFixed(4),
-                  sodium_mg_per_base_unit: +(f.sodium_mg_per_base_unit / qty).toFixed(4),
-                }));
-              }}
-              className="text-xs bg-primary/10 text-primary border border-primary/30 px-2 py-1 rounded-md hover:bg-primary/20 transition-colors font-semibold"
-            >
-              ÷ {form.purchase_quantity} (convertir de paquete completo)
-            </button>
-          )}
+          {showNutrition && form.purchase_unit !== form.base_unit && (() => {
+            const factor = getConversionFactor(form.purchase_unit, form.base_unit);
+            const qty = form.purchase_quantity || 1;
+            const totalFactor = qty * factor;
+            return factor !== null && factor !== 1 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(f => ({
+                    ...f,
+                    calories_per_base_unit: +((f.calories_per_base_unit || 0) / totalFactor).toFixed(4),
+                    protein_per_base_unit: +((f.protein_per_base_unit || 0) / totalFactor).toFixed(4),
+                    carbs_per_base_unit: +((f.carbs_per_base_unit || 0) / totalFactor).toFixed(4),
+                    fat_per_base_unit: +((f.fat_per_base_unit || 0) / totalFactor).toFixed(4),
+                    sodium_mg_per_base_unit: +((f.sodium_mg_per_base_unit || 0) / totalFactor).toFixed(4),
+                  }));
+                }}
+                className="text-xs bg-primary/10 text-primary border border-primary/30 px-2 py-1 rounded-md hover:bg-primary/20 transition-colors font-semibold"
+              >
+                ÷ {qty} × {factor.toFixed(4)} (convertir de {form.purchase_unit} a {form.base_unit})
+              </button>
+            ) : null;
+          })()}
         </div>
 
         {showNutrition && (

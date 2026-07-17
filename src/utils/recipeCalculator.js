@@ -3,18 +3,27 @@
  */
 import { getConversionFactor } from './units';
 
+const round = (n, d = 4) => {
+  const p = Math.pow(10, d);
+  return Math.round((n + Number.EPSILON) * p) / p;
+};
+
 export function costPerBaseUnit(ingredient) {
   if (!ingredient) return 0;
   const { purchase_price = 0, purchase_quantity = 1, purchase_unit, base_unit, yield_percent = 100 } = ingredient;
-  
+
+  // Sin unidades definidas no se puede calcular
+  if (!purchase_unit || !base_unit) return 0;
+
   const conversionFactor = getConversionFactor(purchase_unit, base_unit);
-  
-  // Si no hay conversión, asumir que son unidades iguales (fallback seguro)
-  const factor = conversionFactor !== null ? conversionFactor : 1;
-  const quantityInBase = purchase_quantity * factor;
+
+  // Tipos incompatibles (ej: peso vs volumen) → sin costo válido
+  if (conversionFactor === null) return 0;
+
+  const quantityInBase = purchase_quantity * conversionFactor;
   const raw = quantityInBase > 0 ? purchase_price / quantityInBase : 0;
   const yf = (yield_percent || 100) / 100;
-  return yf > 0 ? raw / yf : raw;
+  return round(yf > 0 ? raw / yf : raw, 6);
 }
 
 /**
@@ -24,11 +33,11 @@ export function calcIngredientLine(ingredient, quantity) {
   if (!ingredient || !quantity) return { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 };
   const cpu = costPerBaseUnit(ingredient);
   return {
-    cost:     quantity * cpu,
-    calories: quantity * (ingredient.calories_per_base_unit || 0),
-    protein:  quantity * (ingredient.protein_per_base_unit  || 0),
-    carbs:    quantity * (ingredient.carbs_per_base_unit    || 0),
-    fat:      quantity * (ingredient.fat_per_base_unit      || 0),
+    cost:     round(quantity * cpu, 4),
+    calories: round(quantity * (ingredient.calories_per_base_unit || 0), 2),
+    protein:  round(quantity * (ingredient.protein_per_base_unit  || 0), 2),
+    carbs:    round(quantity * (ingredient.carbs_per_base_unit    || 0), 2),
+    fat:      round(quantity * (ingredient.fat_per_base_unit      || 0), 2),
   };
 }
 
@@ -50,11 +59,11 @@ export function calcRecipeTotals(recipe, ingredientsMap, overrides = {}) {
     const ing = ingredientsMap?.[item.ingredient_id];
     if (!ing) continue;
     const line = calcIngredientLine(ing, Number(item.quantity) || 0);
-    totalCost     += line.cost;
-    totalCalories += line.calories;
-    totalProtein  += line.protein;
-    totalCarbs    += line.carbs;
-    totalFat      += line.fat;
+    totalCost     = round(totalCost     + line.cost, 4);
+    totalCalories = round(totalCalories + line.calories, 2);
+    totalProtein  = round(totalProtein  + line.protein, 2);
+    totalCarbs    = round(totalCarbs    + line.carbs, 2);
+    totalFat      = round(totalFat      + line.fat, 2);
   }
 
   const servings    = Number(recipe?.servings) || 1;
@@ -103,16 +112,16 @@ export function calcRecipeTotals(recipe, ingredientsMap, overrides = {}) {
 
   return {
     // Nivel 1
-    totalCost, foodCostPerServing, foodCostPercent,
+    totalCost, foodCostPerServing: round(foodCostPerServing, 4), foodCostPercent: round(foodCostPercent, 2),
     // Nivel 2
-    laborCost, primeCostPerServing,
+    laborCost: round(laborCost, 4), primeCostPerServing: round(primeCostPerServing, 4),
     // Nivel 3
-    packagingCost, overheadPerDish, fullCostPerServing, fullCostPercent,
+    packagingCost, overheadPerDish, fullCostPerServing: round(fullCostPerServing, 4), fullCostPercent: round(fullCostPercent, 2),
     // Legacy alias para compatibilidad
-    costPerServing: foodCostPerServing,
+    costPerServing: round(foodCostPerServing, 4),
     // Nutrition
-    totalCalories, totalProtein, totalCarbs, totalFat, caloriesPerServing,
+    totalCalories: round(totalCalories, 2), totalProtein: round(totalProtein, 2), totalCarbs: round(totalCarbs, 2), totalFat: round(totalFat, 2), caloriesPerServing: round(caloriesPerServing, 2),
     // Pricing
-    suggestedPrice, grossProfit, netProfit, grossMargin, netMargin,
+    suggestedPrice: round(suggestedPrice, 2), grossProfit: round(grossProfit, 4), netProfit: round(netProfit, 4), grossMargin: round(grossMargin, 2), netMargin: round(netMargin, 2),
   };
 }
