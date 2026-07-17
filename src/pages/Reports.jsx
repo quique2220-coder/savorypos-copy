@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List, Telescope, PieChart as PieChartIcon } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List, Telescope, PieChart as PieChartIcon, Activity } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
@@ -15,6 +15,7 @@ import CashFlow from "@/components/reports/CashFlow";
 import PrintButton from "@/components/reports/PrintButton";
 import OpportunityFinder from "@/components/reports/OpportunityFinder";
 import CategoryMarginReport from "@/components/reports/CategoryMarginReport";
+import WeeklyAnomalyReport from "@/components/reports/WeeklyAnomalyReport";
 import { buildIngredientsMap, calcMenuItemCost } from "@/utils/menuItemCost";
 
 const COLORS = ["hsl(25, 95%, 53%)", "hsl(160, 60%, 45%)", "hsl(220, 70%, 50%)", "hsl(280, 65%, 60%)", "hsl(340, 75%, 55%)"];
@@ -308,6 +309,7 @@ export default function Reports() {
           <TabsTrigger value="cashflow" className="flex items-center gap-1.5"><Droplets className="w-4 h-4" /> Cash Flow</TabsTrigger>
           <TabsTrigger value="opportunity" className="flex items-center gap-1.5"><Telescope className="w-4 h-4" /> Opportunity</TabsTrigger>
           <TabsTrigger value="margins" className="flex items-center gap-1.5"><PieChartIcon className="w-4 h-4" /> Márgenes</TabsTrigger>
+          <TabsTrigger value="anomaly" className="flex items-center gap-1.5"><Activity className="w-4 h-4" /> Anomalías</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
@@ -464,6 +466,21 @@ export default function Reports() {
             <p className="text-sm text-muted-foreground">Ganancia real por categoría de platillos, calculada desde los costos de ingredientes.</p>
           </div>
           <CategoryMarginReport orders={completed} menuItems={menuItems} categories={categories} ingredients={ingredients} />
+        </TabsContent>
+
+        {/* ── WEEKLY ANOMALY ── */}
+        <TabsContent value="anomaly">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Ventas vs Costos — Detección de Anomalías</h2>
+            <p className="text-sm text-muted-foreground">Compara ventas totales frente a costos operativos diarios para detectar días atípicos.</p>
+          </div>
+          <WeeklyAnomalyReport
+            completed={completed}
+            menuItems={menuItems}
+            ingredientsMap={ingredientsMap}
+            operatingExpenses={operatingExpenses}
+            periodLabel={periodLabel}
+          />
         </TabsContent>
 
         {/* ── CASH FLOW ── */}
