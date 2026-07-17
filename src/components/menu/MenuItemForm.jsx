@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Loader2, X, Plus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 
@@ -13,6 +13,7 @@ const DEFAULT_FORM = {
   name: "", description: "", sale_price: "", category: "",
   is_active: true, prep_time_minutes: "", image_url: "",
   target_food_cost_percent: "30",
+  available_toppings: [],
 };
 
 export default function MenuItemForm({ open, onClose, onSave, item, categories, isSaving, ingredients = [] }) {
@@ -30,6 +31,7 @@ export default function MenuItemForm({ open, onClose, onSave, item, categories, 
         prep_time_minutes: item.prep_time_minutes?.toString() || "",
         image_url: item.image_url || "",
         target_food_cost_percent: item.target_food_cost_percent?.toString() || "30",
+        available_toppings: item.available_toppings || [],
       });
     } else {
       setForm(DEFAULT_FORM);
@@ -82,6 +84,7 @@ export default function MenuItemForm({ open, onClose, onSave, item, categories, 
       prep_time_minutes: parseInt(form.prep_time_minutes) || 0,
       image_url: form.image_url,
       target_food_cost_percent: parseFloat(form.target_food_cost_percent) || 30,
+      available_toppings: form.available_toppings.filter(t => t.name && t.price > 0),
     });
   };
 
@@ -170,6 +173,53 @@ export default function MenuItemForm({ open, onClose, onSave, item, categories, 
                   {uploading ? "Subiendo..." : "Subir imagen (PNG, JPG, JPEG, PDF)"}
                 </span>
               </label>
+            </div>
+          </div>
+
+          {/* Extra Toppings */}
+          <div className="space-y-1.5">
+            <Label>Extra Toppings (con precio)</Label>
+            <div className="space-y-1.5">
+              {form.available_toppings.map((t, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <Input
+                    placeholder="Nombre (ej. Extra queso)"
+                    value={t.name}
+                    onChange={(e) => setForm(f => ({
+                      ...f,
+                      available_toppings: f.available_toppings.map((top, idx) => idx === i ? { ...top, name: e.target.value } : top)
+                    }))}
+                    className="h-8 text-sm flex-1"
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={t.price}
+                    onChange={(e) => setForm(f => ({
+                      ...f,
+                      available_toppings: f.available_toppings.map((top, idx) => idx === i ? { ...top, price: parseFloat(e.target.value) || 0 } : top)
+                    }))}
+                    className="h-8 text-sm w-20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, available_toppings: f.available_toppings.filter((_, idx) => idx !== i) }))}
+                    className="text-destructive/60 hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setForm(f => ({ ...f, available_toppings: [...f.available_toppings, { name: "", price: 0 }] }))}
+                className="h-8 text-xs w-full"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" /> Agregar topping
+              </Button>
             </div>
           </div>
 

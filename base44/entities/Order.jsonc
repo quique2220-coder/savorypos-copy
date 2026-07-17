@@ -29,6 +29,21 @@
           },
           "notes": {
             "type": "string"
+          },
+          "toppings": {
+            "type": "array",
+            "description": "Extra toppings selected for this item",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                }
+              }
+            }
           }
         }
       }

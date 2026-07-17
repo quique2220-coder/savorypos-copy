@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import CategoryBar from "@/components/pos/CategoryBar";
 import MenuGrid from "@/components/pos/MenuGrid";
 import Cart from "@/components/pos/Cart";
+import ToppingSelector from "@/components/pos/ToppingSelector";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 import { getConversionFactor } from "@/utils/units";
 import { postSaleEntry } from "@/utils/accountingSync";
@@ -16,6 +17,7 @@ export default function POS() {
   const [cartItems, setCartItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [search, setSearch] = useState("");
+  const [toppingItem, setToppingItem] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: recipes = [] } = useQuery({
@@ -68,6 +70,7 @@ export default function POS() {
           is_available: true,
           category: r.category || "",
           tags: r.category ? [r.category] : [],
+          available_toppings: r.available_toppings || [],
         };
       })
       .filter(Boolean);
@@ -95,8 +98,13 @@ export default function POS() {
   });
 
   const handleAddItem = (item) => {
+    // If item has available toppings, open selector modal
+    if (item.available_toppings?.length > 0) {
+      setToppingItem(item);
+      return;
+    }
     setCartItems((prev) => {
-      const existing = prev.findIndex((ci) => ci.menu_item_id === item.id);
+      const existing = prev.findIndex((ci) => ci.menu_item_id === item.id && !ci.toppings?.length);
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing].quantity += 1;
@@ -104,6 +112,32 @@ export default function POS() {
       }
       return [...prev, { menu_item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
     });
+  };
+
+  const handleConfirmToppings = (item, selectedToppings) => {
+    const toppingsTotal = selectedToppings.reduce((sum, t) => sum + (t.price || 0), 0);
+    const unitPrice = item.price + toppingsTotal;
+    setCartItems((prev) => {
+      // Group only if same item + same toppings
+      const existing = prev.findIndex((ci) =>
+        ci.menu_item_id === item.id &&
+        JSON.stringify(ci.toppings || []) === JSON.stringify(selectedToppings)
+      );
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing].quantity += 1;
+        return updated;
+      }
+      return [...prev, {
+        menu_item_id: item.id,
+        name: item.name,
+        price: unitPrice,
+        base_price: item.price,
+        quantity: 1,
+        toppings: selectedToppings,
+      }];
+    });
+    setToppingItem(null);
   };
 
   const handleUpdateQty = (index, qty) => {
@@ -297,6 +331,13 @@ Total: $${total?.toFixed(2)}${checkoutData.pointsToEarn ? `\n\n🎯 ¡Ganaste ${
           coupons={coupons}
         />
       </div>
+
+      <ToppingSelector
+        item={toppingItem}
+        open={!!toppingItem}
+        onClose={() => setToppingItem(null)}
+        onConfirm={handleConfirmToppings}
+      />
     </div>
   );
 }

@@ -186,6 +186,11 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
             <div key={idx} className="flex items-center gap-3 bg-secondary/50 rounded-lg p-2.5">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{item.name}</p>
+                {item.toppings?.length > 0 && (
+                  <p className="text-[11px] text-primary/80 truncate">
+                    + {item.toppings.map(t => t.name).join(", ")}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">${item.price.toFixed(2)} c/u</p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -339,9 +344,16 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
                 <div className="text-center font-semibold mb-2">TICKET</div>
                 <div className="border-b border-dashed pb-1.5">
                   {items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-[11px]">
-                      <span>{item.name} x{item.quantity}</span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <div key={idx} className="text-[11px]">
+                      <div className="flex justify-between">
+                        <span>{item.name} x{item.quantity}</span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                      {item.toppings?.length > 0 && (
+                        <div className="text-[10px] text-muted-foreground pl-2">
+                          + {item.toppings.map(t => `${t.name} $${t.price.toFixed(2)}`).join(", ")}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

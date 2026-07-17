@@ -72,6 +72,22 @@
       "default": 0,
       "description": "Overhead asignado por platillo (calculado desde gastos operativos)"
     },
+    "available_toppings": {
+      "type": "array",
+      "description": "Extra toppings disponibles para este platillo con su precio",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "default": 0
+          }
+        }
+      }
+    },
     "recipe_items": {
       "type": "array",
       "description": "Ingredientes de esta receta",
