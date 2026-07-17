@@ -37,8 +37,27 @@ function Section({ title, children }) {
   );
 }
 
+const OPEX_LABELS = {
+  commissary: "Comisariato",
+  insurance: "Seguros",
+  electricity: "Electricidad",
+  water: "Agua",
+  gas: "Gas",
+  internet: "Internet",
+  rent: "Renta",
+  indirect_labor: "Labor Indirecto",
+  admin: "Administración",
+  cleaning: "Limpieza",
+  packaging: "Empaque",
+  card_fees: "Comisiones Tarjeta",
+  maintenance: "Mantenimiento",
+  waste: "Merma",
+  other: "Otros",
+};
+
 export default function ProfitLoss({ financials, period, contentRef }) {
-  const { revenue, cogs, grossProfit, grossMargin, opExpenses, operatingIncome, taxes, netIncome, netMargin } = financials;
+  const { revenue, cogs, grossProfit, grossMargin, opExpenses, totalOpEx, operatingIncome, taxes, netIncome, netMargin } = financials;
+  const opexEntries = Object.entries(opExpenses || {}).filter(([, v]) => v > 0);
 
   return (
     <div className="space-y-1" ref={contentRef}>
@@ -74,12 +93,15 @@ export default function ProfitLoss({ financials, period, contentRef }) {
         </div>
       </div>
 
-      <Section title="Operating Expenses (Estimates)">
-        <LineItem label="Labor (est. 30% of revenue)" value={-opExpenses.labor} indent />
-        <LineItem label="Rent & Utilities (est. 10%)" value={-opExpenses.rent} indent />
-        <LineItem label="Marketing (est. 3%)" value={-opExpenses.marketing} indent />
-        <LineItem label="Other (est. 2%)" value={-opExpenses.other} indent />
-        <LineItem label="Total Operating Expenses" value={-(opExpenses.labor + opExpenses.rent + opExpenses.marketing + opExpenses.other)} bold />
+      <Section title="Operating Expenses">
+        {opexEntries.length === 0 ? (
+          <LineItem label="No operating expenses registered" value={0} indent />
+        ) : (
+          opexEntries.map(([cat, val]) => (
+            <LineItem key={cat} label={OPEX_LABELS[cat] || cat} value={-val} indent />
+          ))
+        )}
+        <LineItem label="Total Operating Expenses" value={-(totalOpEx || 0)} bold />
       </Section>
 
       <div className="border rounded-lg overflow-hidden bg-blue-50/50">

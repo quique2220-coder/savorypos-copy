@@ -41,16 +41,14 @@ function Section({ title, icon: Icon, iconColor, children }) {
 }
 
 export default function CashFlow({ financials, dailyRevenue, period, contentRef }) {
-  const { revenue, cogs, opExpenses, taxes, netIncome } = financials;
+  const { revenue, cogs, totalOpEx, taxes, netIncome } = financials;
 
   // Operating Activities
   const cashFromSales = revenue;
   const cashPaidSuppliers = -(cogs * 1.05); // slight lag
-  const cashPaidLabor = -opExpenses.labor;
-  const cashPaidRent = -opExpenses.rent;
-  const cashPaidOther = -(opExpenses.marketing + opExpenses.other);
+  const cashPaidOpEx = -(totalOpEx || 0);
   const taxesPaid = -Math.max(0, taxes * 0.8);
-  const netOperating = cashFromSales + cashPaidSuppliers + cashPaidLabor + cashPaidRent + cashPaidOther + taxesPaid;
+  const netOperating = cashFromSales + cashPaidSuppliers + cashPaidOpEx + taxesPaid;
 
   // Investing Activities
   const equipmentPurchase = -(revenue * 0.03);
@@ -113,9 +111,7 @@ export default function CashFlow({ financials, dailyRevenue, period, contentRef 
           <Section title="Operating Activities" icon={ArrowUpCircle} iconColor="text-emerald-600">
             <LineItem label="Cash from Sales" value={cashFromSales} indent />
             <LineItem label="Paid to Suppliers" value={cashPaidSuppliers} indent />
-            <LineItem label="Labor & Wages" value={cashPaidLabor} indent />
-            <LineItem label="Rent & Utilities" value={cashPaidRent} indent />
-            <LineItem label="Marketing & Other" value={cashPaidOther} indent />
+            <LineItem label="Operating Expenses" value={cashPaidOpEx} indent />
             <LineItem label="Taxes Paid" value={taxesPaid} indent />
             <LineItem label="Net Operating Cash" value={netOperating} bold />
           </Section>
@@ -157,7 +153,7 @@ export default function CashFlow({ financials, dailyRevenue, period, contentRef 
             </div>
             <div className="bg-red-50 rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">Cash Outflows</p>
-              <p className="text-base font-bold text-red-600">${Math.abs(cashPaidSuppliers + cashPaidLabor + cashPaidRent + cashPaidOther + taxesPaid).toFixed(0)}</p>
+              <p className="text-base font-bold text-red-600">${Math.abs(cashPaidSuppliers + cashPaidOpEx + taxesPaid).toFixed(0)}</p>
             </div>
           </div>
         </div>

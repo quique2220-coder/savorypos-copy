@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DollarSign, TrendingUp, ShoppingBag, BarChart3, FileText, Scale, Droplets, HandCoins, List, Telescope } from "lucide-react";
-import { format, subDays, startOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 import ProfitLoss from "@/components/reports/ProfitLoss";
 import SalesDetail from "@/components/reports/SalesDetail";
@@ -47,20 +47,24 @@ const PERIOD_OPTIONS = [
   { label: "Custom Range", value: "custom" },
 ];
 
-function getPeriodRange(period, customStart, customEnd) {
-  const now = new Date();
-  switch (period) {
-    case "7d": return { start: subDays(now, 7), end: now };
-    case "30d": return { start: subDays(now, 30), end: now };
-    case "thisMonth": return { start: startOfMonth(now), end: now };
-    case "lastMonth": return { start: startOfMonth(subMonths(now, 1)), end: endOfMonth(subMonths(now, 1)) };
-    case "3m": return { start: subMonths(now, 3), end: now };
-    case "custom":
-      if (customStart && customEnd) return { start: parseISO(customStart), end: parseISO(customEnd) };
-      return null;
-    default: return null;
-  }
-}
+// OperatingExpense category → display label
+const OPEX_LABELS = {
+  commissary: "Comisariato",
+  insurance: "Seguros",
+  electricity: "Electricidad",
+  water: "Agua",
+  gas: "Gas",
+  internet: "Internet",
+  rent: "Renta",
+  indirect_labor: "Labor Indirecto",
+  admin: "Administración",
+  cleaning: "Limpieza",
+  packaging: "Empaque",
+  card_fees: "Comisiones Tarjeta",
+  maintenance: "Mantenimiento",
+  waste: "Merma",
+  other: "Otros",
+};
 
 export default function Reports() {
   const [period, setPeriod] = useState("7d");
@@ -98,6 +102,11 @@ export default function Reports() {
     queryFn: () => base44.entities.InventoryItem.list(),
   });
 
+  const { data: operatingExpenses = [] } = useQuery({
+    queryKey: ["OperatingExpense"],
+    queryFn: () => base44.entities.OperatingExpense.list(),
+  });
+
   const { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel } = useMemo(() => {
    // Always recalculate range with current date to include today's orders
    const now = new Date();
@@ -116,12 +125,13 @@ export default function Reports() {
        break;
      default: range = null;
    }
-   const allCompleted = orders.filter((o) => o.status === "completed" || o.status === "ready" || o.status === "pending" || o.status === "preparing");
+   // Only count completed orders in revenue (consistent with accounting)
+   const allCompleted = orders.filter((o) => o.status === "completed");
    const completed = range
      ? allCompleted.filter((o) => {
          if (!o.created_date) return false;
          const d = new Date(o.created_date);
-         const end = new Date(range.end); 
+         const end = new Date(range.end);
          end.setHours(23, 59, 59, 999);
          const start = new Date(range.start);
          start.setHours(0, 0, 0, 0);
@@ -129,33 +139,33 @@ export default function Reports() {
        })
      : allCompleted;
 
-    const revenue = completed.reduce((s, o) => s + (o.total || 0), 0);
-    // COGS derived from menu item costs matched to order items
-    let cogsFromItems = 0;
-    completed.forEach((o) => {
-      o.items?.forEach((item) => {
-        const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
-        const cost = menuItem?.cost || item.price * 0.35;
-        cogsFromItems += cost * (item.quantity || 1);
-      });
-    });
-    const cogs = cogsFromItems || revenue * 0.35;
-    const grossProfit = revenue - cogs;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+   const revenue = completed.reduce((s, o) => s + (o.total || 0), 0);
+   // COGS derived from menu item costs matched to order items
+   let cogsFromItems = 0;
+   completed.forEach((o) => {
+     o.items?.forEach((item) => {
+       const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
+       const cost = menuItem?.cost || 0;
+       cogsFromItems += cost * (item.quantity || 1);
+     });
+   });
+   const cogs = cogsFromItems;
+   const grossProfit = revenue - cogs;
+   const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
 
-    const opExpenses = {
-      labor: revenue * 0.3,
-      rent: revenue * 0.1,
-      marketing: revenue * 0.03,
-      other: revenue * 0.02,
-    };
-    const totalOpEx = Object.values(opExpenses).reduce((s, v) => s + v, 0);
-    const operatingIncome = grossProfit - totalOpEx;
-    const taxes = Math.max(0, operatingIncome * 0.25);
-    const netIncome = operatingIncome - taxes;
-    const netMargin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
+   // Real operating expenses from OperatingExpense records (monthly amounts)
+   const opExpenses = {};
+   operatingExpenses.forEach((e) => {
+     const cat = e.category || "other";
+     opExpenses[cat] = (opExpenses[cat] || 0) + (e.amount || 0);
+   });
+   const totalOpEx = Object.values(opExpenses).reduce((s, v) => s + v, 0);
+   const operatingIncome = grossProfit - totalOpEx;
+   const taxes = Math.max(0, operatingIncome * 0.25);
+   const netIncome = operatingIncome - taxes;
+   const netMargin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
 
-    const financials = { revenue, cogs, grossProfit, grossMargin, opExpenses, operatingIncome, taxes, netIncome, netMargin };
+   const financials = { revenue, cogs, grossProfit, grossMargin, opExpenses, totalOpEx, operatingIncome, taxes, netIncome, netMargin };
 
     // Generate daily breakdown based on period selected
     const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -227,7 +237,7 @@ export default function Reports() {
       ? `${customStart} → ${customEnd}`
       : PERIOD_OPTIONS.find((p) => p.value === period)?.label || "All Time";
     return { completed, financials, dailyRevenue, topItems, paymentData, typeData, sourceData, totalTips, periodLabel };
-  }, [orders, menuItems, period, customStart, customEnd]);
+  }, [orders, menuItems, operatingExpenses, period, customStart, customEnd]);
 
   if (isLoading) {
     return (
