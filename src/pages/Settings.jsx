@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Settings2, Store, Receipt, Globe, CreditCard, Check, Truck, MapPin, Image, X } from "lucide-react";
 import AccountProfile from "@/components/account/AccountProfile";
+import UserManagement from "@/components/account/UserManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
@@ -286,6 +287,9 @@ export default function Settings() {
         <div className="space-y-6">
           {/* Account Profile — private per-user */}
           <AccountProfile />
+
+          {/* User Management — admin only */}
+          <UserManagement />
 
           {/* Business Info */}
           <Card>
