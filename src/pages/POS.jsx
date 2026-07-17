@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import OnlineOrderAlert from "@/components/pos/OnlineOrderAlert";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,11 +14,21 @@ import { getConversionFactor } from "@/utils/units";
 import { postSaleEntry } from "@/utils/accountingSync";
 
 export default function POS() {
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem("pos_cart_items");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [activeCategory, setActiveCategory] = useState(null);
   const [search, setSearch] = useState("");
   const [toppingItem, setToppingItem] = useState(null);
   const queryClient = useQueryClient();
+
+  // Persist cart items
+  useEffect(() => {
+    localStorage.setItem("pos_cart_items", JSON.stringify(cartItems));
+  }, [cartItems]);
 
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes"],
@@ -326,6 +336,7 @@ Total: $${total?.toFixed(2)}${checkoutData.pointsToEarn ? `\n\n🎯 ¡Ganaste ${
           onUpdateQty={handleUpdateQty}
           onRemove={handleRemove}
           onCheckout={handleCheckout}
+          onClearCart={() => setCartItems([])}
           isProcessing={createOrder.isPending}
           customers={customers}
           coupons={coupons}

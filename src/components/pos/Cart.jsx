@@ -8,6 +8,14 @@ import { cn } from "@/lib/utils";
 import CustomerLookup from "./CustomerLookup";
 
 const POINTS_PER_DOLLAR = 1;
+const CART_UI_KEY = "pos_cart_ui_state";
+
+const loadSavedUI = () => {
+  try {
+    const saved = localStorage.getItem(CART_UI_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch { return {}; }
+};
 
 function getTaxRate() {
   try {
@@ -30,18 +38,48 @@ const ORDER_SOURCES = [
   { value: "phone", label: "Teléfono" },
 ];
 
-export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProcessing, customers = [], coupons = [] }) {
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [orderType, setOrderType] = useState("dine_in");
-  const [orderSource, setOrderSource] = useState("in_person");
+export default function Cart({ items, onUpdateQty, onRemove, onCheckout, onClearCart, isProcessing, customers = [], coupons = [] }) {
+  const _saved = loadSavedUI();
+  const [paymentMethod, setPaymentMethod] = useState(_saved.paymentMethod || "cash");
+  const [orderType, setOrderType] = useState(_saved.orderType || "dine_in");
+  const [orderSource, setOrderSource] = useState(_saved.orderSource || "in_person");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
-  const [tipPercent, setTipPercent] = useState(0);
-  const [customTip, setCustomTip] = useState("");
+  const [tipPercent, setTipPercent] = useState(_saved.tipPercent || 0);
+  const [customTip, setCustomTip] = useState(_saved.customTip || "");
   const [TAX_RATE, setTaxRate] = useState(getTaxRate());
   const [logoUrl, setLogoUrl] = useState("");
+
+  // Restore customer from saved ID once customers load
+  useEffect(() => {
+    if (_saved.selectedCustomerId && customers.length > 0 && !selectedCustomer) {
+      const found = customers.find(c => c.id === _saved.selectedCustomerId);
+      if (found) setSelectedCustomer(found);
+    }
+  }, [customers]);
+
+  // Restore coupon from saved code once coupons load
+  useEffect(() => {
+    if (_saved.appliedCouponCode && coupons.length > 0 && !appliedCoupon) {
+      const found = coupons.find(c => c.code === _saved.appliedCouponCode);
+      if (found) setAppliedCoupon(found);
+    }
+  }, [coupons]);
+
+  // Persist UI state
+  useEffect(() => {
+    localStorage.setItem(CART_UI_KEY, JSON.stringify({
+      paymentMethod,
+      orderType,
+      orderSource,
+      tipPercent,
+      customTip,
+      selectedCustomerId: selectedCustomer?.id,
+      appliedCouponCode: appliedCoupon?.code,
+    }));
+  }, [paymentMethod, orderType, orderSource, tipPercent, customTip, selectedCustomer, appliedCoupon]);
 
   useEffect(() => {
     const handleStorage = () => setTaxRate(getTaxRate());
@@ -116,13 +154,27 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
       total,
       pointsToEarn,
     });
-    // Reset
+    // Reset UI state
     setSelectedCustomer(null);
     setAppliedCoupon(null);
     setCouponCode("");
     setOrderSource("in_person");
     setTipPercent(0);
     setCustomTip("");
+    localStorage.removeItem(CART_UI_KEY);
+  };
+
+  const handleClearCart = () => {
+    if (items.length === 0) return;
+    if (confirm("¿Vaciar el carrito actual?")) {
+      onClearCart?.();
+      setSelectedCustomer(null);
+      setAppliedCoupon(null);
+      setCouponCode("");
+      setTipPercent(0);
+      setCustomTip("");
+      localStorage.removeItem(CART_UI_KEY);
+    }
   };
 
   return (
@@ -134,9 +186,21 @@ export default function Cart({ items, onUpdateQty, onRemove, onCheckout, isProce
             <ShoppingBag className="w-4 h-4" />
             Orden Actual
           </h2>
-          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-            {items.length} items
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+              {items.length} items
+            </span>
+            {items.length > 0 && (
+              <button
+                onClick={handleClearCart}
+                className="text-xs text-destructive/60 hover:text-destructive transition-colors flex items-center gap-1"
+                title="Vaciar carrito"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Vaciar
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Order type + Source */}
