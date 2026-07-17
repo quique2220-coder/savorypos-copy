@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Settings2, Store, Receipt, Globe, CreditCard, Check, Truck, MapPin, Image, X } from "lucide-react";
+import AccountProfile from "@/components/account/AccountProfile";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
@@ -283,6 +284,9 @@ export default function Settings() {
         </div>
 
         <div className="space-y-6">
+          {/* Account Profile — private per-user */}
+          <AccountProfile />
+
           {/* Business Info */}
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Store className="w-4 h-4" />Información del Negocio</CardTitle></CardHeader>
