@@ -3,11 +3,30 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Try to get current user (manual call). In scheduled mode, no user context.
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {}
 
     const body = await req.json().catch(() => ({}));
     const targetDate = body.date || new Date().toISOString().split('T')[0];
+
+    // Determine recipients: explicit email > current user > all admin users (scheduled mode)
+    let recipients = [];
+    if (body.email) {
+      recipients = [body.email];
+    } else if (user?.email) {
+      recipients = [user.email];
+    } else {
+      const users = await base44.asServiceRole.entities.User.list();
+      recipients = users.filter(u => u.email).map(u => u.email);
+    }
+
+    if (recipients.length === 0) {
+      return Response.json({ error: 'No recipients found' }, { status: 400 });
+    }
 
     // Fetch today's completed orders
     const orders = await base44.asServiceRole.entities.Order.list('-created_date', 500);
@@ -20,8 +39,8 @@ Deno.serve(async (req) => {
       return d >= dayStart && d <= dayEnd;
     });
 
-    // Fetch menu items and ingredients for COGS calculation
-    const menuItems = await base44.asServiceRole.entities.MenuItem.list();
+    // Fetch recipes and ingredients for COGS calculation
+    const recipes = await base44.asServiceRole.entities.Recipe.list();
     const ingredients = await base44.asServiceRole.entities.Ingredient.list();
     const ingMap = Object.fromEntries(ingredients.map(i => [i.id, i]));
 
@@ -35,22 +54,25 @@ Deno.serve(async (req) => {
     let cogs = 0;
     let totalTips = 0;
     const itemCounts = {};
+    const paymentBreakdown = {};
 
     todayOrders.forEach((o) => {
       revenue += o.total || 0;
       totalTips += parseFloat(o.tip) || 0;
+      const m = o.payment_method || 'cash';
+      paymentBreakdown[m] = (paymentBreakdown[m] || 0) + (o.total || 0);
       o.items?.forEach((item) => {
         itemCounts[item.name] = (itemCounts[item.name] || 0) + (item.quantity || 1);
-        const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
-        if (menuItem?.recipe_ingredients) {
-          menuItem.recipe_ingredients.forEach((ri) => {
+        const recipe = recipes.find((r) => r.id === item.menu_item_id);
+        if (recipe?.recipe_items) {
+          recipe.recipe_items.forEach((ri) => {
             const ing = ingMap[ri.ingredient_id];
             if (!ing) return;
             const purchaseQty = ing.purchase_quantity || 1;
             const purchasePrice = ing.purchase_price || 0;
             const yieldPct = (ing.yield_percent || 100) / 100;
             const cpu = purchaseQty > 0 ? (purchasePrice / purchaseQty) / yieldPct : 0;
-            cogs += (ri.cost || cpu * (ri.quantity || 0)) * (item.quantity || 1);
+            cogs += cpu * (ri.quantity || 0) * (item.quantity || 1);
           });
         }
       });
@@ -60,13 +82,6 @@ Deno.serve(async (req) => {
     const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
     const netProfit = grossProfit - dailyOpEx;
     const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-
-    // Payment method breakdown
-    const paymentBreakdown = {};
-    todayOrders.forEach((o) => {
-      const m = o.payment_method || 'cash';
-      paymentBreakdown[m] = (paymentBreakdown[m] || 0) + (o.total || 0);
-    });
 
     // Top items
     const topItems = Object.entries(itemCounts)
@@ -126,23 +141,29 @@ ${topItemsLines}
 ${netProfit >= 0 ? '✅ Turno rentable' : '⚠️ Revisa tus costos'}
 Generado por SavoryPOS`;
 
-    // Send email to the current user
-    let emailSent = false;
-    let emailError = null;
-    if (user.email) {
+    // Send email to all recipients
+    let sentCount = 0;
+    let lastError = null;
+    for (const email of recipients) {
       try {
-        await base44.integrations.Core.SendEmail({
-          to: user.email,
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: email,
           subject: `📊 Resumen del Turno — ${targetDate} — Ingresos $${revenue.toFixed(2)} · Margen ${netMargin.toFixed(1)}%`,
           body: emailBody,
         });
-        emailSent = true;
+        sentCount++;
       } catch (e) {
-        emailError = e.message;
+        lastError = e.message;
       }
     }
 
-    return Response.json({ summary, emailSent, emailError, recipient: user.email });
+    return Response.json({
+      summary,
+      emailSent: sentCount > 0,
+      emailError: lastError,
+      recipients,
+      sentCount,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

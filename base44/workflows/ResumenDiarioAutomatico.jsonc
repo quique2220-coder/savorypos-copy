@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 23 * * *",
+      "one_time_date": null,
+      "timezone": "America/Denver",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Resumen Diario Automatico",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "resumen_diario_automatico",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_summary": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendShiftSummary"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Enviar resumen diario",
+            "description": "Resumen de ventas y m\u00e1rgenes por email"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Env\u00eda autom\u00e1ticamente el resumen de ventas y m\u00e1rgenes por email a todos los administradores al cerrar el turno (11 PM hora local)"
+}
