@@ -24,9 +24,9 @@ const BENCHMARKS = {
 
 // 3 scenarios: conservative, average, optimistic
 const SCENARIOS = [
-  { key: "conservative", label: "Conservador", emoji: "🔴", foodAdj: 0.05, laborAdj: 0.05, overheadAdj: 0.05, desc: "Peor caso — costos más altos, ventas más bajas" },
-  { key: "average",      label: "Promedio",    emoji: "🟡", foodAdj: 0,    laborAdj: 0,    overheadAdj: 0,    desc: "Estimación realista del sector" },
-  { key: "optimistic",   label: "Optimista",   emoji: "🟢", foodAdj:-0.05, laborAdj:-0.05, overheadAdj:-0.05, desc: "Todo sale bien — operación eficiente" },
+  { key: "conservative", label: "Conservador", dotColor: "bg-red-500",    foodAdj: 0.05, laborAdj: 0.05, overheadAdj: 0.05, desc: "Peor caso — costos más altos, ventas más bajas" },
+  { key: "average",      label: "Promedio",    dotColor: "bg-amber-400",   foodAdj: 0,    laborAdj: 0,    overheadAdj: 0,    desc: "Estimación realista del sector" },
+  { key: "optimistic",   label: "Optimista",   dotColor: "bg-emerald-500", foodAdj:-0.05, laborAdj:-0.05, overheadAdj:-0.05, desc: "Todo sale bien — operación eficiente" },
 ];
 
 function NumInput({ label, value, onChange, prefix = "$", suffix, hint, min = 0 }) {
@@ -87,7 +87,10 @@ function ScenarioCard({ scenario, bench, price, daysOpen, salesPerDay, selected,
         <span className="absolute top-3 right-3 text-[10px] font-bold bg-primary text-white px-2 py-0.5 rounded-full">Seleccionado</span>
       )}
       <div>
-        <p className="text-base font-bold">{scenario.emoji} {scenario.label}</p>
+        <p className="text-base font-bold flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${scenario.dotColor}`} />
+          {scenario.label}
+        </p>
         <p className="text-xs text-muted-foreground">{scenario.desc}</p>
       </div>
 
@@ -120,8 +123,8 @@ function ScenarioCard({ scenario, bench, price, daysOpen, salesPerDay, selected,
         isRisk ? "bg-red-50 text-red-600" : isHealthy ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
       }`}>
         Margen: {margin.toFixed(1)}%
-        {isRisk && " 🚨 Riesgo"}
-        {!isRisk && isHealthy && " ✅ Saludable"}
+        {isRisk && <span className="inline-flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Riesgo</span>}
+        {!isRisk && isHealthy && <span className="inline-flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Saludable</span>}
         {!isRisk && !isHealthy && " ⚠️ Ajustable"}
       </div>
 
@@ -146,8 +149,8 @@ function ScenarioCard({ scenario, bench, price, daysOpen, salesPerDay, selected,
 
 export default function StartupMode() {
   const [businessType, setBusinessType] = useState("restaurant");
-  const [price, setPrice] = useState(0);
-  const [salesPerDay, setSalesPerDay] = useState(0);
+  const [price, setPrice] = useState(15);
+  const [salesPerDay, setSalesPerDay] = useState(30);
   const [daysOpen, setDaysOpen] = useState(26);
   const [selectedScenario, setSelectedScenario] = useState("average");
   const [aiTip, setAiTip] = useState("");
@@ -352,8 +355,10 @@ Necesito 3 consejos MUY concretos y prácticos en español para empezar bien mi 
                 Una vez operando, usa el módulo <strong>Break-Even avanzado</strong> con tus costos reales de ingredientes, recetas y payroll. El sistema conectará automáticamente todo.
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
-                {["✅ Registra ventas diarias en el POS", "✅ Carga tus recetas con ingredientes reales", "✅ Ingresa tus gastos operativos", "✅ El sistema calculará food cost real"].map(item => (
-                  <span key={item} className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg">{item}</span>
+                {["Registra ventas diarias en el POS", "Carga tus recetas con ingredientes reales", "Ingresa tus gastos operativos", "El sistema calculará food cost real"].map(item => (
+                  <span key={item} className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> {item}
+                  </span>
                 ))}
               </div>
               <button
