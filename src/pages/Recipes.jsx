@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Pencil, Trash2, ChefHat, Building2, Sparkles } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChefHat, Building2, Sparkles, GitCompare } from "lucide-react";
 import RecipeBuilder from "@/components/costing/RecipeBuilder";
 import OverheadSettings from "@/components/costing/OverheadSettings";
 import QuickRecipeCreator from "@/components/costing/QuickRecipeCreator";
+import MarginComparison from "@/components/costing/MarginComparison";
 import { calcRecipeTotals } from "@/utils/recipeCalculator";
 
 export default function Recipes() {
@@ -17,6 +18,7 @@ export default function Recipes() {
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showOverhead, setShowOverhead] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
   const [monthlyDishes, setMonthlyDishes] = useState(1300);
   const [overheadPerDish, setOverheadPerDish] = useState(0);
   const qc = useQueryClient();
@@ -71,6 +73,9 @@ export default function Recipes() {
             <p className="text-muted-foreground text-sm mt-1">{recipes.length} recetas · cálculo automático de costos</p>
           </div>
           <div className="flex gap-2">
+            <Button variant={showComparison ? "default" : "outline"} onClick={() => setShowComparison(!showComparison)}>
+              <GitCompare className="w-4 h-4 mr-1" /> Comparar Márgenes
+            </Button>
             <Button variant="outline" onClick={() => setShowOverhead(!showOverhead)}>
               <Building2 className="w-4 h-4 mr-1" /> Gastos Operativos
             </Button>
@@ -116,10 +121,19 @@ export default function Recipes() {
           />
         )}
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Buscar platillo..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+        {showComparison ? (
+          <MarginComparison
+            recipes={filtered}
+            ingredients={ingredients}
+            overheadPerDish={overheadPerDish}
+            onPriceUpdate={() => qc.invalidateQueries({ queryKey: ["recipes"] })}
+          />
+        ) : (
+          <>
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Buscar platillo..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
 
         {filtered.length === 0 ? (
           <Card><CardContent className="py-16 text-center text-muted-foreground">
@@ -178,6 +192,8 @@ export default function Recipes() {
               );
             })}
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
