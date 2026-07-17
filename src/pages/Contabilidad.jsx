@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, BookOpen, BarChart3, Scale, CheckSquare, FileText, Undo2, Printer } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, BookOpen, BarChart3, Scale, CheckSquare, FileText, Undo2, Printer, Send } from "lucide-react";
 import JournalForm from "../components/accounting/JournalForm";
 import TrialBalance from "../components/accounting/TrialBalance";
 import IRSDeductibles from "../components/accounting/IRSDeductibles";
 import AccountingStatements from "../components/accounting/AccountingStatements";
+import ShiftSummary from "../components/accounting/ShiftSummary";
 
 const printStyles = `
   @page {
@@ -166,6 +167,7 @@ export default function Contabilidad() {
             <TabsTrigger value="trial" className="gap-1"><Scale className="w-4 h-4" />Balanza Comprobación</TabsTrigger>
             <TabsTrigger value="refunds" className="gap-1"><Undo2 className="w-4 h-4" />Devoluciones</TabsTrigger>
             <TabsTrigger value="irs" className="gap-1"><CheckSquare className="w-4 h-4" />IRS Deducibles</TabsTrigger>
+            <TabsTrigger value="shift" className="gap-1"><Send className="w-4 h-4" />Resumen del Turno</TabsTrigger>
           </TabsList>
 
           {/* DIARIO CONTABLE */}
@@ -367,6 +369,15 @@ export default function Contabilidad() {
           {/* IRS DEDUCIBLES */}
           <TabsContent value="irs">
             <IRSDeductibles />
+          </TabsContent>
+
+          {/* RESUMEN DEL TURNO */}
+          <TabsContent value="shift">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold flex items-center gap-2"><Send className="w-5 h-5 text-primary" />Resumen del Turno</h2>
+              <p className="text-sm text-muted-foreground">Cierra el turno y recibe un resumen de ventas y márgenes por correo electrónico.</p>
+            </div>
+            <ShiftSummary />
           </TabsContent>
         </Tabs>
 
