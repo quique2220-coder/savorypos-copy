@@ -1,0 +1,123 @@
+{
+  "name": "Ingredient",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string",
+      "description": "SKU o c\u00f3digo interno"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda del ingrediente"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "supplier": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "system",
+        "custom"
+      ],
+      "default": "custom"
+    },
+    "purchase_quantity": {
+      "type": "number",
+      "description": "Cantidad por paquete (ej: 12 huevos)"
+    },
+    "purchase_unit": {
+      "type": "string",
+      "enum": [
+        "pcs",
+        "bunch",
+        "g",
+        "kg",
+        "oz",
+        "lb",
+        "ml",
+        "l",
+        "tsp",
+        "tbsp",
+        "cup",
+        "fl_oz",
+        "gallon"
+      ],
+      "default": "pcs"
+    },
+    "purchase_price": {
+      "type": "number",
+      "description": "Precio por paquete"
+    },
+    "base_unit": {
+      "type": "string",
+      "enum": [
+        "pcs",
+        "bunch",
+        "g",
+        "kg",
+        "oz",
+        "lb",
+        "ml",
+        "l",
+        "tsp",
+        "tbsp",
+        "cup",
+        "fl_oz",
+        "gallon"
+      ],
+      "default": "pcs",
+      "description": "Unidad que se usa en recetas"
+    },
+    "yield_percent": {
+      "type": "number",
+      "default": 100,
+      "description": "% aprovechable (0-100)"
+    },
+    "waste_percent": {
+      "type": "number",
+      "default": 0
+    },
+    "calories_per_base_unit": {
+      "type": "number",
+      "default": 0
+    },
+    "protein_per_base_unit": {
+      "type": "number",
+      "default": 0
+    },
+    "carbs_per_base_unit": {
+      "type": "number",
+      "default": 0
+    },
+    "fat_per_base_unit": {
+      "type": "number",
+      "default": 0
+    },
+    "sodium_mg_per_base_unit": {
+      "type": "number",
+      "default": 0
+    },
+    "allergens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

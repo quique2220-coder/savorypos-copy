@@ -1,0 +1,46 @@
+{
+  "name": "InventoryItem",
+  "type": "object",
+  "properties": {
+    "ingredient_id": {
+      "type": "string",
+      "description": "Reference to Ingredient master data"
+    },
+    "name": {
+      "type": "string",
+      "description": "Ingredient name (copied from ingredient)"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit (copied from ingredient base_unit)"
+    },
+    "current_stock": {
+      "type": "number",
+      "description": "Current quantity in stock"
+    },
+    "min_stock": {
+      "type": "number",
+      "description": "Minimum stock threshold for alerts"
+    },
+    "cost_per_unit": {
+      "type": "number",
+      "description": "Cost per base unit (from ingredient)"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Supplier name"
+    },
+    "category": {
+      "type": "string",
+      "description": "Category (from ingredient)"
+    },
+    "last_restocked": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "ingredient_id",
+    "current_stock"
+  ]
+}

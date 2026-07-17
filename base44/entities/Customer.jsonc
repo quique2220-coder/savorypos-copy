@@ -1,0 +1,74 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "birthday": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "total_spent": {
+      "type": "number",
+      "default": 0
+    },
+    "visit_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_visit": {
+      "type": "string",
+      "format": "date"
+    },
+    "avg_ticket": {
+      "type": "number",
+      "default": 0
+    },
+    "loyalty_points": {
+      "type": "number",
+      "default": 0
+    },
+    "opted_in_sms": {
+      "type": "boolean",
+      "default": false
+    },
+    "opted_in_email": {
+      "type": "boolean",
+      "default": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "favorite_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "vip"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -491,7 +491,7 @@ export default function Settings() {
                 {PLANS.map(plan => (
                   <div
                     key={plan.id}
-                    className={`p-4 rounded-xl border-2 transition-all relative ${
+                    className={`p-4 rounded-xl border-2 transition-all relative flex flex-col ${
                       plan.featured
                         ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                         : "border-border hover:border-border"
@@ -554,7 +554,7 @@ export default function Settings() {
                     <Button
                       variant={account && account[0]?.current_plan === plan.id ? "default" : "outline"}
                       size="sm"
-                      className="w-full"
+                      className="w-full mt-auto"
                       disabled={updatePlanMutation.isPending || account && account[0]?.current_plan === plan.id}
                       onClick={() => updatePlanMutation.mutate(plan.id)}
                     >

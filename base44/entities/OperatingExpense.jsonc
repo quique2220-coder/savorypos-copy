@@ -1,0 +1,43 @@
+{
+  "name": "OperatingExpense",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del gasto"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "commissary",
+        "insurance",
+        "electricity",
+        "water",
+        "gas",
+        "internet",
+        "rent",
+        "indirect_labor",
+        "admin",
+        "cleaning",
+        "packaging",
+        "card_fees",
+        "maintenance",
+        "waste",
+        "other"
+      ],
+      "default": "other"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto mensual en USD",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "amount"
+  ]
+}

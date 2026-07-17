@@ -1,0 +1,52 @@
+{
+  "name": "Campaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "sms",
+        "email",
+        "both"
+      ],
+      "default": "sms"
+    },
+    "message": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string",
+      "enum": [
+        "all",
+        "vip",
+        "inactive",
+        "birthday"
+      ],
+      "default": "all"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "scheduled"
+      ],
+      "default": "draft"
+    },
+    "sent_count": {
+      "type": "number",
+      "default": 0
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "name",
+    "message"
+  ]
+}

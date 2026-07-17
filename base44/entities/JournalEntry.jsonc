@@ -1,0 +1,94 @@
+{
+  "name": "JournalEntry",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Transaction date"
+    },
+    "description": {
+      "type": "string",
+      "description": "Transaction description"
+    },
+    "account_dr": {
+      "type": "string",
+      "description": "Debit account (ENTRA DINERO)"
+    },
+    "account_cr": {
+      "type": "string",
+      "description": "Credit account (SALE DINERO)"
+    },
+    "amount_dr": {
+      "type": "number",
+      "description": "Debit amount"
+    },
+    "amount_cr": {
+      "type": "number",
+      "description": "Credit amount"
+    },
+    "account_dr_type": {
+      "type": "string",
+      "enum": [
+        "Asset",
+        "Liability",
+        "Equity",
+        "Income",
+        "Expense"
+      ],
+      "description": "Type of debit account"
+    },
+    "account_cr_type": {
+      "type": "string",
+      "enum": [
+        "Asset",
+        "Liability",
+        "Equity",
+        "Income",
+        "Expense"
+      ],
+      "description": "Type of credit account"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Revenue",
+        "Cost of Sales",
+        "Operating Expense",
+        "Asset",
+        "Liability",
+        "Equity",
+        "Other"
+      ],
+      "default": "Other"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Invoice / receipt reference"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "Cash",
+        "Bank",
+        "Card",
+        "App",
+        "Other"
+      ],
+      "default": "Cash"
+    },
+    "is_irs_deductible": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date",
+    "description",
+    "account_dr",
+    "account_cr"
+  ]
+}

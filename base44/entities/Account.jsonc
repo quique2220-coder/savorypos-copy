@@ -1,0 +1,49 @@
+{
+  "name": "Account",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "description": "Unique username for login"
+    },
+    "password": {
+      "type": "string",
+      "description": "Hashed password (never store plain text)"
+    },
+    "email": {
+      "type": "string"
+    },
+    "business_name": {
+      "type": "string",
+      "description": "Restaurant or business name"
+    },
+    "current_plan": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "growth",
+        "scale"
+      ],
+      "default": "starter",
+      "description": "Current subscription plan"
+    },
+    "plan_expires_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Plan expiration date (for trial or subscription)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer ID for payments"
+    }
+  },
+  "required": [
+    "username",
+    "email",
+    "business_name"
+  ]
+}

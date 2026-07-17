@@ -1,0 +1,84 @@
+{
+  "name": "MenuItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number",
+      "description": "Actual selling price"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Calculated cost per serving from recipe"
+    },
+    "category_id": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "is_available": {
+      "type": "boolean",
+      "default": true
+    },
+    "prep_time_minutes": {
+      "type": "number"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "calories": {
+      "type": "number",
+      "description": "Calories per serving"
+    },
+    "recipe_servings": {
+      "type": "number",
+      "default": 1,
+      "description": "How many servings the recipe makes"
+    },
+    "target_food_cost_pct": {
+      "type": "number",
+      "default": 0.3,
+      "description": "Target food cost % (e.g. 0.30 = 30%)"
+    },
+    "recipe_ingredients": {
+      "type": "array",
+      "description": "Ingredients used in this recipe",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "price_per_unit": {
+            "type": "number"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "calories_per_unit": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "name",
+    "price"
+  ]
+}

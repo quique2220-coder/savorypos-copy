@@ -1,0 +1,67 @@
+{
+  "name": "Refund",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "Reference to the original Order"
+    },
+    "order_number": {
+      "type": "string",
+      "description": "Original order number for reference"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "customer_request",
+        "damaged_item",
+        "wrong_order",
+        "quality_issue",
+        "partial",
+        "other"
+      ],
+      "default": "customer_request"
+    },
+    "refund_type": {
+      "type": "string",
+      "enum": [
+        "full",
+        "partial"
+      ],
+      "default": "full"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Refund amount in USD"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "processed"
+      ],
+      "default": "pending"
+    },
+    "refund_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "card",
+        "store_credit",
+        "replacement"
+      ],
+      "default": "cash"
+    }
+  },
+  "required": [
+    "order_id",
+    "amount"
+  ]
+}
