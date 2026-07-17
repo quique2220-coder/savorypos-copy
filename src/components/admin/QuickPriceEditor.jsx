@@ -31,8 +31,9 @@ export default function QuickPriceEditor() {
       .filter(r => r.is_active !== false)
       .filter(r => !search || r.name?.toLowerCase().includes(search.toLowerCase()))
       .map(r => {
-        const cost = calcMenuItemCost(r, ingMap);
-        const price = pendingPrices[r.id] !== undefined ? pendingPrices[r.id] : r.sale_price;
+        const rawCost = calcMenuItemCost(r, ingMap);
+        const cost = Number(rawCost) || 0;
+        const price = Number(pendingPrices[r.id] !== undefined ? pendingPrices[r.id] : r.sale_price) || 0;
         const margin = price > 0 ? ((price - cost) / price) * 100 : 0;
         const foodCostPct = price > 0 ? (cost / price) * 100 : 0;
         return { ...r, cost, price, margin, foodCostPct };
